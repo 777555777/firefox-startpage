@@ -337,6 +337,33 @@
 		if (!ui.editing) grabbed = null;
 	});
 
+	// Einspaltig liegt rechts und links viel freie Fläche: das Mausrad scrollt dort trotzdem
+	// die Spalte. Elemente, die selbst scrollen (Spalte, Dialoge, Listen), bleiben unberührt.
+	$effect(() => {
+		if (!single) return;
+		const onwheel = (event: WheelEvent) => {
+			if (event.ctrlKey || event.defaultPrevented) return;
+			// deltaY vor deltaMode lesen: Firefox liefert dann Pixel statt Zeilen
+			const delta = event.deltaY;
+			for (let node = event.target as Element | null; node; node = node.parentElement) {
+				if (node.matches('dialog, [popover]')) return;
+				const { overflowY } = getComputedStyle(node);
+				if (/(auto|scroll)/.test(overflowY) && node.scrollHeight > node.clientHeight) return;
+			}
+			const column = board.querySelector<HTMLElement>(':scope > .column');
+			if (!column) return;
+			const unit =
+				event.deltaMode === WheelEvent.DOM_DELTA_LINE
+					? 40
+					: event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+						? column.clientHeight
+						: 1;
+			column.scrollBy({ top: delta * unit });
+		};
+		window.addEventListener('wheel', onwheel, { passive: true });
+		return () => window.removeEventListener('wheel', onwheel);
+	});
+
 	// --- Spaltenbreiten: Trenner im Edit-Modus ziehen oder per Pfeiltasten verschieben -------
 	// Breiten rasten im 24er-Raster ein; mit Shift wird die Gegenseite gespiegelt.
 

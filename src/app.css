@@ -98,7 +98,7 @@
 	--text-md: 0.9375rem;
 	--text-lg: 1.125rem;
 	--text-xl: 1.5rem;
-	--text-display: clamp(3rem, 2.2rem + 3vw, 4.75rem);
+	--text-display: 4.75rem;
 
 	/* Bewegung */
 	--ease-out: cubic-bezier(0.22, 1, 0.36, 1);

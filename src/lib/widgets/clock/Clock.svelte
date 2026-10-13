@@ -43,10 +43,23 @@
 			period: all.find((p) => p.type === 'dayPeriod')?.value ?? ''
 		};
 	});
+
+	/**
+	 * Ungefähre Breite der Uhrzeit in em: Ziffern sind gleich breit, Sekunden und AM/PM kleiner.
+	 * Daraus ergibt sich die Schriftgröße, bei der sie gerade in das Panel passt.
+	 */
+	const widthEm = $derived(
+		parts.main.length * 0.6 + (parts.seconds ? 0.7 : 0) + (parts.period ? 0.95 : 0)
+	);
 </script>
 
 <div class="clock">
-	<time class="time" datetime={now.toISOString()} aria-label={t('clock.label')}>
+	<time
+		class="time"
+		style:--width-em={widthEm}
+		datetime={now.toISOString()}
+		aria-label={t('clock.label')}
+	>
 		<span class="main">{parts.main}</span>
 		{#if parts.seconds}<span class="seconds">{parts.seconds}</span>{/if}
 		{#if parts.period}<span class="period">{parts.period}</span>{/if}
@@ -57,7 +70,9 @@
 </div>
 
 <style>
+	/* Schriftgröße folgt der Breite des Panels, nicht des Fensters */
 	.clock {
+		container-type: inline-size;
 		display: grid;
 		gap: var(--space-1);
 		padding: var(--space-2) var(--space-1);
@@ -67,7 +82,7 @@
 		display: flex;
 		align-items: baseline;
 		gap: 0.12em;
-		font-size: var(--text-display);
+		font-size: clamp(1.75rem, calc(100cqi / var(--width-em)), var(--text-display));
 		font-weight: 300;
 		line-height: 1;
 		letter-spacing: -0.035em;

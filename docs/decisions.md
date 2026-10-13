@@ -228,3 +228,8 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   mehreren Widgets passen oft wieder nebeneinander.
 - **Leere Spalten** werden außerhalb des Edit-Modus nicht gerendert. Sonst rückte ihr Abstand die
   darunterliegende Spalte nach unten, wenn beide zusammengelegt sind.
+- **Mausrad neben der Spalte:** Ist alles zu einer Spalte zusammengelegt, scrollt das Mausrad
+  auch über der freien Fläche daneben die Spalte. Elemente, die selbst scrollen (Dialoge, Menüs,
+  Listen), behalten ihr eigenes Scrollen.
+- **Uhr skaliert mit dem Panel:** Die Schriftgröße der Uhrzeit folgt per Container Query der
+  Panelbreite (höchstens 4,75 rem), statt der Fensterbreite. So ragt sie in schmalen Zeilen nicht heraus.
