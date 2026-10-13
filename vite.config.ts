@@ -24,8 +24,23 @@ function manifest(): Plugin {
 	};
 }
 
+/** Dev-Server: `/` zeigt direkt die Newtab-Page */
+function devIndex(): Plugin {
+	return {
+		name: 'startpage-dev-index',
+		apply: 'serve',
+		configureServer(server) {
+			server.middlewares.use((req, _res, next) => {
+				if (req.url === '/' || req.url?.startsWith('/?'))
+					req.url = '/newtab.html' + req.url.slice(1);
+				next();
+			});
+		}
+	};
+}
+
 export default defineConfig({
-	plugins: [svelte(), manifest()],
+	plugins: [svelte(), manifest(), devIndex()],
 	resolve: {
 		alias: { $lib: fileURLToPath(new URL('./src/lib', import.meta.url)) }
 	},
