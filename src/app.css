@@ -33,7 +33,8 @@
 
 	/* Text auf Glas; die dunkle Variante gilt nachts (`data-tone='dark'`, siehe unten) */
 	--text: #0c1f33;
-	--text-secondary: rgb(12 31 51 / 0.68);
+	/* 78 % Deckkraft: auf der hellsten erlaubten Glasfläche noch AA (siehe contrast.test.ts) */
+	--text-secondary: rgb(12 31 51 / 0.78);
 	--text-tertiary: rgb(12 31 51 / 0.5);
 	--danger: #c3253b;
 	--holiday: #b4182f;
@@ -169,7 +170,7 @@
 @property --text-secondary {
 	syntax: '<color>';
 	inherits: true;
-	initial-value: rgb(12 31 51 / 0.68);
+	initial-value: rgb(12 31 51 / 0.78);
 }
 
 :root {

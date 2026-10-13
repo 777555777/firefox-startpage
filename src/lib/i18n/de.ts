@@ -133,13 +133,19 @@ export const de = {
 	'quality.low': 'Niedrig',
 	'quality.static': 'Statisch (ohne WebGL)',
 	'settings.qualityAuto':
-		'„Automatisch“ beginnt mit „Hoch“. Das selbstständige Herunterstufen auf langsamen Rechnern kommt mit dem nächsten Meilenstein.',
+		'Misst beim ersten Start kurz, wie flüssig das Glas läuft, und stuft bei Ruckeln herunter. Die Stufe wird für diesen Rechner gemerkt.',
+	'render.frameTime': '{ms} ms pro Bild',
+	'render.remeasure': 'Neu messen',
+	'render.autoStatic':
+		'Die Automatik hat auf „Statisch“ heruntergestuft, weil das Glas hier nicht flüssig lief.',
 	'render.current': 'Aktuelle Darstellung',
 	'render.webgl': 'WebGL-Glas, Stufe „{level}“',
 	'render.static': 'Statisch (CSS, ohne WebGL)',
 	'render.fps': '{fps} Bilder pro Sekunde',
 	'render.onDemand': 'Zeichnet nur bei Änderungen',
 	'render.unavailable': 'WebGL2 ist hier nicht verfügbar, deshalb wird statisch gezeichnet.',
+	'render.unstable':
+		'Der Grafikkontext ist mehrfach verloren gegangen. Bis zum Neuladen wird statisch gezeichnet.',
 	'render.lost':
 		'Der Grafikkontext ist verloren gegangen. Bis er zurückkommt, wird statisch gezeichnet.',
 
@@ -148,6 +154,11 @@ export const de = {
 	'debug.realTime': 'Echte Zeit',
 	'debug.reset': 'Zurücksetzen',
 	'debug.close': 'Debug-Panel schließen',
+	'debug.frameTime': 'Frame-Zeit',
+	'debug.contrast': 'Kontrast prüfen',
+	'debug.contrastText': 'Text',
+	'debug.contrastSecondary': 'Sekundär',
+	'debug.loseContext': 'Kontextverlust auslösen',
 
 	'settings.engines': 'Suchmaschinen',
 	'settings.enginesHint':

@@ -66,6 +66,8 @@ export type CompositeInput = {
 	shadow: Rgb;
 	scrim: number;
 	params: GlassParams;
+	/** Mauslicht in Gerätepixeln; `amount` 0 = aus */
+	pointer: { x: number; y: number; amount: number };
 };
 
 type Layer = { source: SceneSource; texture: WebGLTexture | null };
@@ -126,7 +128,7 @@ export class GlassRenderer {
 		gl.bindVertexArray(this.#surfaceVao);
 		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 		gl.bufferData(gl.ARRAY_BUFFER, MAX_SURFACES * FLOATS_PER_SURFACE * 4, gl.DYNAMIC_DRAW);
-		for (let location = 0; location < 3; location++) {
+		for (let location = 0; location < 4; location++) {
 			gl.enableVertexAttribArray(location);
 			gl.vertexAttribPointer(location, 4, gl.FLOAT, false, FLOATS_PER_SURFACE * 4, location * 16);
 			gl.vertexAttribDivisor(location, 1);
@@ -331,6 +333,13 @@ export class GlassRenderer {
 			gl.uniform1f(p.u('uShadowOpacity'), params.shadowOpacity);
 			gl.uniform1f(p.u('uShadowBlur'), params.shadowBlur);
 			gl.uniform1f(p.u('uShadowOffset'), params.shadowOffset);
+			gl.uniform2f(p.u('uPointer'), input.pointer.x, input.pointer.y);
+			gl.uniform1f(p.u('uPointerAmount'), quality?.pointerLight ? input.pointer.amount : 0);
+			gl.uniform1f(p.u('uPointerRadius'), params.pointerRadius);
+			gl.uniform1f(p.u('uPointerInfluence'), params.pointerInfluence);
+			gl.uniform1f(p.u('uPointerGlow'), params.pointerGlow);
+			gl.uniform1f(p.u('uHoverLift'), params.hoverLift);
+			gl.uniform1f(p.u('uPressDepth'), params.pressDepth);
 
 			gl.bindVertexArray(this.#surfaceVao);
 			gl.bindBuffer(gl.ARRAY_BUFFER, this.#instanceBuffer);

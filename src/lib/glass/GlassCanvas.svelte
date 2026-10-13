@@ -4,6 +4,7 @@
 	import { getApp } from '$lib/state/context';
 	import { ui } from '$lib/state/ui.svelte';
 	import { GlassController } from './controller';
+	import { glassDebug } from './debug';
 	import { glassLayer } from './layer';
 	import { glassParams, QUALITY_PRESETS, type RenderLevel } from './params.svelte';
 	import { renderState } from './render-state.svelte';
@@ -13,7 +14,7 @@
 	 * Vollflächiges WebGL-Canvas hinter dem DOM (§7.1). Fällt WebGL aus oder geht der Kontext
 	 * verloren, übernimmt die Static-Darstellung, bis er wiederhergestellt ist.
 	 */
-	let { level }: { level: RenderLevel } = $props();
+	let { level, auto }: { level: RenderLevel; auto: boolean } = $props();
 
 	const app = getApp();
 	const timeOfDay = app.timeOfDay;
@@ -38,7 +39,13 @@
 					renderState.mode = 'webgl';
 					renderState.failure = null;
 				},
-				onfps: (fps) => (renderState.fps = fps)
+				onfps: (fps) => (renderState.fps = fps),
+				onmeasure: (ms) => (renderState.frameMs = ms),
+				ondowngrade: (next) => renderState.setAutoLevel(next),
+				onstable: (ms) => {
+					renderState.frameMs = ms;
+					if (renderState.level) renderState.setAutoLevel(renderState.level);
+				}
 			});
 		} catch (error) {
 			console.warn('WebGL-Glas nicht verfügbar, nutze Static-Stufe', error);
@@ -47,22 +54,31 @@
 			return;
 		}
 		controller = instance;
+		if (import.meta.env.DEV) glassDebug.controller = instance;
 		return () => {
 			instance.dispose();
 			controller = null;
+			if (import.meta.env.DEV) glassDebug.controller = null;
 			renderState.mode = 'static';
 			renderState.fps = 0;
 		};
 	});
 
+	/** Nach so vielen Verlusten in einer Sitzung bleibt es bei Static */
+	const MAX_LOSSES = 3;
+	let losses = 0;
+
 	// Kontextverlust: statisch weiter, bei Wiederherstellung neu aufbauen
 	$effect(() => {
 		const onLost = (event: Event) => {
 			event.preventDefault();
-			renderState.failure = 'lost';
+			losses++;
 			renderState.mode = 'static';
+			renderState.failure = losses >= MAX_LOSSES ? 'unstable' : 'lost';
 		};
-		const onRestored = () => generation++;
+		const onRestored = () => {
+			if (losses < MAX_LOSSES) generation++;
+		};
 		canvas.addEventListener('webglcontextlost', onLost);
 		canvas.addEventListener('webglcontextrestored', onRestored);
 		return () => {
@@ -77,6 +93,13 @@
 			controller.quality = QUALITY_PRESETS[level];
 			controller.markScene();
 		}
+	});
+
+	// Automatik: beim allerersten Mal (oder nach „Neu messen“) kurz durchgehend messen
+	$effect(() => {
+		if (!controller) return;
+		const probe = renderState.autoLevel === null;
+		controller.setAuto(auto ? level : null, auto && probe);
 	});
 
 	// Eingaben für Szene und Glas
@@ -94,6 +117,7 @@
 			tint: timeOfDay.glassTint,
 			tone: tone === 'dark' ? 1 : 0,
 			light: timeOfDay.light,
+			pointerLight: appearance.pointerLight,
 			// Wie `--shade` im CSS
 			shadow: tone === 'dark' ? [0, 4, 16] : [8, 34, 66]
 		};

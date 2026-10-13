@@ -130,13 +130,19 @@ export const en: Dictionary = {
 	'quality.low': 'Low',
 	'quality.static': 'Static (no WebGL)',
 	'settings.qualityAuto':
-		'“Automatic” starts at “High”. Stepping down on its own on slow computers comes with the next milestone.',
+		'Briefly measures how smoothly the glass runs on first start and steps down if it stutters. The level is remembered for this computer.',
+	'render.frameTime': '{ms} ms per frame',
+	'render.remeasure': 'Measure again',
+	'render.autoStatic':
+		'Automatic stepped down to “Static” because the glass did not run smoothly here.',
 	'render.current': 'Current rendering',
 	'render.webgl': 'WebGL glass, level “{level}”',
 	'render.static': 'Static (CSS, no WebGL)',
 	'render.fps': '{fps} frames per second',
 	'render.onDemand': 'Only draws when something changes',
 	'render.unavailable': 'WebGL2 is not available here, so the static level is used.',
+	'render.unstable':
+		'The graphics context was lost several times. The static level is used until the page is reloaded.',
 	'render.lost': 'The graphics context was lost. The static level is used until it comes back.',
 
 	'debug.title': 'Glass debug',
@@ -144,6 +150,11 @@ export const en: Dictionary = {
 	'debug.realTime': 'Real time',
 	'debug.reset': 'Reset',
 	'debug.close': 'Close debug panel',
+	'debug.frameTime': 'Frame time',
+	'debug.contrast': 'Check contrast',
+	'debug.contrastText': 'Text',
+	'debug.contrastSecondary': 'Secondary',
+	'debug.loseContext': 'Trigger context loss',
 
 	'settings.engines': 'Search engines',
 	'settings.enginesHint':

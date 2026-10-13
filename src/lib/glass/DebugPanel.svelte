@@ -3,6 +3,8 @@
 	import { getApp } from '$lib/state/context';
 	import { formatMinutes, minutesOf } from '$lib/theme/phase';
 	import Icon from '$lib/ui/Icon.svelte';
+	import { AA_NORMAL } from '$lib/theme/contrast';
+	import { glassDebug, measureContrast, type ContrastResult } from './debug';
 	import { GLASS_RANGES, glassParams, resetGlassParams, type GlassParams } from './params.svelte';
 	import { renderState } from './render-state.svelte';
 
@@ -16,6 +18,23 @@
 
 	const keys = Object.keys(GLASS_RANGES) as (keyof GlassParams)[];
 	const realTime = $derived(timeOfDay.override === null);
+	let contrast = $state<ContrastResult[]>([]);
+
+	function checkContrast() {
+		const controller = glassDebug.controller;
+		contrast = controller ? measureContrast(controller, timeOfDay.tone) : [];
+	}
+
+	/** Simuliert einen Kontextverlust; nach 1,5 s kommt der Kontext zurück */
+	function loseContext() {
+		const gl = glassDebug.controller?.renderer.gl;
+		const extension = gl?.getExtension('WEBGL_lose_context');
+		if (!extension) return;
+		extension.loseContext();
+		setTimeout(() => extension.restoreContext(), 1500);
+	}
+
+	const ratio = (value: number) => `${value.toFixed(1)} : 1`;
 </script>
 
 <aside class="debug glass" aria-label={t('debug.title')}>
@@ -26,6 +45,12 @@
 		</button>
 		<span class="stats">
 			{renderState.mode}{renderState.level ? ` · ${renderState.level}` : ''} · {renderState.fps} fps
+		</span>
+	</header>
+	<header>
+		<span class="stats">
+			{t('debug.frameTime')}: {renderState.frameMs?.toFixed(1) ?? '–'} ms · auto: {renderState.autoLevel ??
+				'–'}
 		</span>
 	</header>
 
@@ -66,6 +91,31 @@
 				</label>
 			{/each}
 
+			<div class="row">
+				<button type="button" class="btn" onclick={checkContrast}>{t('debug.contrast')}</button>
+				<button type="button" class="btn" onclick={loseContext}>{t('debug.loseContext')}</button>
+			</div>
+			{#if contrast.length > 0}
+				<table>
+					<thead>
+						<tr>
+							<th></th>
+							<th>{t('debug.contrastText')}</th>
+							<th>{t('debug.contrastSecondary')}</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each contrast as result, i (i)}
+							<tr>
+								<td>{result.name}</td>
+								<td class:fail={result.primary < AA_NORMAL}>{ratio(result.primary)}</td>
+								<td class:fail={result.secondary < AA_NORMAL}>{ratio(result.secondary)}</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			{/if}
+
 			<button type="button" class="btn" onclick={resetGlassParams}>{t('debug.reset')}</button>
 		</div>
 	{/if}
@@ -79,7 +129,7 @@
 		z-index: 900;
 		width: 280px;
 		max-height: calc(100vh - 24px);
-		overflow: auto;
+		overflow: hidden auto;
 		padding: var(--space-3);
 		border-radius: var(--radius-md);
 		font-size: var(--text-xs);
@@ -128,5 +178,22 @@
 
 	input[type='range'] {
 		width: 100%;
+	}
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		font-variant-numeric: tabular-nums;
+
+		th,
+		td {
+			padding: 2px 4px;
+			text-align: start;
+		}
+	}
+
+	.fail {
+		color: var(--danger);
+		font-weight: 700;
 	}
 </style>

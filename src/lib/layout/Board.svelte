@@ -2,7 +2,7 @@
 	import { createId } from '$lib/config/parse';
 	import type { WidgetInstance, WidgetType } from '$lib/config/types';
 	import { Sortable, type Point } from '$lib/dnd/sortable.svelte';
-	import { layoutRect } from '$lib/dnd/spring';
+	import { layoutRect, prefersReducedMotion } from '$lib/dnd/spring';
 	import { t } from '$lib/i18n/index.svelte';
 	import { getApp } from '$lib/state/context';
 	import { toasts } from '$lib/state/toasts.svelte';
@@ -275,7 +275,10 @@
 			);
 		});
 		const panel = document.querySelector(`[data-grip="${CSS.escape(id)}"]`);
-		panel?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+		panel?.scrollIntoView({
+			block: 'nearest',
+			behavior: prefersReducedMotion() ? 'auto' : 'smooth'
+		});
 		focusGrip(id);
 	}
 

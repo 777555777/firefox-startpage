@@ -233,3 +233,33 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   Listen), behalten ihr eigenes Scrollen.
 - **Uhr skaliert mit dem Panel:** Die Schriftgröße der Uhrzeit folgt per Container Query der
   Panelbreite (höchstens 4,75 rem), statt der Fensterbreite. So ragt sie in schmalen Zeilen nicht heraus.
+
+## M6 – Feinschliff
+
+- **Mauslicht:** In der Nähe des Zeigers dreht die Lichtrichtung der Glanzkanten dezent zum Zeiger
+  (Gauß-Abfall, Reichweite ~240 px), dazu ein leichter Randschimmer. Die Position folgt dem Zeiger
+  mit einer Glättung (~90 ms). Aus bei Reduced Motion, auf der Stufe Niedrig, wenn der Zeiger das
+  Fenster verlässt, hinter Dialogen und wenn „Lichtreflex folgt der Maus“ abgeschaltet ist.
+- **Hover/Press:** Jede Glasfläche hat einen Zustand von -1 (eingedrückt) bis 1 (angehoben), der
+  als Instanz-Attribut an den Shader geht. Anheben verstärkt Schatten und Glanz, Eindrücken
+  verringert Schatten und Refraktion und dunkelt minimal ab. Eingedrückt wird nur beim Drücken
+  auf die Glasfläche selbst. Klicks auf Links, Buttons oder Eingabefelder lassen das Panel in Ruhe.
+- **Automatische Qualität:** Gemessen wird der Abstand zwischen Frames, die direkt aufeinander
+  folgen sollten (Animationen, Mauslicht, Überblendungen). Frames im Takt des Himmels oder nach
+  Pausen zählen nicht, Abstände über 250 ms auch nicht. Entschieden wird erst, wenn Messungen
+  ~1,5 s des 2-s-Fensters abdecken. Die langsamsten 10 % bleiben außen vor, damit einzelne Ruckler
+  (GC, Laden) nicht herunterstufen. Beim allerersten Start (und nach „Neu messen“) wird ~2 s lang
+  durchgehend gezeichnet und gemessen. Danach wird die stabile Stufe pro Rechner in
+  `localStorage` gemerkt (`startpage:quality`), nicht in der Config, weil sie zum Rechner gehört
+  und nicht exportiert werden soll. Hochgestuft wird nur über „Neu messen“ in den Einstellungen.
+- **Kontrast:** Die adaptive Aufhellung erreicht die Grenzwerte jetzt genau (bezogen auf die
+  Helligkeit der Glasfarbe, vorher nur zu 90 %). Die Mindesthelligkeit unter heller UI ist von
+  0,62 auf 0,66 gestiegen, die sekundäre Textfarbe hat 78 % statt 68 % Deckkraft. So erreicht auch
+  sekundärer Text auf der dunkelsten erlaubten Glasfläche AA (4,7:1). Unit-Tests prüfen das gegen
+  Grau als ungünstigsten Hintergrund. Für die manuelle Prüfung mit Testbildern misst das
+  Debug-Panel die gezeichneten Glasflächen jedes Panels und zeigt den schlechtesten Kontrast.
+  Die Static-Stufe (CSS) kann nicht adaptiv aufhellen. Dort bleibt es bei der manuellen Prüfung.
+- **Kontextverlust:** Nach drei Verlusten in einer Sitzung bleibt es bis zum Neuladen bei Static,
+  statt immer wieder neu aufzubauen. Das Debug-Panel kann einen Verlust auslösen.
+- **Reduced Motion:** Zusätzlich zu Video, Himmel und Federn: kein Mauslicht, Hover/Press ohne
+  Übergang, `scrollIntoView` ohne Animation. Eine Änderung der Systemeinstellung wirkt sofort.

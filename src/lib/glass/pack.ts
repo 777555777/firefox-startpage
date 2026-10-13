@@ -6,8 +6,11 @@
 /** Höchstzahl gleichzeitig gezeichneter Flächen (§7.1) */
 export const MAX_SURFACES = 64;
 
-/** rect (x, y, w, h), clip (x0, y0, x1, y1), params (radius, depth, opacity, variant) */
-export const FLOATS_PER_SURFACE = 12;
+/**
+ * rect (x, y, w, h), clip (x0, y0, x1, y1), params (radius, depth, opacity, variant),
+ * state (lift, frei, frei, frei)
+ */
+export const FLOATS_PER_SURFACE = 16;
 
 export const VARIANTS = { panel: 0, popover: 1, button: 2 } as const;
 export type GlassVariant = keyof typeof VARIANTS;
@@ -23,6 +26,10 @@ export type SurfaceSnapshot = {
 	depth: number;
 	opacity: number;
 	variant: GlassVariant;
+	/** Interaktion: 1 = angehoben (Hover), -1 = eingedrückt, 0 = Ruhe */
+	lift?: number;
+	/** Zuordnung zur Fläche, z. B. das Element */
+	key?: unknown;
 };
 
 export function intersect(a: Box, b: Box): Box {
@@ -78,6 +85,10 @@ export function packSurfaces(
 		out[o + 9] = Math.min(1, Math.max(0, surface.depth));
 		out[o + 10] = Math.min(1, surface.opacity);
 		out[o + 11] = VARIANTS[surface.variant];
+		out[o + 12] = Math.min(1, Math.max(-1, surface.lift ?? 0));
+		out[o + 13] = 0;
+		out[o + 14] = 0;
+		out[o + 15] = 0;
 		count++;
 	}
 	return { data: out, count };

@@ -1,13 +1,18 @@
 <script lang="ts">
 	import type { Quality } from '$lib/config/types';
 	import { renderState } from '$lib/glass/render-state.svelte';
-	import { t } from '$lib/i18n/index.svelte';
+	import { i18n, t } from '$lib/i18n/index.svelte';
 	import { getApp } from '$lib/state/context';
 
 	const app = getApp();
 	const id = $props.id();
 	const qualities: Quality[] = ['auto', 'high', 'medium', 'low', 'static'];
 	const quality = $derived(app.config.value.appearance.quality);
+	const frameMs = $derived(
+		renderState.frameMs === null
+			? null
+			: new Intl.NumberFormat(i18n.lang, { maximumFractionDigits: 1 }).format(renderState.frameMs)
+	);
 </script>
 
 <div class="section">
@@ -30,14 +35,30 @@
 				{t('render.webgl', { level: t(`quality.${renderState.level}`) })}
 				<span class="detail">
 					{renderState.fps > 0 ? t('render.fps', { fps: renderState.fps }) : t('render.onDemand')}
+					{#if quality === 'auto' && frameMs}
+						· {t('render.frameTime', { ms: frameMs })}
+					{/if}
 				</span>
 			{:else}
 				{t('render.static')}
 			{/if}
 		</p>
+		{#if quality === 'auto' && renderState.autoLevel === 'static'}
+			<p class="field-hint">{t('render.autoStatic')}</p>
+		{/if}
+		{#if quality === 'auto'}
+			<button
+				type="button"
+				class="btn remeasure"
+				disabled={renderState.autoLevel === null}
+				onclick={() => renderState.setAutoLevel(null)}
+			>
+				{t('render.remeasure')}
+			</button>
+		{/if}
 		{#if quality !== 'static' && renderState.failure}
 			<p class="field-hint warning">
-				{t(renderState.failure === 'lost' ? 'render.lost' : 'render.unavailable')}
+				{t(`render.${renderState.failure}`)}
 			</p>
 		{/if}
 	</div>
@@ -65,6 +86,10 @@
 		font-weight: 500;
 		color: var(--text-secondary);
 		font-variant-numeric: tabular-nums;
+	}
+
+	.remeasure {
+		justify-self: start;
 	}
 
 	.warning {

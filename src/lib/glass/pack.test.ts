@@ -19,8 +19,14 @@ describe('Glasflächen packen', () => {
 		const { data, count } = packSurfaces([surface()], viewport, 2, 40);
 		expect(count).toBe(1);
 		expect([...data.slice(0, FLOATS_PER_SURFACE)]).toEqual([
-			200, 100, 600, 400, 0, 0, 2000, 1600, 48, 1, 1, 0
+			200, 100, 600, 400, 0, 0, 2000, 1600, 48, 1, 1, 0, 0, 0, 0, 0
 		]);
+	});
+
+	it('übernimmt den Interaktionszustand, begrenzt auf -1 … 1', () => {
+		const { data } = packSurfaces([surface({ lift: 0.5 }), surface({ lift: -3 })], viewport, 1, 0);
+		expect(data[12]).toBe(0.5);
+		expect(data[FLOATS_PER_SURFACE + 12]).toBe(-1);
 	});
 
 	it('begrenzt den Radius auf die halbe Kante', () => {

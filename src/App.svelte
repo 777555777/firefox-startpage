@@ -26,14 +26,15 @@
 	const config = $derived(app.config.value);
 	/** Debug-Panel für das Glas, nur im Dev-Build */
 	const debug = import.meta.env.DEV && new URLSearchParams(location.search).has('debug');
-	/** Gewünschte WebGL-Stufe; „Automatisch“ beginnt auf Hoch, `null` = Static */
-	const level = $derived<RenderLevel | null>(
-		config.appearance.quality === 'static'
-			? null
-			: config.appearance.quality === 'auto'
-				? 'high'
-				: config.appearance.quality
-	);
+	const auto = $derived(config.appearance.quality === 'auto');
+	/**
+	 * Gewünschte WebGL-Stufe, `null` = Static. „Automatisch“ beginnt mit der zuletzt stabilen
+	 * Stufe dieses Rechners, beim ersten Mal mit Hoch.
+	 */
+	const level = $derived.by<RenderLevel | null>(() => {
+		const quality = auto ? (renderState.autoLevel ?? 'high') : config.appearance.quality;
+		return quality === 'static' || quality === 'auto' ? null : quality;
+	});
 
 	$effect.pre(() => {
 		i18n.setting = config.language;
@@ -114,8 +115,8 @@
 
 <svelte:window {onkeydown} />
 
-{#if level && renderState.failure !== 'unavailable'}
-	<GlassCanvas {level} />
+{#if level && renderState.failure !== 'unavailable' && renderState.failure !== 'unstable'}
+	<GlassCanvas {level} {auto} />
 {/if}
 {#if renderState.mode === 'static'}
 	<StaticBackground />

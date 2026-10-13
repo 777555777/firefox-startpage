@@ -18,11 +18,11 @@ export const GLASS_DEFAULTS = {
 	/** Anteil der Glasfarbe (Tönung) */
 	tint: 0.16,
 	/** Helle UI: Mindesthelligkeit unter der Fläche, damit dunkle Schrift Kontrast hat */
-	minLuminance: 0.62,
+	minLuminance: 0.66,
 	/** Dunkle UI: Höchsthelligkeit unter der Fläche, damit helle Schrift Kontrast hat */
 	maxLuminance: 0.22,
-	/** Wie stark die adaptive Aufhellung bzw. Abdunklung greift */
-	adaptive: 0.9,
+	/** Wie stark die adaptive Aufhellung bzw. Abdunklung greift (1 = Grenzwert wird sicher erreicht) */
+	adaptive: 1,
 	/** Schimmer entlang des Randes (Fresnel) */
 	fresnel: 0.2,
 	/** Glanzlicht an der Kante zur Lichtquelle */
@@ -38,6 +38,13 @@ export const GLASS_DEFAULTS = {
 	shadowOffset: 14,
 	/** Abdunklung der Szene hinter Dialogen */
 	scrim: 0.4,
+	/** Mauslicht: Reichweite in px, Anteil an der Lichtrichtung, zusätzlicher Randschimmer */
+	pointerRadius: 240,
+	pointerInfluence: 0.7,
+	pointerGlow: 0.3,
+	/** Stärke von Anheben (Hover) und Eindrücken (Press) */
+	hoverLift: 1,
+	pressDepth: 1,
 	/** Geschwindigkeit des Himmelsverlaufs */
 	skySpeed: 1
 };
@@ -70,6 +77,11 @@ export const GLASS_RANGES: Record<keyof GlassParams, [min: number, max: number, 
 	shadowBlur: [0, 80, 1],
 	shadowOffset: [0, 40, 1],
 	scrim: [0, 1, 0.05],
+	pointerRadius: [40, 800, 10],
+	pointerInfluence: [0, 1, 0.05],
+	pointerGlow: [0, 1, 0.01],
+	hoverLift: [0, 3, 0.1],
+	pressDepth: [0, 3, 0.1],
 	skySpeed: [0, 10, 0.1]
 };
 
@@ -84,11 +96,35 @@ export type QualityPreset = {
 	dispersion: boolean;
 	/** Bildrate für Video; 0 = nativ */
 	videoFps: number;
+	/** Lichtreflex folgt der Maus */
+	pointerLight: boolean;
 };
 
 /** Qualitätsstufen aus §7.4 */
 export const QUALITY_PRESETS: Record<RenderLevel, QualityPreset> = {
-	high: { maxDpr: 2, sceneScale: 1, refraction: true, dispersion: true, videoFps: 0 },
-	medium: { maxDpr: 2, sceneScale: 0.5, refraction: true, dispersion: false, videoFps: 30 },
-	low: { maxDpr: 1, sceneScale: 0.5, refraction: false, dispersion: false, videoFps: 24 }
+	high: {
+		maxDpr: 2,
+		sceneScale: 1,
+		refraction: true,
+		dispersion: true,
+		videoFps: 0,
+		pointerLight: true
+	},
+	medium: {
+		maxDpr: 2,
+		sceneScale: 0.5,
+		refraction: true,
+		dispersion: false,
+		videoFps: 30,
+		pointerLight: true
+	},
+	// Nur Frost und Rand-Glanz, kein Mauslicht
+	low: {
+		maxDpr: 1,
+		sceneScale: 0.5,
+		refraction: false,
+		dispersion: false,
+		videoFps: 24,
+		pointerLight: false
+	}
 };
