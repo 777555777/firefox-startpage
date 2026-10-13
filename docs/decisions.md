@@ -43,3 +43,28 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
 - **Link-URLs** ohne Schema (`example.org`) werden zu `https://…` ergänzt. `javascript:`, `data:`
   und `vbscript:` werden verworfen.
 - **Dev-Server:** `/` liefert direkt `newtab.html`.
+
+## M2 – Layout und Edit-Modus
+
+- **Widget-Settings ändern:** Widgets und ihre Einstellungs-Komponenten bekommen statt
+  `onchange(s)` eine Funktion `update(mutate)`, die die gespeicherte Instanz direkt ändert. Das passt
+  besser zu Svelte-5-Proxys und spart Kopien großer Link-Boards. Registry-Icons sind `IconName`s aus
+  der eigenen Icon-Sammlung statt Komponenten.
+- **Tastatur-DnD** läuft über den Griff-Button des Panels (im Edit-Modus fokussierbar), nicht über
+  das Panel selbst. So gibt es keinen zusätzlichen Tab-Stopp. `Leertaste`/`Enter` greift und legt ab,
+  Pfeile verschieben (links/rechts wechselt die gespeicherte Spalte), `Esc` bricht ab. Ein Fokus-
+  wechsel nach außen legt ab. Ansagen laufen über eine `aria-live`-Region.
+- **Live-Umsortierung:** Beim Ziehen wird der Zustand sofort umsortiert, die übrigen Elemente weichen
+  per FLIP-Feder aus. Ein Abbruch (`Esc`) stellt die Ausgangsposition wieder her. Ablageziele wie
+  Tab-Reiter werden über `sortable.target()` angebunden.
+- **Responsives Zusammenlegen** fasst benachbarte gespeicherte Spalten untereinander in einer
+  sichtbaren Spalte zusammen. Jede gespeicherte Spalte bleibt ein eigener Ablagebereich mit eigenem
+  „+ Widget“.
+- **Menüs und Popover** nutzen die Popover-API (Top-Layer), weil Glas-Panels mit `backdrop-filter`
+  sonst `position: fixed` einfangen würden.
+- **Einstellungen:** Die Abschnitte „Hintergrund“ (M4) und „Suche“ (M3) kommen mit ihren
+  Meilensteinen dazu. Die Qualitätsstufe ist schon wählbar. Bis M5 wird immer die Static-Stufe
+  gerendert, ein Hinweis im Dialog sagt das.
+- **Default-Akzent** ist `#1872d6` statt eines helleren Blaus, damit weißer Text darauf AA erreicht.
+  Text auf dem Akzent ist Weiß, solange es AA erreicht, sonst die kontrastreichere Variante.
+- `Esc` verlässt den Edit-Modus, wenn kein Dialog offen ist und nichts gegriffen ist.

@@ -16,7 +16,7 @@ import type {
 export const CONFIG_VERSION = 1;
 
 /** Sattes Aero-Blau */
-export const DEFAULT_ACCENT = '#1e7fe0';
+export const DEFAULT_ACCENT = '#1872d6';
 
 export const ACCENT_PRESETS = [
 	{ id: 'blue', color: DEFAULT_ACCENT },
