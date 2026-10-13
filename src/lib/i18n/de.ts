@@ -83,7 +83,6 @@ export const de = {
 	'settings.frost': 'Glas-Frost',
 	'settings.frostClear': 'Klar',
 	'settings.frostMilky': 'Milchig',
-	'settings.pointerLight': 'Lichtreflex folgt der Maus',
 
 	'background.main': 'Haupt-Hintergrund',
 	'background.mainHint':

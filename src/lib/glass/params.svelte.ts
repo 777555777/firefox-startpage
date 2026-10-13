@@ -38,13 +38,6 @@ export const GLASS_DEFAULTS = {
 	shadowOffset: 14,
 	/** Abdunklung der Szene hinter Dialogen */
 	scrim: 0.4,
-	/** Mauslicht: Reichweite in px, Anteil an der Lichtrichtung, zusätzlicher Randschimmer */
-	pointerRadius: 240,
-	pointerInfluence: 0.7,
-	pointerGlow: 0.3,
-	/** Stärke von Anheben (Hover) und Eindrücken (Press) */
-	hoverLift: 1,
-	pressDepth: 1,
 	/** Geschwindigkeit des Himmelsverlaufs */
 	skySpeed: 1
 };
@@ -77,11 +70,6 @@ export const GLASS_RANGES: Record<keyof GlassParams, [min: number, max: number, 
 	shadowBlur: [0, 80, 1],
 	shadowOffset: [0, 40, 1],
 	scrim: [0, 1, 0.05],
-	pointerRadius: [40, 800, 10],
-	pointerInfluence: [0, 1, 0.05],
-	pointerGlow: [0, 1, 0.01],
-	hoverLift: [0, 3, 0.1],
-	pressDepth: [0, 3, 0.1],
 	skySpeed: [0, 10, 0.1]
 };
 
@@ -96,8 +84,6 @@ export type QualityPreset = {
 	dispersion: boolean;
 	/** Bildrate für Video; 0 = nativ */
 	videoFps: number;
-	/** Lichtreflex folgt der Maus */
-	pointerLight: boolean;
 };
 
 /** Qualitätsstufen aus §7.4 */
@@ -107,24 +93,21 @@ export const QUALITY_PRESETS: Record<RenderLevel, QualityPreset> = {
 		sceneScale: 1,
 		refraction: true,
 		dispersion: true,
-		videoFps: 0,
-		pointerLight: true
+		videoFps: 0
 	},
 	medium: {
 		maxDpr: 2,
 		sceneScale: 0.5,
 		refraction: true,
 		dispersion: false,
-		videoFps: 30,
-		pointerLight: true
+		videoFps: 30
 	},
-	// Nur Frost und Rand-Glanz, kein Mauslicht
+	// Nur Frost und Rand-Glanz
 	low: {
 		maxDpr: 1,
 		sceneScale: 0.5,
 		refraction: false,
 		dispersion: false,
-		videoFps: 24,
-		pointerLight: false
+		videoFps: 24
 	}
 };

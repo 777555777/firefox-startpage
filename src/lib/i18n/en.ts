@@ -82,7 +82,6 @@ export const en: Dictionary = {
 	'settings.frost': 'Glass frost',
 	'settings.frostClear': 'Clear',
 	'settings.frostMilky': 'Milky',
-	'settings.pointerLight': 'Light reflection follows the pointer',
 
 	'background.main': 'Main background',
 	'background.mainHint':

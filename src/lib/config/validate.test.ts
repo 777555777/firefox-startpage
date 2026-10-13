@@ -41,7 +41,6 @@ describe('parseConfig', () => {
 				accent: 'blau',
 				glass: { frost: 3 },
 				quality: 'ultra',
-				pointerLight: 'ja',
 				timeOfDay: { phaseStart: { morning: -5, day: 'zehn', evening: 5000 } }
 			}
 		});
@@ -52,7 +51,6 @@ describe('parseConfig', () => {
 		expect(config.appearance.accent).toBe(DEFAULT_ACCENT);
 		expect(config.appearance.glass.frost).toBe(1);
 		expect(config.appearance.quality).toBe('auto');
-		expect(config.appearance.pointerLight).toBe(true);
 		expect(config.appearance.timeOfDay.phaseStart).toEqual({
 			morning: 0,
 			day: 600,

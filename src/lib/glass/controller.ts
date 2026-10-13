@@ -10,15 +10,9 @@ import { GlassRenderer, type SceneInput, type SceneSource } from './renderer';
 const SKY_INTERVAL = 1000 / 15;
 /** Dauer, in der der Scrim hinter Dialogen ein- bzw. ausblendet */
 const SCRIM_MS = 260;
-/** Zeitkonstanten der Glättung: Mauslicht folgt weich, Hover/Press etwas direkter */
-const POINTER_TAU = 90;
-const LIFT_TAU = 70;
 /** Messung beim allerersten Start mit „Automatisch“: kurz warten, dann ~2 s durchgehend zeichnen */
 const PROBE_DELAY = 500;
 const PROBE_MS = 2200;
-
-/** Elemente, deren Drücken nicht die ganze Glasfläche eindrückt */
-const INTERACTIVE = 'a, button, input, select, textarea, label, [role="button"], [contenteditable]';
 
 export type GlassInputs = {
 	scene: Omit<SceneInput, 'time'>;
@@ -27,8 +21,6 @@ export type GlassInputs = {
 	tone: number;
 	light: [number, number];
 	shadow: Rgb;
-	/** Lichtreflex folgt der Maus (Einstellung) */
-	pointerLight: boolean;
 };
 
 type Callbacks = {
@@ -42,13 +34,9 @@ type Callbacks = {
 	onmeasure: (frameMs: number) => void;
 };
 
-/** Exponentielle Annäherung an `target` über die Zeit `dt` mit Zeitkonstante `tau` */
-const approach = (value: number, target: number, dt: number, tau: number) =>
-	target + (value - target) * Math.exp(-dt / tau);
-
 /**
  * Render-Schleife: zeichnet nur, wenn sich etwas ändert (Rects, Eingaben, Video-Frame,
- * Überblendung, Animation, Mauslicht). Der Himmel tickt mit ~15 fps, im unsichtbaren Tab steht
+ * Überblendung, Animation). Der Himmel tickt mit ~15 fps, im unsichtbaren Tab steht
  * alles. Mit „Automatisch“ wird die Frame-Zeit gemessen und bei Bedarf heruntergestuft.
  */
 export class GlassController {
@@ -77,13 +65,6 @@ export class GlassController {
 	#surfaceData = new Float32Array(MAX_SURFACES * FLOATS_PER_SURFACE);
 	#cleanup: (() => void)[] = [];
 
-	// Mauslicht und Hover/Press
-	#pointerTarget = { x: 0, y: 0, inside: false };
-	#pointer = { x: 0, y: 0, amount: 0 };
-	#hovered: Element | null = null;
-	#pressed: Element | null = null;
-	#lifts = new Map<unknown, number>();
-
 	// Automatische Qualität
 	#auto: AutoQuality | null = null;
 	/** Der nächste Frame folgt direkt auf den vorigen; nur dann ist sein Abstand eine Messung */
@@ -105,27 +86,6 @@ export class GlassController {
 			this.#sceneDirty = true;
 			this.requestFrame();
 		};
-		const onPointerMove = (event: PointerEvent) => {
-			this.#pointerTarget = { x: event.clientX, y: event.clientY, inside: true };
-			const hovered = (event.target as Element | null)?.closest?.('[data-glass]') ?? null;
-			if (hovered !== this.#hovered) this.#hovered = hovered;
-			this.requestFrame();
-		};
-		const onPointerLeave = () => {
-			this.#pointerTarget.inside = false;
-			this.#hovered = null;
-			this.requestFrame();
-		};
-		const onPointerDown = (event: PointerEvent) => {
-			const target = event.target as Element | null;
-			if (!target?.closest || target.closest(INTERACTIVE)) return;
-			this.#pressed = target.closest('[data-glass]');
-			this.requestFrame();
-		};
-		const onPointerUp = () => {
-			this.#pressed = null;
-			this.requestFrame();
-		};
 		// Reduced Motion kann sich zur Laufzeit ändern (Systemeinstellung)
 		const motion = matchMedia('(prefers-reduced-motion: reduce)');
 		const onMotion = () => {
@@ -134,19 +94,9 @@ export class GlassController {
 		};
 
 		document.addEventListener('visibilitychange', onVisibility);
-		window.addEventListener('pointermove', onPointerMove, { passive: true });
-		document.documentElement.addEventListener('pointerleave', onPointerLeave);
-		window.addEventListener('pointerdown', onPointerDown, { passive: true });
-		window.addEventListener('pointerup', onPointerUp, { passive: true });
-		window.addEventListener('pointercancel', onPointerUp, { passive: true });
 		motion.addEventListener('change', onMotion);
 		this.#cleanup.push(() => {
 			document.removeEventListener('visibilitychange', onVisibility);
-			window.removeEventListener('pointermove', onPointerMove);
-			document.documentElement.removeEventListener('pointerleave', onPointerLeave);
-			window.removeEventListener('pointerdown', onPointerDown);
-			window.removeEventListener('pointerup', onPointerUp);
-			window.removeEventListener('pointercancel', onPointerUp);
 			motion.removeEventListener('change', onMotion);
 		});
 		this.requestFrame();
@@ -155,7 +105,7 @@ export class GlassController {
 	/**
 	 * Schaltet die Automatik ein (mit der aktuellen Stufe) oder aus. `probe` misst nach dem
 	 * Start einmal ~2 s durchgehend, sonst wird nur gemessen, wenn ohnehin fortlaufend
-	 * gezeichnet wird (Animationen, Mauslicht).
+	 * gezeichnet wird (Animationen, Überblendungen).
 	 */
 	setAuto(level: AutoLevel | null, probe: boolean) {
 		if (!level) {
@@ -233,10 +183,11 @@ export class GlassController {
 		const inputs = this.inputs;
 		if (!inputs || document.hidden || this.renderer.gl.isContextLost()) return;
 		const reducedMotion = prefersReducedMotion();
-		const dt = Math.min(100, now - (this.#lastFrame || now - 16));
+		const interval = now - (this.#lastFrame || now - 16);
+		const dt = Math.min(100, interval);
 
 		// Frame-Zeit messen, wenn dieser Frame direkt auf den vorigen folgen sollte
-		if (chained && this.#auto) this.#measure(dt, now);
+		if (chained && this.#auto) this.#measure(interval, now);
 		const probing = this.#auto !== null && now < this.#probeUntil;
 
 		// Größe in Gerätepixeln, begrenzt durch die Qualitätsstufe
@@ -278,59 +229,8 @@ export class GlassController {
 			composite = true;
 		}
 
-		// Mauslicht folgt dem Zeiger weich; aus bei Reduced Motion, niedriger Stufe oder Einstellung
-		const pointerOn =
-			inputs.pointerLight &&
-			this.quality.pointerLight &&
-			!reducedMotion &&
-			this.#pointerTarget.inside &&
-			this.scrimTarget === 0;
-		const pointer = this.#pointer;
-		const target = this.#pointerTarget;
-		const before = { ...pointer };
-		if (pointer.amount === 0 && pointerOn) {
-			// Erstes Erscheinen: an der Zeigerposition beginnen, nicht von oben links hereinziehen
-			pointer.x = target.x;
-			pointer.y = target.y;
-		}
-		pointer.x = approach(pointer.x, target.x, dt, POINTER_TAU);
-		pointer.y = approach(pointer.y, target.y, dt, POINTER_TAU);
-		pointer.amount = approach(pointer.amount, pointerOn ? 1 : 0, dt, POINTER_TAU * 2);
-		if (Math.abs(pointer.amount - (pointerOn ? 1 : 0)) < 0.01) pointer.amount = pointerOn ? 1 : 0;
-		const pointerMoving =
-			Math.hypot(pointer.x - target.x, pointer.y - target.y) > 0.5 &&
-			(pointer.amount > 0 || pointerOn);
-		const pointerChanged =
-			pointer.amount > 0 &&
-			(Math.abs(pointer.x - before.x) > 0.1 ||
-				Math.abs(pointer.y - before.y) > 0.1 ||
-				pointer.amount !== before.amount);
-		if (pointerChanged || before.amount !== pointer.amount) composite = true;
-
 		const { surfaces, changed } = glassLayer.sync();
 		if (changed) composite = true;
-
-		// Hover hebt an, Drücken drückt ein; ohne Bewegung (Reduced Motion) sofort
-		let liftsMoving = false;
-		for (const surface of surfaces) {
-			const element = surface.key as Element;
-			const goal =
-				element === this.#pressed
-					? -1
-					: element === this.#hovered && this.scrimTarget === 0
-						? 1
-						: 0;
-			const current = this.#lifts.get(element) ?? 0;
-			let next = reducedMotion ? goal : approach(current, goal, dt, LIFT_TAU);
-			if (Math.abs(next - goal) < 0.005) next = goal;
-			if (next !== current) {
-				composite = true;
-				if (next !== goal) liftsMoving = true;
-			}
-			if (next === 0) this.#lifts.delete(element);
-			else this.#lifts.set(element, next);
-			surface.lift = next;
-		}
 
 		if (composite) {
 			const scale = width / Math.max(1, this.#canvas.clientWidth);
@@ -353,8 +253,7 @@ export class GlassController {
 				light: inputs.light,
 				shadow: inputs.shadow,
 				scrim: this.#scrim,
-				params: glassParams,
-				pointer: { x: pointer.x * scale, y: pointer.y * scale, amount: pointer.amount }
+				params: glassParams
 			});
 			this.#compositeDirty = false;
 			this.#countFrame(now);
@@ -370,9 +269,6 @@ export class GlassController {
 			glassLayer.animating ||
 			this.renderer.isFading(now) ||
 			this.#scrim !== this.scrimTarget ||
-			pointerMoving ||
-			pointer.amount !== (pointerOn ? 1 : 0) ||
-			liftsMoving ||
 			probing;
 		if (continuous) {
 			this.#chained = true;

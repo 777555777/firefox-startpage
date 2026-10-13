@@ -44,8 +44,7 @@ export function defaultAppearance(): AppearanceConfig {
 		glass: { frost: 0.5 },
 		background: { main: null, slots: {}, fit: 'cover', focus: { x: 0.5, y: 0.5 } },
 		timeOfDay: { grading: true, phaseStart: { ...DEFAULT_PHASE_START } },
-		quality: 'auto',
-		pointerLight: true
+		quality: 'auto'
 	};
 }
 

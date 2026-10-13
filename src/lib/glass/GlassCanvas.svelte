@@ -117,7 +117,6 @@
 			tint: timeOfDay.glassTint,
 			tone: tone === 'dark' ? 1 : 0,
 			light: timeOfDay.light,
-			pointerLight: appearance.pointerLight,
 			// Wie `--shade` im CSS
 			shadow: tone === 'dark' ? [0, 4, 16] : [8, 34, 66]
 		};

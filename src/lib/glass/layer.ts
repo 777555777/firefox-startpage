@@ -146,8 +146,7 @@ class GlassLayer {
 					radius: surface.radius,
 					depth: options.depth ?? 1,
 					opacity: options.opacity ?? 1,
-					variant: options.variant ?? 'panel',
-					key: surface.element
+					variant: options.variant ?? 'panel'
 				};
 			}
 			this.#rectsDirty = false;

@@ -91,8 +91,7 @@ function parseAppearance(raw: unknown): AppearanceConfig {
 				])
 			) as Record<DayPhase, number>
 		},
-		quality: oneOf(r.quality, ['auto', 'high', 'medium', 'low', 'static'], d.quality),
-		pointerLight: bool(r.pointerLight, d.pointerLight)
+		quality: oneOf(r.quality, ['auto', 'high', 'medium', 'low', 'static'], d.quality)
 	};
 }
 

@@ -3,7 +3,6 @@
 	import { t } from '$lib/i18n/index.svelte';
 	import { getApp } from '$lib/state/context';
 	import Icon from '$lib/ui/Icon.svelte';
-	import Switch from '$lib/ui/Switch.svelte';
 
 	const app = getApp();
 	const appearance = $derived(app.config.value.appearance);
@@ -55,11 +54,6 @@
 			<span>{t('settings.frostMilky')}</span>
 		</div>
 	</div>
-
-	<Switch
-		label={t('settings.pointerLight')}
-		bind:checked={app.config.value.appearance.pointerLight}
-	/>
 </div>
 
 <style>

@@ -65,12 +65,10 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
 
 ## Ab M6
 
-- [ ] Mauslicht: Glanzkante folgt dem Zeiger dezent, aus mit „Lichtreflex folgt der Maus“
-- [ ] Hover hebt Panels leicht an, Drücken auf die Glasfläche drückt sie ein (nicht bei Links)
-- [ ] Reduced Motion (System-Einstellung): Video steht, Himmel steht, kein Mauslicht, keine Federn
+- [ ] Reduced Motion (System-Einstellung): Video steht, Himmel steht, keine Federn
 - [ ] Leistung → Automatisch: nach „Neu messen“ ~2 s Messung, Stufe und ms pro Bild sichtbar
 - [ ] Performance auf beiden Rechnern notieren (Privat, MacBook M4 Pro), mit Video und Bild:
-      Stufe nach „Neu messen“, ms pro Bild beim Bewegen der Maus
+      Stufe und ms pro Bild nach „Neu messen“
 - [ ] Kontrast: `pnpm dev`, `?debug`, je ein helles und ein dunkles Testbild, Uhrzeit-Regler
       Mittag und Nacht, „Kontrast prüfen“ zeigt überall mindestens 4,5:1
 - [ ] Kontextverlust im Debug-Panel auslösen: kurz Static, danach wieder WebGL

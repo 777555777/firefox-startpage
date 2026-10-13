@@ -71,7 +71,6 @@ export type AppearanceConfig = {
 	background: BackgroundConfig;
 	timeOfDay: TimeOfDayConfig;
 	quality: Quality;
-	pointerLight: boolean;
 };
 
 export type SearchEngine = {

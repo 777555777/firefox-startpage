@@ -197,7 +197,6 @@ export const SURFACE_VS = /* glsl */ `#version 300 es
 layout(location = 0) in vec4 aRect;
 layout(location = 1) in vec4 aClip;
 layout(location = 2) in vec4 aParams;
-layout(location = 3) in vec4 aState;
 
 uniform vec2 uViewport;
 uniform float uMargin;
@@ -206,7 +205,6 @@ out vec2 vPos;
 flat out vec4 vRect;
 flat out vec4 vClip;
 flat out vec4 vParams;
-flat out vec4 vState;
 
 void main() {
 	vec2 corner = vec2(gl_VertexID & 1, (gl_VertexID >> 1) & 1);
@@ -215,7 +213,6 @@ void main() {
 	vRect = aRect;
 	vClip = aClip;
 	vParams = aParams;
-	vState = aState;
 	vec2 clip = pos / uViewport * 2.0 - 1.0;
 	gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
 }
@@ -229,7 +226,6 @@ in vec2 vPos;
 flat in vec4 vRect;
 flat in vec4 vClip;
 flat in vec4 vParams;
-flat in vec4 vState;
 out vec4 outColor;
 
 uniform sampler2D uScene;
@@ -264,15 +260,6 @@ uniform float uShadowOpacity;
 uniform float uShadowBlur;
 uniform float uShadowOffset;
 
-// Mauslicht: Position in Gerätepixeln, Stärke 0 … 1 (0 = aus)
-uniform vec2 uPointer;
-uniform float uPointerAmount;
-uniform float uPointerRadius;
-uniform float uPointerInfluence;
-uniform float uPointerGlow;
-uniform float uHoverLift;
-uniform float uPressDepth;
-
 float sdRoundRect(vec2 p, vec2 halfSize, float r) {
 	vec2 q = abs(p) - halfSize + r;
 	return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
@@ -299,19 +286,15 @@ void main() {
 	float radius = vParams.x;
 	float depth = vParams.y;
 	float opacity = vParams.z;
-	// Hover hebt an (mehr Schatten, stärkerer Glanz), Drücken drückt ein
-	float raise = max(vState.x, 0.0) * uHoverLift;
-	float press = max(-vState.x, 0.0) * uPressDepth;
 	vec2 halfSize = 0.5 * vRect.zw;
 	vec2 p = vPos - (vRect.xy + halfSize);
 	float d = sdRoundRect(p, halfSize, radius);
 
 	// Weicher Kontaktschatten, etwas nach unten versetzt
-	float blur = max(uShadowBlur * uDpr * mix(0.5, 1.0, depth) * (1.0 + 0.25 * raise), 1.0);
-	float lift = max(1.0 + 0.4 * raise - 0.55 * press, 0.1);
-	vec2 shadowP = p - vec2(0.0, uShadowOffset * uDpr * mix(0.4, 1.0, depth) * lift);
+	float blur = max(uShadowBlur * uDpr * mix(0.5, 1.0, depth), 1.0);
+	vec2 shadowP = p - vec2(0.0, uShadowOffset * uDpr * mix(0.4, 1.0, depth));
 	float ds = sdRoundRect(shadowP, max(halfSize - blur * 0.25, vec2(1.0)), radius);
-	float shadow = uShadowOpacity * depth * lift * (1.0 - smoothstep(-blur * 0.6, blur, ds));
+	float shadow = uShadowOpacity * depth * (1.0 - smoothstep(-blur * 0.6, blur, ds));
 
 	float coverage = clamp(0.5 - d, 0.0, 1.0);
 	if (coverage <= 0.0) {
@@ -336,7 +319,7 @@ void main() {
 	vec2 n = dot(grad, grad) > 1e-6 ? normalize(grad) : vec2(0.0, -1.0);
 
 	// Refraktion: am Rand zeigt das Glas die Umgebung, mit Farbsäumen (Dispersion)
-	vec2 offset = n * slope * uRefraction * uDpr * mix(0.5, 1.0, depth) * (1.0 - 0.3 * press);
+	vec2 offset = n * slope * uRefraction * uDpr * mix(0.5, 1.0, depth);
 	vec3 color;
 	if (uDispersion > 0.0 && slope > 0.01) {
 		color = vec3(
@@ -360,17 +343,9 @@ void main() {
 	float darken = clamp((l - uMaxLuminance) / max(l - lt, 1e-3), 0.0, 1.0);
 	color = mix(color, uTint, mix(lighten, darken, uTone) * uAdaptive);
 
-	// Licht aus der Tageszeit; in der Nähe des Mauszeigers dreht es dezent zum Zeiger
-	vec2 toPointer = uPointer - vPos;
-	float pointerDistance = length(toPointer);
-	float radiusPx = max(uPointerRadius * uDpr, 1.0);
-	float near = uPointerAmount * exp(-(pointerDistance * pointerDistance) / (2.0 * radiusPx * radiusPx));
-	vec2 pointerDir = pointerDistance > 0.5 ? toPointer / pointerDistance : vec2(0.0, -1.0);
-	vec2 light = normalize(mix(uLight, pointerDir, clamp(near * uPointerInfluence, 0.0, 1.0)) + 1e-5);
-
-	// Glanz an der Kante zur Lichtquelle, schwächer gegenüber, Fresnel rundum
-	float lit = dot(n, light);
-	float glare = mix(1.0, 0.45, uTone) * (1.0 + 0.5 * raise);
+	// Licht: Glanz an der Kante zur Lichtquelle, schwächer gegenüber, Fresnel rundum
+	float lit = dot(n, uLight);
+	float glare = mix(1.0, 0.45, uTone);
 	float spec = pow(max(lit, 0.0), uSpecularPower) + 0.2 * pow(max(-lit, 0.0), uSpecularPower);
 	color += vec3(uSpecular * spec * rim * rim * glare);
 	color += vec3(uFresnel * rim * (0.6 + 0.4 * lit) * glare);
@@ -378,12 +353,6 @@ void main() {
 	// Feine Lichtkante direkt am Rand
 	float line = 1.0 - smoothstep(0.0, 1.5 * uDpr, -d);
 	color += vec3(uEdgeLine * line * (0.5 + 0.5 * max(lit, 0.0)) * glare);
-
-	// Randschimmer direkt beim Mauszeiger
-	color += vec3(uPointerGlow * near * rim * max(dot(n, pointerDir), 0.0) * glare);
-
-	// Eingedrückt wirkt die Fläche minimal dunkler
-	color *= 1.0 - 0.05 * press;
 
 	// Weicher Schimmer im oberen Bereich
 	float top = (vPos.y - vRect.y) / max(min(vRect.w, 240.0 * uDpr), 1.0);

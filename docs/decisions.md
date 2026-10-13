@@ -236,16 +236,13 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
 
 ## M6 – Feinschliff
 
-- **Mauslicht:** In der Nähe des Zeigers dreht die Lichtrichtung der Glanzkanten dezent zum Zeiger
-  (Gauß-Abfall, Reichweite ~240 px), dazu ein leichter Randschimmer. Die Position folgt dem Zeiger
-  mit einer Glättung (~90 ms). Aus bei Reduced Motion, auf der Stufe Niedrig, wenn der Zeiger das
-  Fenster verlässt, hinter Dialogen und wenn „Lichtreflex folgt der Maus“ abgeschaltet ist.
-- **Hover/Press:** Jede Glasfläche hat einen Zustand von -1 (eingedrückt) bis 1 (angehoben), der
-  als Instanz-Attribut an den Shader geht. Anheben verstärkt Schatten und Glanz, Eindrücken
-  verringert Schatten und Refraktion und dunkelt minimal ab. Eingedrückt wird nur beim Drücken
-  auf die Glasfläche selbst. Klicks auf Links, Buttons oder Eingabefelder lassen das Panel in Ruhe.
+- **Kein Mauslicht, kein Hover/Press (Abweichung von §7.2 Punkt 6 und §8):** Beides war gebaut,
+  hat im Alltag aber zu sehr abgelenkt. Ein Klick auf ein Panel löst außerdem keine Aktion aus,
+  das Eindrücken hätte also nichts angekündigt. Die Lichtrichtung folgt nur der Tageszeit. Die
+  Einstellung „Lichtreflex folgt der Maus“ und das Config-Feld `appearance.pointerLight` sind
+  entfallen. Ein noch gespeichertes Feld wird beim Laden ignoriert, die Schema-Version bleibt 2.
 - **Automatische Qualität:** Gemessen wird der Abstand zwischen Frames, die direkt aufeinander
-  folgen sollten (Animationen, Mauslicht, Überblendungen). Frames im Takt des Himmels oder nach
+  folgen sollten (Animationen, Ziehen, Überblendungen). Frames im Takt des Himmels oder nach
   Pausen zählen nicht, Abstände über 250 ms auch nicht. Entschieden wird erst, wenn Messungen
   ~1,5 s des 2-s-Fensters abdecken. Die langsamsten 10 % bleiben außen vor, damit einzelne Ruckler
   (GC, Laden) nicht herunterstufen. Beim allerersten Start (und nach „Neu messen“) wird ~2 s lang
@@ -261,5 +258,5 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   Die Static-Stufe (CSS) kann nicht adaptiv aufhellen. Dort bleibt es bei der manuellen Prüfung.
 - **Kontextverlust:** Nach drei Verlusten in einer Sitzung bleibt es bis zum Neuladen bei Static,
   statt immer wieder neu aufzubauen. Das Debug-Panel kann einen Verlust auslösen.
-- **Reduced Motion:** Zusätzlich zu Video, Himmel und Federn: kein Mauslicht, Hover/Press ohne
-  Übergang, `scrollIntoView` ohne Animation. Eine Änderung der Systemeinstellung wirkt sofort.
+- **Reduced Motion:** Zusätzlich zu Video, Himmel und Federn scrollt auch `scrollIntoView` ohne
+  Animation. Eine Änderung der Systemeinstellung wirkt sofort.
