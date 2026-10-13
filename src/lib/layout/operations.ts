@@ -1,108 +1,162 @@
-import type { ColumnCount } from '$lib/config/types';
+import type { ColumnCount, LayoutRow } from '$lib/config/types';
 
 /**
- * Reine Funktionen auf dem Layout. Sie verändern die Eingabe nie, sondern liefern
- * eine neue Spaltenaufteilung.
+ * Reine Funktionen auf dem Layout. Sie verändern die Eingabe nie, sondern liefern eine neue
+ * Aufteilung. Das Layout besteht aus Spalten, jede Spalte aus Zeilen, jede Zeile aus 1 bis 3
+ * Widgets nebeneinander. Alle Breiten folgen einem 24er-Raster.
  */
 
 export const COLUMN_COUNTS: readonly ColumnCount[] = [1, 2, 3, 4];
 
-export type Position = { column: number; index: number };
-
-export function clampColumns(value: number): ColumnCount {
-	return Math.min(4, Math.max(1, Math.round(value))) as ColumnCount;
-}
-
-/**
- * Ändert die Spaltenzahl. Neue Spalten sind leer. Fallen Spalten weg, landen ihre Widgets
- * in Reihenfolge am Ende der letzten verbleibenden Spalte.
- */
-export function setColumnCount(columnItems: string[][], count: ColumnCount): string[][] {
-	const next = Array.from({ length: count }, (_, i) => [...(columnItems[i] ?? [])]);
-	for (const column of columnItems.slice(count)) next[count - 1].push(...column);
-	return next;
-}
-
-export function findWidget(columnItems: string[][], id: string): Position | null {
-	for (let column = 0; column < columnItems.length; column++) {
-		const index = columnItems[column].indexOf(id);
-		if (index !== -1) return { column, index };
-	}
-	return null;
-}
-
-/**
- * Verschiebt ein Widget an eine Zielposition. `to.index` bezieht sich auf die Zielspalte
- * nach dem Herausnehmen und wird auf den gültigen Bereich begrenzt.
- */
-export function moveWidget(columnItems: string[][], id: string, to: Position): string[][] {
-	const from = findWidget(columnItems, id);
-	if (!from || to.column < 0 || to.column >= columnItems.length) return columnItems;
-	const next = columnItems.map((column) => [...column]);
-	next[from.column].splice(from.index, 1);
-	const target = next[to.column];
-	target.splice(Math.max(0, Math.min(to.index, target.length)), 0, id);
-	return next;
-}
-
-export function insertWidget(columnItems: string[][], id: string, to: Position): string[][] {
-	const next = columnItems.map((column) => column.filter((item) => item !== id));
-	const target = next[Math.max(0, Math.min(to.column, next.length - 1))];
-	target.splice(Math.max(0, Math.min(to.index, target.length)), 0, id);
-	return next;
-}
-
-export function removeWidget(columnItems: string[][], id: string): string[][] {
-	return columnItems.map((column) => column.filter((item) => item !== id));
-}
-
-/**
- * Tastatur-Verschiebung: hoch/runter innerhalb der Spalte, links/rechts in die Nachbarspalte
- * an dieselbe Position (begrenzt). Liefert die neue Position oder null, wenn es nicht weitergeht.
- */
-export function stepPosition(
-	columnItems: string[][],
-	from: Position,
-	direction: 'up' | 'down' | 'left' | 'right'
-): Position | null {
-	const length = columnItems[from.column]?.length ?? 0;
-	switch (direction) {
-		case 'up':
-			return from.index > 0 ? { column: from.column, index: from.index - 1 } : null;
-		case 'down':
-			return from.index < length - 1 ? { column: from.column, index: from.index + 1 } : null;
-		case 'left':
-		case 'right': {
-			const column = from.column + (direction === 'left' ? -1 : 1);
-			if (column < 0 || column >= columnItems.length) return null;
-			// Zielspalte hat nach dem Einfügen ein Element mehr
-			return { column, index: Math.min(from.index, columnItems[column].length) };
-		}
-	}
-}
-
-/** Mindestbreite einer Spalte in rem (im Mittel), bevor Spalten zusammengelegt werden */
-export const MIN_COLUMN_REM = 20;
-/** Mindestbreite der schmalsten Spalte bei unterschiedlichen Breiten */
-export const MIN_NARROW_COLUMN_REM = 14;
-
-/**
- * Spaltenbreiten folgen einem 12er-Raster: Jede Spalte belegt ganze Einheiten, zusammen immer 12.
- * 12 ist durch 1–4 teilbar, gleich breite Spalten gehen also immer auf.
- */
-export const GRID_UNITS = 12;
+/** Spaltenbreiten im 24er-Raster; 24 ist durch 1–4 teilbar, gleich breite Spalten gehen immer auf */
+export const GRID_UNITS = 24;
 /** Mindestbreite einer Spalte in Raster-Einheiten */
-export const MIN_SPAN = 2;
+export const MIN_SPAN = 4;
+/** Mindestbreite eines Widgets in einer Zeile */
+export const MIN_ITEM_SPAN = 3;
+/** Höchstens so viele Widgets nebeneinander */
+export const MAX_ROW_ITEMS = 3;
 
-export const GAP_MIN = 8;
-export const GAP_MAX = 64;
+export const COLUMN_GAP_MIN = 0;
+export const COLUMN_GAP_MAX = 128;
+export const PANEL_GAP_MIN = 4;
+export const PANEL_GAP_MAX = 64;
 
 /** Grenzen für die maximale Gesamtbreite in rem; fehlt der Wert, gilt die volle Breite */
 export const MAX_WIDTH_MIN = 48;
 export const MAX_WIDTH_MAX = 160;
 export const MAX_WIDTH_STEP = 8;
 
+/** Mindestbreite einer Spalte in rem (im Mittel), bevor Spalten zusammengelegt werden */
+export const MIN_COLUMN_REM = 20;
+/** Mindestbreite der schmalsten Spalte bei unterschiedlichen Breiten */
+export const MIN_NARROW_COLUMN_REM = 14;
+/** Mindestbreite eines Widgets in einer Zeile, sonst stehen die Widgets untereinander */
+export const MIN_ITEM_REM = 13;
+
+export type Rows = LayoutRow[][];
+
 const sum = (values: number[]) => values.reduce((a, b) => a + b, 0);
+
+export function clampColumns(value: number): ColumnCount {
+	return Math.min(4, Math.max(1, Math.round(value))) as ColumnCount;
+}
+
+// --- Breiten -------------------------------------------------------------------------------
+
+/** `count` ganzzahlige Breiten, zusammen `total`; der Rest geht an die vorderen */
+export function equalSpans(count: number, total = GRID_UNITS): number[] {
+	const base = Math.floor(total / count);
+	return Array.from({ length: count }, (_, i) => base + (i < total % count ? 1 : 0));
+}
+
+/**
+ * Bringt beliebige Breiten auf `count` ganze Einheiten mit Summe `total`: proportional skaliert,
+ * nach größtem Rest gerundet und mit mindestens `min` pro Eintrag (sofern das aufgeht).
+ * Unbrauchbare Werte ergeben gleich breite Einträge.
+ */
+export function fitSpans(raw: unknown, count: number, total: number, min: number): number[] {
+	if (count <= 0) return [];
+	const list = Array.isArray(raw) ? raw : [];
+	const weights = Array.from({ length: count }, (_, i) => {
+		const value = list[i];
+		return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+	});
+	if (weights.some((w) => w === null)) return equalSpans(count, total);
+
+	const weightSum = sum(weights as number[]);
+	const exact = (weights as number[]).map((w) => (w / weightSum) * total);
+	const spans = exact.map(Math.floor);
+	const byRemainder = exact
+		.map((value, i) => ({ i, rest: value - Math.floor(value) }))
+		.sort((a, b) => b.rest - a.rest);
+	for (let k = 0; sum(spans) < total; k++) spans[byRemainder[k % count].i]++;
+
+	// Zu schmale Einträge auf das Minimum heben, die Einheiten vom breitesten nehmen
+	if (count * min <= total) {
+		for (let i = 0; i < count; i++) {
+			while (spans[i] < min) {
+				const widest = spans.indexOf(Math.max(...spans));
+				spans[widest]--;
+				spans[i]++;
+			}
+		}
+	}
+	return spans;
+}
+
+export function normalizeColumnWidths(raw: unknown, columns: number): number[] {
+	return fitSpans(raw, columns, GRID_UNITS, MIN_SPAN);
+}
+
+/**
+ * Setzt den linken Eintrag eines Nachbarpaars auf `left` Einheiten (gerastert und begrenzt).
+ * Die Summe des Paars bleibt gleich. `min` gilt für beide Seiten oder getrennt [links, rechts].
+ */
+export function resizePair(
+	spans: number[],
+	index: number,
+	left: number,
+	min: number | [number, number] = MIN_SPAN
+): number[] {
+	if (index < 0 || index + 1 >= spans.length) return spans;
+	const [minLeft, minRight] = typeof min === 'number' ? [min, min] : min;
+	const pair = spans[index] + spans[index + 1];
+	if (minLeft + minRight > pair) return spans;
+	const clamped = Math.min(pair - minRight, Math.max(minLeft, Math.round(left)));
+	const next = [...spans];
+	next[index] = clamped;
+	next[index + 1] = pair - clamped;
+	return next;
+}
+
+/**
+ * Spiegelt die Außenspalten der Seite, an der Trenner `index` liegt, auf die andere Seite
+ * (symmetrisches Layout, z. B. 6·12·6). Die Einträge dazwischen teilen sich den Rest.
+ * Liefert die Eingabe unverändert, wenn das nicht aufgeht.
+ */
+export function mirrorSpans(spans: number[], index: number, min = MIN_SPAN): number[] {
+	const n = spans.length;
+	const total = sum(spans);
+	const mirrored = n - 2 - index;
+	if (n < 3 || mirrored === index) return spans;
+	const next = [...spans];
+	// Die Seite des gezogenen Trenners gibt die Außenspalten vor
+	const fromLeft = index < mirrored;
+	const outer = fromLeft ? index + 1 : n - 1 - index;
+	for (let k = 0; k < outer; k++) {
+		if (fromLeft) next[n - 1 - k] = next[k];
+		else next[k] = next[n - 1 - k];
+	}
+	const middle = n - 2 * outer;
+	const rest = total - 2 * sum(next.slice(0, outer));
+	if (middle <= 0 || rest < middle * min) return spans;
+	for (let k = 0; k < middle; k++) {
+		next[outer + k] = Math.floor(rest / middle) + (k < rest % middle ? 1 : 0);
+	}
+	return next;
+}
+
+export function equalWidths(widths: number[]): boolean {
+	return widths.every((width) => Math.abs(width - widths[0]) <= 1);
+}
+
+/** Kleinste Breite, die eine Spalte mit diesen Zeilen haben darf */
+export function minColumnSpan(rows: LayoutRow[]): number {
+	return Math.max(MIN_SPAN, ...rows.map((row) => row.items.length * MIN_ITEM_SPAN));
+}
+
+/** Passt die Breiten aller Zeilen an die Breiten ihrer Spalten an */
+export function fitRows(columnRows: Rows, columnWidths: number[]): Rows {
+	return columnRows.map((rows, column) =>
+		rows.map((row) => {
+			const spans = fitSpans(row.spans, row.items.length, columnWidths[column], MIN_ITEM_SPAN);
+			return spans.every((span, i) => span === row.spans[i]) ? row : { ...row, spans };
+		})
+	);
+}
+
+// --- Responsives Zusammenlegen ---------------------------------------------------------------
 
 /**
  * Wie viele Spalten bei der verfügbaren Breite tatsächlich nebeneinander passen. Mit
@@ -126,85 +180,11 @@ export function visibleColumnCount(
 	return count;
 }
 
-export function equalSpans(columns: number): number[] {
-	return Array.from({ length: columns }, () => GRID_UNITS / columns);
-}
-
-/**
- * Bringt beliebige Breiten auf das Raster: proportional auf 12 Einheiten skaliert, ganzzahlig
- * gerundet (größter Rest zuerst) und mit mindestens `MIN_SPAN` pro Spalte. Ältere relative
- * Breiten wie `[0.8, 1.4, 0.8]` werden so zu `[3, 6, 3]`.
- */
-export function normalizeColumnWidths(raw: unknown, columns: number): number[] {
-	const list = Array.isArray(raw) ? raw : [];
-	const weights = Array.from({ length: columns }, (_, i) => {
-		const value = list[i];
-		return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
-	});
-	if (weights.some((w) => w === null)) return equalSpans(columns);
-
-	const total = sum(weights as number[]);
-	const exact = (weights as number[]).map((w) => (w / total) * GRID_UNITS);
-	const spans = exact.map(Math.floor);
-	const byRemainder = exact
-		.map((value, i) => ({ i, rest: value - Math.floor(value) }))
-		.sort((a, b) => b.rest - a.rest);
-	for (let k = 0; sum(spans) < GRID_UNITS; k++) spans[byRemainder[k % columns].i]++;
-
-	// Zu schmale Spalten auf das Minimum heben, die Einheiten von der breitesten nehmen
-	for (let i = 0; i < columns; i++) {
-		while (spans[i] < MIN_SPAN) {
-			const widest = spans.indexOf(Math.max(...spans));
-			if (spans[widest] <= MIN_SPAN) break;
-			spans[widest]--;
-			spans[i]++;
-		}
-	}
-	return spans;
-}
-
-/**
- * Setzt die linke Spalte eines Nachbarpaars auf `left` Einheiten (gerastert und begrenzt).
- * Die Summe des Paars bleibt gleich.
- */
-export function resizePair(spans: number[], index: number, left: number): number[] {
-	if (index < 0 || index + 1 >= spans.length) return spans;
-	const pair = spans[index] + spans[index + 1];
-	const clamped = Math.min(pair - MIN_SPAN, Math.max(MIN_SPAN, Math.round(left)));
-	const next = [...spans];
-	next[index] = clamped;
-	next[index + 1] = pair - clamped;
-	return next;
-}
-
-/**
- * Spiegelt die Außenspalten der Seite, an der Trenner `index` liegt, auf die andere Seite
- * (symmetrisches Layout, z. B. 3·6·3). Die Spalten dazwischen teilen sich den Rest.
- * Liefert die Eingabe unverändert, wenn das nicht aufgeht.
- */
-export function mirrorSpans(spans: number[], index: number): number[] {
-	const n = spans.length;
-	const mirrored = n - 2 - index;
-	if (n < 3 || mirrored === index) return spans;
-	const next = [...spans];
-	// Die Seite des gezogenen Trenners gibt die Außenspalten vor
-	const fromLeft = index < mirrored;
-	const outer = fromLeft ? index + 1 : n - 1 - index;
-	for (let k = 0; k < outer; k++) {
-		if (fromLeft) next[n - 1 - k] = next[k];
-		else next[k] = next[n - 1 - k];
-	}
-	const middle = n - 2 * outer;
-	const rest = GRID_UNITS - 2 * sum(next.slice(0, outer));
-	if (middle <= 0 || rest < middle * MIN_SPAN) return spans;
-	for (let k = 0; k < middle; k++) {
-		next[outer + k] = Math.floor(rest / middle) + (k < rest % middle ? 1 : 0);
-	}
-	return next;
-}
-
-export function equalWidths(widths: number[]): boolean {
-	return widths.every((width) => width === widths[0]);
+/** Ob die Widgets einer Zeile bei dieser Spaltenbreite nebeneinander passen */
+export function rowFits(spans: number[], columnPx: number, gapPx: number, remPx = 16): boolean {
+	if (spans.length < 2) return true;
+	const content = columnPx - gapPx * (spans.length - 1);
+	return (content * Math.min(...spans)) / sum(spans) >= MIN_ITEM_REM * remPx;
 }
 
 /**
@@ -220,23 +200,284 @@ export function collapseColumns(columns: number, visible: number): number[][] {
 	return groups;
 }
 
-/** Normalisiert die Spaltenaufteilung gegenüber der Liste vorhandener Widgets */
-export function normalizeColumnItems(
+// --- Widgets in Zeilen -------------------------------------------------------------------------
+
+export type WidgetPosition = { column: number; row: number; index: number };
+
+/**
+ * Ziel beim Verschieben:
+ * - `row`: als eigene Zeile an Position `index` der Spalte (gezählt ohne das verschobene Widget)
+ * - `beside`: in die Zeile von `target`, links (`before`) oder rechts (`after`) davon
+ */
+export type Placement =
+	| { kind: 'row'; column: number; index: number }
+	| { kind: 'beside'; target: string; side: 'before' | 'after' };
+
+export function findWidget(columnRows: Rows, id: string): WidgetPosition | null {
+	for (let column = 0; column < columnRows.length; column++) {
+		const rows = columnRows[column];
+		for (let row = 0; row < rows.length; row++) {
+			const index = rows[row].items.indexOf(id);
+			if (index !== -1) return { column, row, index };
+		}
+	}
+	return null;
+}
+
+/** Alle Widget-IDs in Lesereihenfolge (Spalte für Spalte, Zeile für Zeile) */
+export function widgetOrder(columnRows: Rows): string[] {
+	return columnRows.flatMap((rows) => rows.flatMap((row) => row.items));
+}
+
+const cloneRows = (columnRows: Rows): Rows =>
+	columnRows.map((rows) => rows.map((row) => ({ items: [...row.items], spans: [...row.spans] })));
+
+/**
+ * Nimmt ein Widget heraus. Die übrigen Widgets der Zeile teilen sich seine Breite
+ * anteilig, eine leere Zeile verschwindet.
+ */
+export function removeWidget(columnRows: Rows, id: string): Rows {
+	const position = findWidget(columnRows, id);
+	if (!position) return columnRows;
+	const next = cloneRows(columnRows);
+	const rows = next[position.column];
+	const row = rows[position.row];
+	const total = sum(row.spans);
+	row.items.splice(position.index, 1);
+	row.spans.splice(position.index, 1);
+	if (row.items.length === 0) rows.splice(position.row, 1);
+	else row.spans = fitSpans(row.spans, row.items.length, total, MIN_ITEM_SPAN);
+	return next;
+}
+
+/** Ob `id` neben `target` passt: höchstens drei pro Zeile, jedes mindestens `MIN_ITEM_SPAN` breit */
+export function canJoin(columnRows: Rows, id: string, target: string, columnWidths: number[]) {
+	const position = findWidget(columnRows, target);
+	if (!position || id === target) return false;
+	const row = columnRows[position.column][position.row];
+	if (row.items.includes(id)) return true;
+	const count = row.items.length + 1;
+	return count <= MAX_ROW_ITEMS && count * MIN_ITEM_SPAN <= columnWidths[position.column];
+}
+
+/**
+ * Verschiebt (oder fügt neu ein) ein Widget an eine Position. Liefert die Eingabe unverändert,
+ * wenn das Ziel ungültig ist. Innerhalb derselben Zeile behält das Widget seine Breite, beim
+ * Wechsel in eine andere Zeile werden die Breiten dort gleichmäßig verteilt.
+ */
+export function placeWidget(
+	columnRows: Rows,
+	id: string,
+	placement: Placement,
+	columnWidths: number[]
+): Rows {
+	if (placement.kind === 'row') {
+		if (placement.column < 0 || placement.column >= columnRows.length) return columnRows;
+		const next = removeWidget(columnRows, id);
+		const rows = next[placement.column];
+		const index = Math.max(0, Math.min(placement.index, rows.length));
+		rows.splice(index, 0, { items: [id], spans: [columnWidths[placement.column]] });
+		return next;
+	}
+
+	if (!canJoin(columnRows, id, placement.target, columnWidths)) return columnRows;
+	const from = findWidget(columnRows, id);
+	const to = findWidget(columnRows, placement.target);
+	if (!to) return columnRows;
+
+	// Umsortieren innerhalb der Zeile: Breiten wandern mit
+	if (from && from.column === to.column && from.row === to.row) {
+		const next = cloneRows(columnRows);
+		const row = next[to.column][to.row];
+		const [span] = row.spans.splice(from.index, 1);
+		row.items.splice(from.index, 1);
+		const targetIndex = row.items.indexOf(placement.target);
+		const index = targetIndex + (placement.side === 'after' ? 1 : 0);
+		row.items.splice(index, 0, id);
+		row.spans.splice(index, 0, span);
+		return next;
+	}
+
+	const next = removeWidget(columnRows, id);
+	const target = findWidget(next, placement.target);
+	if (!target) return columnRows;
+	const row = next[target.column][target.row];
+	row.items.splice(target.index + (placement.side === 'after' ? 1 : 0), 0, id);
+	row.spans = equalSpans(row.items.length, columnWidths[target.column]);
+	return next;
+}
+
+/**
+ * Rechnet einen Zeilenindex aus der aktuellen Darstellung (mit dem verschobenen Widget) in den
+ * Index nach dem Herausnehmen um, wie ihn `placeWidget` erwartet.
+ */
+export function rowIndexWithout(
+	columnRows: Rows,
+	id: string,
+	column: number,
+	index: number
+): number {
+	const from = findWidget(columnRows, id);
+	const alone = from && columnRows[from.column][from.row].items.length === 1;
+	return alone && from.column === column && from.row < index ? index - 1 : index;
+}
+
+/**
+ * Ändert die Spaltenzahl. Neue Spalten sind leer. Fallen Spalten weg, landen ihre Zeilen in
+ * Reihenfolge am Ende der letzten verbleibenden Spalte. Die Breiten werden gleichmäßig verteilt.
+ */
+export function setColumnCount(
+	columnRows: Rows,
+	count: ColumnCount
+): { columnRows: Rows; columnWidths: number[] } {
+	const next = Array.from({ length: count }, (_, i) =>
+		(columnRows[i] ?? []).map((row) => ({ items: [...row.items], spans: [...row.spans] }))
+	);
+	for (const rows of columnRows.slice(count)) {
+		next[count - 1].push(...rows.map((row) => ({ items: [...row.items], spans: [...row.spans] })));
+	}
+	const columnWidths = equalSpans(count);
+	return { columnRows: fitRows(next, columnWidths), columnWidths };
+}
+
+/** Zeile `row` in Spalte `column`: linkes Widget des Paars `index` auf `left` Einheiten */
+export function resizeRowPair(
+	columnRows: Rows,
+	column: number,
+	row: number,
+	index: number,
+	left: number,
+	mirror = false
+): Rows {
+	const current = columnRows[column]?.[row];
+	if (!current) return columnRows;
+	let spans = resizePair(current.spans, index, left, MIN_ITEM_SPAN);
+	if (mirror) spans = mirrorSpans(spans, index, MIN_ITEM_SPAN);
+	if (spans.every((span, i) => span === current.spans[i])) return columnRows;
+	const next = cloneRows(columnRows);
+	next[column][row].spans = spans;
+	return next;
+}
+
+export function equalizeRow(columnRows: Rows, column: number, row: number): Rows {
+	const current = columnRows[column]?.[row];
+	if (!current) return columnRows;
+	const next = cloneRows(columnRows);
+	next[column][row].spans = equalSpans(current.items.length, sum(current.spans));
+	return next;
+}
+
+export type Direction = 'up' | 'down' | 'left' | 'right';
+
+/**
+ * Tastatur-Verschiebung. Hoch/runter wechselt die Zeile (ein Widget aus einer geteilten Zeile
+ * wird dabei zur eigenen Zeile), links/rechts tauscht innerhalb der Zeile und wechselt am Rand
+ * in die Nachbarspalte. Mit `join` legt hoch/runter das Widget neben die Zeile darüber bzw.
+ * darunter. Liefert das Ziel oder null, wenn es nicht weitergeht.
+ */
+export function stepPlacement(
+	columnRows: Rows,
+	id: string,
+	direction: Direction,
+	columnWidths: number[],
+	join = false
+): Placement | null {
+	const from = findWidget(columnRows, id);
+	if (!from) return null;
+	const rows = columnRows[from.column];
+	const row = rows[from.row];
+	const alone = row.items.length === 1;
+
+	if (join && (direction === 'up' || direction === 'down')) {
+		const neighbor = rows[from.row + (direction === 'up' ? -1 : 1)];
+		if (!neighbor) return null;
+		const target = direction === 'up' ? neighbor.items.at(-1)! : neighbor.items[0];
+		if (!canJoin(columnRows, id, target, columnWidths)) return null;
+		return { kind: 'beside', target, side: direction === 'up' ? 'after' : 'before' };
+	}
+
+	switch (direction) {
+		case 'up':
+			if (!alone) return { kind: 'row', column: from.column, index: from.row };
+			return from.row > 0 ? { kind: 'row', column: from.column, index: from.row - 1 } : null;
+		case 'down':
+			if (!alone) return { kind: 'row', column: from.column, index: from.row + 1 };
+			return from.row < rows.length - 1
+				? { kind: 'row', column: from.column, index: from.row + 1 }
+				: null;
+		case 'left':
+		case 'right': {
+			const step = direction === 'left' ? -1 : 1;
+			const neighbor = row.items[from.index + step];
+			if (neighbor) {
+				return {
+					kind: 'beside',
+					target: neighbor,
+					side: direction === 'left' ? 'before' : 'after'
+				};
+			}
+			const column = from.column + step;
+			if (column < 0 || column >= columnRows.length) return null;
+			return { kind: 'row', column, index: Math.min(from.row, columnRows[column].length) };
+		}
+	}
+}
+
+/**
+ * Platzierung, mit der sich ein entferntes Widget wieder an seinen Platz bringen lässt:
+ * neben seinen bisherigen Nachbarn oder als eigene Zeile an der alten Position.
+ */
+export function restorePlacement(columnRows: Rows, id: string): Placement | null {
+	const position = findWidget(columnRows, id);
+	if (!position) return null;
+	const row = columnRows[position.column][position.row];
+	if (row.items.length > 1) {
+		return position.index > 0
+			? { kind: 'beside', target: row.items[position.index - 1], side: 'after' }
+			: { kind: 'beside', target: row.items[1], side: 'before' };
+	}
+	return { kind: 'row', column: position.column, index: position.row };
+}
+
+// --- Validierung ------------------------------------------------------------------------------
+
+/**
+ * Normalisiert die Zeilen gegenüber der Liste vorhandener Widgets: unbekannte und doppelte IDs
+ * fallen weg, leere Zeilen auch, zu volle Zeilen werden aufgeteilt. Widgets ohne Platz landen
+ * als eigene Zeilen in der letzten Spalte. Breiten passen danach zur jeweiligen Spalte.
+ */
+export function normalizeColumnRows(
 	raw: unknown,
 	columns: ColumnCount,
-	widgetIds: string[]
-): string[][] {
+	widgetIds: string[],
+	columnWidths: number[]
+): Rows {
 	const known = new Set(widgetIds);
 	const seen = new Set<string>();
-	const parsed = (Array.isArray(raw) ? raw : []).map((column) =>
-		(Array.isArray(column) ? column : []).filter((id): id is string => {
-			if (typeof id !== 'string' || !known.has(id) || seen.has(id)) return false;
-			seen.add(id);
-			return true;
-		})
-	);
-	const next = setColumnCount(parsed, columns);
-	// Widgets ohne Platz im Layout gehen nicht verloren, sondern landen in der letzten Spalte
-	for (const id of widgetIds) if (!seen.has(id)) next[columns - 1].push(id);
-	return next;
+	const parsed: Rows = (Array.isArray(raw) ? raw : []).map((column) => {
+		const rows: LayoutRow[] = [];
+		for (const value of Array.isArray(column) ? column : []) {
+			const record = typeof value === 'object' && value !== null ? value : {};
+			const items = 'items' in record && Array.isArray(record.items) ? record.items : [];
+			const spans = 'spans' in record && Array.isArray(record.spans) ? record.spans : [];
+			const kept: { id: string; span: unknown }[] = [];
+			items.forEach((id: unknown, i: number) => {
+				if (typeof id !== 'string' || !known.has(id) || seen.has(id)) return;
+				seen.add(id);
+				kept.push({ id, span: spans[i] });
+			});
+			for (let start = 0; start < kept.length; start += MAX_ROW_ITEMS) {
+				const chunk = kept.slice(start, start + MAX_ROW_ITEMS);
+				rows.push({ items: chunk.map((k) => k.id), spans: chunk.map((k) => k.span as number) });
+			}
+		}
+		return rows;
+	});
+
+	const next: Rows = Array.from({ length: columns }, (_, i) => parsed[i] ?? []);
+	for (const rows of parsed.slice(columns)) next[columns - 1].push(...rows);
+	for (const id of widgetIds) {
+		if (!seen.has(id)) next[columns - 1].push({ items: [id], spans: [] });
+	}
+	return fitRows(next, columnWidths);
 }

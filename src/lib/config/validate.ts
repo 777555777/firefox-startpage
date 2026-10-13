@@ -1,10 +1,12 @@
 import {
-	GAP_MAX,
-	GAP_MIN,
+	COLUMN_GAP_MAX,
+	COLUMN_GAP_MIN,
 	MAX_WIDTH_MAX,
 	MAX_WIDTH_MIN,
-	normalizeColumnItems,
-	normalizeColumnWidths
+	normalizeColumnRows,
+	normalizeColumnWidths,
+	PANEL_GAP_MAX,
+	PANEL_GAP_MIN
 } from '$lib/layout/operations';
 import { isWidgetType, widgetSettings } from '$lib/widgets/settings';
 import {
@@ -157,12 +159,16 @@ function parseWidgets(raw: unknown): Record<string, WidgetInstance> {
 function parseLayout(raw: unknown, widgetIds: string[]): LayoutConfig {
 	const r = record(raw);
 	const columns = oneOf<ColumnCount>(r.columns, [1, 2, 3, 4], 3);
+	const columnWidths = normalizeColumnWidths(r.columnWidths, columns);
+	// Abstände im 4-px-Raster
+	const gap = (value: unknown, min: number, max: number) =>
+		Math.round(num(value, DEFAULT_GAP, min, max) / 4) * 4;
 	const layout: LayoutConfig = {
 		columns,
-		columnItems: normalizeColumnItems(r.columnItems, columns, widgetIds),
-		columnWidths: normalizeColumnWidths(r.columnWidths, columns),
-		// 4-px-Raster
-		gap: Math.round(num(r.gap, DEFAULT_GAP, GAP_MIN, GAP_MAX) / 4) * 4
+		columnRows: normalizeColumnRows(r.columnRows, columns, widgetIds, columnWidths),
+		columnWidths,
+		columnGap: gap(r.columnGap, COLUMN_GAP_MIN, COLUMN_GAP_MAX),
+		panelGap: gap(r.panelGap, PANEL_GAP_MIN, PANEL_GAP_MAX)
 	};
 	// Ohne Angabe (oder `null`) nutzt das Layout die volle Breite
 	if (typeof r.maxWidth === 'number') {

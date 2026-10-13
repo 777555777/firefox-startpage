@@ -24,10 +24,12 @@ export const de = {
 	'edit.done': 'Fertig',
 	'edit.toolbar': 'Bearbeiten-Leiste',
 	'edit.columns': 'Spalten',
-	'edit.gap': 'Abstand',
+	'edit.columnGap': 'Abstand zwischen Spalten',
+	'edit.panelGap': 'Abstand zwischen Widgets',
 	'edit.resizeColumns': 'Breite von Spalte {left} und {right}',
+	'edit.resizeRow': 'Breite der Widgets in dieser Zeile',
 	'edit.resizeHint':
-		'Ziehen oder Pfeiltasten ändern die Breite im 12er-Raster, mit Umschalt symmetrisch. Doppelklick setzt alle Spalten zurück.',
+		'Ziehen oder Pfeiltasten ändern die Breite im 24er-Raster, mit Umschalt symmetrisch. Doppelklick verteilt gleichmäßig.',
 	'edit.maxWidth': 'Maximale Breite',
 	'edit.fullWidth': 'Voll',
 	'edit.equalWidths': 'Gleich breit',
@@ -41,9 +43,11 @@ export const de = {
 	'edit.emptyColumn': 'Leere Spalte',
 	'edit.singletonUsed': 'Bereits vorhanden',
 
-	'dnd.grabbed': '{name} gegriffen. Pfeiltasten verschieben, Leertaste legt ab, Escape bricht ab.',
-	'dnd.position': 'Spalte {column}, Position {position}',
-	'dnd.dropped': '{name} abgelegt: Spalte {column}, Position {position}',
+	'dnd.grabbed':
+		'{name} gegriffen. Pfeiltasten verschieben, Umschalt mit Pfeil hoch oder runter setzt es neben die Zeile darüber oder darunter. Leertaste legt ab, Escape bricht ab.',
+	'dnd.position': 'Spalte {column}, Zeile {row}',
+	'dnd.positionShared': 'Spalte {column}, Zeile {row}, Platz {slot} von {count}',
+	'dnd.dropped': '{name} abgelegt: {position}',
 	'dnd.cancelled': 'Verschieben abgebrochen',
 
 	'widget.clock': 'Uhr',

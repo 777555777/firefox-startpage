@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { createId } from '$lib/config/parse';
 	import type { WidgetInstance, WidgetType } from '$lib/config/types';
-	import { Sortable } from '$lib/dnd/sortable.svelte';
+	import { Sortable, type Point } from '$lib/dnd/sortable.svelte';
+	import { layoutRect } from '$lib/dnd/spring';
 	import { t } from '$lib/i18n/index.svelte';
 	import { getApp } from '$lib/state/context';
 	import { toasts } from '$lib/state/toasts.svelte';
@@ -11,19 +12,28 @@
 	import { definitionOf } from '$lib/widgets/registry';
 	import AddWidget from './AddWidget.svelte';
 	import {
+		canJoin,
 		collapseColumns,
-		findWidget,
+		equalizeRow,
 		equalSpans,
+		findWidget,
+		fitRows,
 		GRID_UNITS,
-		insertWidget,
+		minColumnSpan,
 		mirrorSpans,
-		moveWidget,
+		placeWidget,
 		removeWidget,
 		resizePair,
-		stepPosition,
+		resizeRowPair,
+		restorePlacement,
+		rowFits,
+		rowIndexWithout,
+		stepPlacement,
 		visibleColumnCount,
-		type Position
+		type Placement,
+		type Rows
 	} from './operations';
+	import PanelRow from './PanelRow.svelte';
 	import WidgetPanel from './WidgetPanel.svelte';
 
 	const app = getApp();
@@ -36,7 +46,7 @@
 			? 16
 			: parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
 	const visible = $derived(
-		visibleColumnCount(layout.columns, width, remPx, layout.gap, layout.columnWidths)
+		visibleColumnCount(layout.columns, width, remPx, layout.columnGap, layout.columnWidths)
 	);
 	const groups = $derived(collapseColumns(layout.columns, visible));
 	/** Eigene Breiten gelten nur, solange keine Spalten zusammengelegt sind */
@@ -44,43 +54,135 @@
 	const template = $derived(
 		groups
 			.map((_, g) => `minmax(0, ${ownWidths ? layout.columnWidths[g] : 1}fr)`)
-			.join(` ${layout.gap}px `)
+			.join(` ${layout.columnGap}px `)
 	);
 	const used = $derived(new Set(Object.values(config.widgets).map((w) => w.type)));
+
+	/** Breite einer gespeicherten Spalte in px, für das Untereinanderstellen von Zeilen */
+	function columnPx(column: number, widths = layout.columnWidths): number {
+		const content = width - layout.columnGap * (groups.length - 1);
+		return ownWidths ? (content * widths[column]) / GRID_UNITS : content / groups.length;
+	}
 
 	const nameOf = (id: string) => {
 		const instance = config.widgets[id];
 		return instance ? t(definitionOf(instance.type).name) : id;
 	};
 
+	/** Position als Ansage, z. B. „Spalte 1, Zeile 2, Platz 1 von 2“ */
+	function positionText(id: string): string {
+		const position = findWidget(app.config.value.layout.columnRows, id);
+		if (!position) return '';
+		const row = app.config.value.layout.columnRows[position.column][position.row];
+		const base = { column: position.column + 1, row: position.row + 1 };
+		return row.items.length > 1
+			? t('dnd.positionShared', { ...base, slot: position.index + 1, count: row.items.length })
+			: t('dnd.position', base);
+	}
+
+	function setRows(next: Rows) {
+		app.config.value.layout.columnRows = next;
+	}
+
+	/** Breiten in einer Zeile ändern, aber nie so schmal, dass sie untereinander rutschen müsste */
+	function resizeRow(column: number, row: number, index: number, left: number, mirror: boolean) {
+		const live = app.config.value.layout;
+		const next = resizeRowPair(live.columnRows, column, row, index, left, mirror);
+		if (next === live.columnRows) return;
+		if (!rowFits(next[column][row].spans, columnPx(column), live.panelGap, remPx)) return;
+		setRows(next);
+	}
+
+	/** Ob `id` neben `target` passt, ohne dass die Zeile bei dieser Breite untereinander rutscht */
+	function fitsBeside(id: string, target: string): boolean {
+		const live = app.config.value.layout;
+		if (!canJoin(live.columnRows, id, target, live.columnWidths)) return false;
+		const position = findWidget(live.columnRows, target);
+		if (!position) return false;
+		const row = live.columnRows[position.column][position.row];
+		const count = row.items.length + (row.items.includes(id) ? 0 : 1);
+		const spans = equalSpans(count, live.columnWidths[position.column]);
+		return rowFits(spans, columnPx(position.column), live.panelGap, remPx);
+	}
+
+	// --- Ziehen mit der Maus: daneben (Rand eines Panels) oder als eigene Zeile ---------------
+
+	/** Anteil der Panelbreite links und rechts, der „daneben ablegen“ bedeutet */
+	const SIDE_ZONE = 0.28;
+	const SIDE_ZONE_MAX = 120;
+
+	let board: HTMLElement;
+
+	function placementAt(id: string, point: Point, hit: Element | null): Placement | null {
+		if (!hit || !board.contains(hit)) return null;
+		const live = app.config.value.layout;
+		// Nur Panels zählen, nicht die Links in einem Link-Board (eigene DnD-Gruppe)
+		const panel = hit.closest<HTMLElement>('[data-widget][data-dnd-item]');
+		const target = panel?.dataset.dndItem;
+		if (panel && target) {
+			if (target === id) return null;
+			const rect = layoutRect(panel);
+			const zone = Math.min(rect.width * SIDE_ZONE, SIDE_ZONE_MAX);
+			if (fitsBeside(id, target)) {
+				if (point.x < rect.left + zone) return { kind: 'beside', target, side: 'before' };
+				if (point.x > rect.right - zone) return { kind: 'beside', target, side: 'after' };
+			}
+			const position = findWidget(live.columnRows, target);
+			if (!position) return null;
+			const index = position.row + (point.y > rect.top + rect.height / 2 ? 1 : 0);
+			return {
+				kind: 'row',
+				column: position.column,
+				index: rowIndexWithout(live.columnRows, id, position.column, index)
+			};
+		}
+		// Zwischen den Panels einer Zeile (Abstand, Trenner) ändert sich nichts
+		if (hit.closest('[data-row]')) return null;
+
+		const segment = hit.closest<HTMLElement>('[data-dnd-list]');
+		if (!segment || !board.contains(segment)) return null;
+		const column = Number(segment.dataset.dndList);
+		const rows = [...segment.querySelectorAll<HTMLElement>(':scope > [data-row]')];
+		const index = rows.filter((row) => {
+			const rect = row.getBoundingClientRect();
+			return rect.top + rect.height / 2 < point.y;
+		}).length;
+		return { kind: 'row', column, index: rowIndexWithout(live.columnRows, id, column, index) };
+	}
+
 	const sortable = new Sortable({
 		group: 'panels',
-		onmove: (id, list, index) => {
+		// Wird nur für den Abbruch ohne `snapshot` genutzt
+		onmove: () => {},
+		resolve: (id, point, hit) => {
+			const placement = placementAt(id, point, hit);
+			if (!placement) return null;
 			const live = app.config.value.layout;
-			live.columnItems = moveWidget(live.columnItems, id, { column: Number(list), index });
+			const next = placeWidget(live.columnRows, id, placement, live.columnWidths);
+			if (JSON.stringify(next) === JSON.stringify(live.columnRows)) return null;
+			return () => setRows(next);
 		},
-		ondrop: (id, list, index) => {
-			announcer.say(
-				t('dnd.dropped', { name: nameOf(id), column: Number(list) + 1, position: index + 1 })
-			);
+		snapshot: () => {
+			const before = $state.snapshot(app.config.value.layout.columnRows) as Rows;
+			return () => setRows(before);
+		},
+		ondrop: (id) => {
+			announcer.say(t('dnd.dropped', { name: nameOf(id), position: positionText(id) }));
 		}
 	});
 
 	// --- Tastatur: Leertaste greift, Pfeile verschieben, Leertaste legt ab, Esc bricht ab ----
 
-	let grabbed = $state<{ id: string; origin: Position } | null>(null);
+	let grabbed = $state<{ id: string; origin: Rows } | null>(null);
 	let keyboardMoving = false;
 
 	function focusGrip(id: string) {
 		document.querySelector<HTMLElement>(`[data-grip="${CSS.escape(id)}"]`)?.focus();
 	}
 
-	async function moveTo(id: string, position: Position) {
+	async function moveTo(id: string, next: Rows) {
 		keyboardMoving = true;
-		await sortable.animate(() => {
-			const live = app.config.value.layout;
-			live.columnItems = moveWidget(live.columnItems, id, position);
-		});
+		await sortable.animate(() => setRows(next));
 		focusGrip(id);
 		keyboardMoving = false;
 	}
@@ -93,18 +195,13 @@
 	} as const;
 
 	async function onGripKeydown(event: KeyboardEvent, id: string) {
-		const position = findWidget(layout.columnItems, id);
-		if (!position) return;
-		const say = (key: 'dnd.position' | 'dnd.dropped', at: Position) =>
-			announcer.say(t(key, { name: nameOf(id), column: at.column + 1, position: at.index + 1 }));
-
 		if (event.key === ' ' || event.key === 'Enter') {
 			event.preventDefault();
 			if (grabbed?.id === id) {
 				grabbed = null;
-				say('dnd.dropped', position);
+				announcer.say(t('dnd.dropped', { name: nameOf(id), position: positionText(id) }));
 			} else {
-				grabbed = { id, origin: position };
+				grabbed = { id, origin: $state.snapshot(layout.columnRows) as Rows };
 				announcer.say(t('dnd.grabbed', { name: nameOf(id) }));
 			}
 			return;
@@ -123,14 +220,24 @@
 		const direction = DIRECTIONS[event.key as keyof typeof DIRECTIONS];
 		if (!direction) return;
 		event.preventDefault();
-		const next = stepPosition(layout.columnItems, position, direction);
-		if (!next) return;
+		const live = app.config.value.layout;
+		const placement = stepPlacement(
+			live.columnRows,
+			id,
+			direction,
+			live.columnWidths,
+			event.shiftKey
+		);
+		if (!placement) return;
+		if (placement.kind === 'beside' && !fitsBeside(id, placement.target)) return;
+		const next = placeWidget(live.columnRows, id, placement, live.columnWidths);
+		if (next === live.columnRows) return;
 		await moveTo(id, next);
-		say('dnd.position', next);
+		announcer.say(positionText(id));
 	}
 
 	function onGripBlur(id: string) {
-		// Fokuswechsel nach außen legt ab; beim Spaltenwechsel wird das Element neu erzeugt
+		// Fokuswechsel nach außen legt ab; beim Zeilenwechsel wird das Element neu erzeugt
 		if (keyboardMoving || grabbed?.id !== id) return;
 		grabbed = null;
 	}
@@ -143,10 +250,15 @@
 		const live = app.config.value;
 		live.widgets[id] = { id, type, settings: definition.defaultSettings() } as WidgetInstance;
 		await sortable.animate(() => {
-			live.layout.columnItems = insertWidget(live.layout.columnItems, id, {
-				column,
-				index: live.layout.columnItems[column].length
-			});
+			const { columnRows, columnWidths } = live.layout;
+			setRows(
+				placeWidget(
+					columnRows,
+					id,
+					{ kind: 'row', column, index: columnRows[column].length },
+					columnWidths
+				)
+			);
 		});
 		const panel = document.querySelector(`[data-grip="${CSS.escape(id)}"]`);
 		panel?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -155,13 +267,14 @@
 
 	async function remove(id: string) {
 		const live = app.config.value;
-		const position = findWidget(live.layout.columnItems, id);
+		const position = findWidget(live.layout.columnRows, id);
+		const placement = restorePlacement(live.layout.columnRows, id);
 		const instance = live.widgets[id];
-		if (!position || !instance) return;
+		if (!position || !placement || !instance) return;
 		const backup = $state.snapshot(instance) as WidgetInstance;
 		const name = nameOf(id);
 		await sortable.animate(() => {
-			live.layout.columnItems = removeWidget(live.layout.columnItems, id);
+			setRows(removeWidget(live.layout.columnRows, id));
 			delete live.widgets[id];
 		});
 		toasts.show(t('edit.removed', { name }), {
@@ -171,7 +284,19 @@
 					void sortable.animate(() => {
 						const current = app.config.value;
 						current.widgets[id] = backup;
-						current.layout.columnItems = insertWidget(current.layout.columnItems, id, position);
+						const { columnRows, columnWidths } = current.layout;
+						let next = placeWidget(columnRows, id, placement, columnWidths);
+						// Der alte Nachbar ist weg oder die Zeile ist voll: als eigene Zeile zurück
+						if (next === columnRows) {
+							const column = Math.min(position.column, columnRows.length - 1);
+							next = placeWidget(
+								columnRows,
+								id,
+								{ kind: 'row', column, index: position.row },
+								columnWidths
+							);
+						}
+						setRows(next);
 					})
 			}
 		});
@@ -199,9 +324,8 @@
 	});
 
 	// --- Spaltenbreiten: Trenner im Edit-Modus ziehen oder per Pfeiltasten verschieben -------
-	// Breiten rasten im 12er-Raster ein; mit Shift wird die Gegenseite gespiegelt.
+	// Breiten rasten im 24er-Raster ein; mit Shift wird die Gegenseite gespiegelt.
 
-	let board: HTMLElement;
 	let resizing = $state<number | null>(null);
 	/** Trenner, der gerade gehovert oder fokussiert ist; zeigt die Breiten an */
 	let gutterActive = $state<number | null>(null);
@@ -210,13 +334,38 @@
 	/** Breite der Spalten-Elemente ohne den Rand für Fokusringe */
 	const columnWidthPx = (element: Element) => element.getBoundingClientRect().width - 24;
 
+	/**
+	 * Zeilen zu Beginn einer Breitenänderung. Alle Schritte rechnen von hier aus, sonst würde
+	 * die Aufteilung der Zeilen durch wiederholtes Runden langsam wegdriften.
+	 */
+	let resizeBase: Rows | null = null;
+
+	/** Ausgangszustand nur, solange dieselben Widgets in denselben Zeilen stehen */
+	function currentBase(): Rows {
+		const live = app.config.value.layout.columnRows;
+		const shape = (rows: Rows) => JSON.stringify(rows.map((c) => c.map((r) => r.items)));
+		return resizeBase && shape(resizeBase) === shape(live) ? resizeBase : live;
+	}
+
 	function setLeftSpan(index: number, left: number, mirror: boolean) {
 		const live = app.config.value.layout;
-		let next = resizePair(live.columnWidths, index, left);
+		const base = currentBase();
+		const mins = base.map(minColumnSpan);
+		let next = resizePair(live.columnWidths, index, left, [mins[index], mins[index + 1]]);
 		if (mirror) next = mirrorSpans(next, index);
+		// Jede Spalte muss ihre Zeilen noch fassen
+		if (next.some((span, i) => span < mins[i])) return;
 		// Nicht so schmal, dass die Spalten gleich wieder zusammengelegt würden
-		if (visibleColumnCount(live.columns, width, remPx, live.gap, next) < live.columns) return;
-		if (next.some((span, i) => span !== live.columnWidths[i])) live.columnWidths = next;
+		if (visibleColumnCount(live.columns, width, remPx, live.columnGap, next) < live.columns) return;
+		if (next.every((span, i) => span === live.columnWidths[i])) return;
+		const rows = fitRows(base, next);
+		// … und keine Zeile so schmal, dass ihre Widgets untereinander rutschen müssten
+		const fits = rows.every((column, c) =>
+			column.every((row) => rowFits(row.spans, columnPx(c, next), live.panelGap, remPx))
+		);
+		if (!fits) return;
+		live.columnWidths = next;
+		live.columnRows = rows;
 	}
 
 	function onGutterPointerdown(event: PointerEvent, index: number) {
@@ -230,6 +379,7 @@
 		const gutter = event.currentTarget as HTMLElement;
 		gutter.setPointerCapture(event.pointerId);
 		resizing = index;
+		resizeBase = $state.snapshot(layout.columnRows) as Rows;
 
 		const onmove = (move: PointerEvent) => {
 			const px = left + move.clientX - startX;
@@ -237,6 +387,7 @@
 		};
 		const onup = () => {
 			resizing = null;
+			resizeBase = null;
 			gutter.removeEventListener('pointermove', onmove);
 			gutter.removeEventListener('pointerup', onup);
 			gutter.removeEventListener('pointercancel', onup);
@@ -256,6 +407,7 @@
 	function resetWidths() {
 		const live = app.config.value.layout;
 		live.columnWidths = equalSpans(live.columns);
+		live.columnRows = fitRows(currentBase(), live.columnWidths);
 	}
 </script>
 
@@ -264,7 +416,7 @@
 	class:editing={ui.editing}
 	class:resizing={resizing !== null}
 	style:grid-template-columns={template}
-	style:--gap="{layout.gap}px"
+	style:--gap="{layout.panelGap}px"
 	style:max-width={layout.maxWidth ? `${layout.maxWidth}rem` : undefined}
 	bind:clientWidth={width}
 	bind:this={board}
@@ -281,8 +433,10 @@
 					role="separator"
 					aria-orientation="vertical"
 					aria-label={t('edit.resizeColumns', { left: g, right: g + 1 })}
-					aria-valuemin={2}
-					aria-valuemax={layout.columnWidths[g - 1] + layout.columnWidths[g] - 2}
+					aria-valuemin={minColumnSpan(layout.columnRows[g - 1])}
+					aria-valuemax={layout.columnWidths[g - 1] +
+						layout.columnWidths[g] -
+						minColumnSpan(layout.columnRows[g])}
 					aria-valuenow={layout.columnWidths[g - 1]}
 					aria-valuetext={layout.columnWidths.join(' · ')}
 					tabindex="0"
@@ -292,8 +446,14 @@
 					ondblclick={resetWidths}
 					onpointerenter={() => (gutterActive = g - 1)}
 					onpointerleave={() => (gutterActive = null)}
-					onfocus={() => (gutterActive = g - 1)}
-					onblur={() => (gutterActive = null)}
+					onfocus={() => {
+						gutterActive = g - 1;
+						resizeBase = $state.snapshot(layout.columnRows) as Rows;
+					}}
+					onblur={() => {
+						gutterActive = null;
+						resizeBase = null;
+					}}
 				>
 					<span class="handle"></span>
 				</div>
@@ -303,29 +463,40 @@
 		{/if}
 		<div class="column" style:grid-column={2 * g + 1}>
 			{#each group as column (column)}
+				{@const rows = layout.columnRows[column]}
 				<div
 					class="segment"
-					class:empty={layout.columnItems[column].length === 0}
+					class:empty={rows.length === 0}
 					{@attach sortable.list({ id: String(column), axis: 'vertical' })}
 				>
-					{#each layout.columnItems[column] as id (id)}
-						{@const instance = config.widgets[id]}
-						{#if instance}
-							<WidgetPanel
-								{instance}
-								{column}
-								{sortable}
-								editing={ui.editing}
-								grabbed={grabbed?.id === id}
-								ongripkeydown={(event) => onGripKeydown(event, id)}
-								ongripblur={() => onGripBlur(id)}
-								onsettings={() => openSettings(id)}
-								onremove={() => remove(id)}
-							/>
-						{/if}
+					{#each rows as row, r (row.items[0])}
+						<PanelRow
+							{row}
+							stacked={!rowFits(row.spans, columnPx(column), layout.panelGap, remPx)}
+							editing={ui.editing}
+							onresize={(index, left, mirror) => resizeRow(column, r, index, left, mirror)}
+							onequalize={() => setRows(equalizeRow(layout.columnRows, column, r))}
+						>
+							{#snippet panel(id)}
+								{@const instance = config.widgets[id]}
+								{#if instance}
+									<WidgetPanel
+										{instance}
+										{column}
+										{sortable}
+										editing={ui.editing}
+										grabbed={grabbed?.id === id}
+										ongripkeydown={(event) => onGripKeydown(event, id)}
+										ongripblur={() => onGripBlur(id)}
+										onsettings={() => openSettings(id)}
+										onremove={() => remove(id)}
+									/>
+								{/if}
+							{/snippet}
+						</PanelRow>
 					{/each}
 					{#if ui.editing}
-						{#if layout.columnItems[column].length === 0}
+						{#if rows.length === 0}
 							<p class="empty-hint">{t('edit.emptyColumn')}</p>
 						{/if}
 						<AddWidget {column} {used} onadd={(type) => addWidget(type, column)} />

@@ -36,6 +36,7 @@ export const ICONS = {
 	video: [rect(3, 5, 18, 14, 2), 'm10 9 5 3-5 3Z'],
 	warning: ['M12 4 2.5 20h19Z', 'M12 10v4M12 17h.01'],
 	gap: ['M4 4v16M20 4v16', 'm8 12h8M10 10l-2 2 2 2M14 10l2 2-2 2'],
+	gapVertical: ['M4 4h16M4 20h16', 'm12 8v8M10 10l2-2 2 2M10 14l2 2 2-2'],
 	maxWidth: ['M3 12h18', 'm6 9-3 3 3 3M18 9l3 3-3 3', 'M9 7h6M9 17h6'],
 	tiles: [
 		rect(4, 4, 7, 7, 1.5),

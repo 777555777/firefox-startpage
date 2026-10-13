@@ -48,8 +48,9 @@ describe('Edit-Modus', () => {
 		await user.keyboard('e');
 		await user.click(screen.getByRole('radio', { name: '1' }));
 		expect(app.config.value.layout.columns).toBe(1);
-		expect(app.config.value.layout.columnItems).toHaveLength(1);
-		expect(app.config.value.layout.columnItems[0]).toHaveLength(5);
+		expect(app.config.value.layout.columnRows).toHaveLength(1);
+		expect(app.config.value.layout.columnRows[0]).toHaveLength(5);
+		expect(app.config.value.layout.columnWidths).toEqual([24]);
 	});
 
 	it('entfernt ein Widget und stellt es per Rückgängig wieder her', async () => {
@@ -60,7 +61,7 @@ describe('Edit-Modus', () => {
 
 		await user.click(screen.getByRole('button', { name: 'Undo' }));
 		expect(Object.values(app.config.value.widgets).map((w) => w.type)).toContain('clock');
-		expect(app.config.value.layout.columnItems[0][0]).toBe(
+		expect(app.config.value.layout.columnRows[0][0].items[0]).toBe(
 			Object.values(app.config.value.widgets).find((w) => w.type === 'clock')?.id
 		);
 	});

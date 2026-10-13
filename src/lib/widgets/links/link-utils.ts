@@ -1,4 +1,5 @@
 import type { Config } from '$lib/config/types';
+import { widgetOrder } from '$lib/layout/operations';
 import type { Link, LinksSettings } from './settings';
 
 /** Favicon direkt von der Seite selbst (kein Drittanbieter); nur für http(s)-Links */
@@ -37,15 +38,13 @@ export type FlatLink = Link & { host: string; boardId: string; tabId: string };
 /** Alle Links aller Boards, z. B. für die Suche */
 export function allLinks(config: Config): FlatLink[] {
 	const links: FlatLink[] = [];
-	for (const column of config.layout.columnItems) {
-		for (const id of column) {
-			const widget = config.widgets[id];
-			if (widget?.type !== 'links') continue;
-			const board = widget.settings as LinksSettings;
-			for (const tab of board.tabs) {
-				for (const link of tab.links) {
-					links.push({ ...link, host: displayHost(link.url), boardId: id, tabId: tab.id });
-				}
+	for (const id of widgetOrder(config.layout.columnRows)) {
+		const widget = config.widgets[id];
+		if (widget?.type !== 'links') continue;
+		const board = widget.settings as LinksSettings;
+		for (const tab of board.tabs) {
+			for (const link of tab.links) {
+				links.push({ ...link, host: displayHost(link.url), boardId: id, tabId: tab.id });
 			}
 		}
 	}

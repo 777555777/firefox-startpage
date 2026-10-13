@@ -16,7 +16,7 @@ describe('migrate', () => {
 
 	it('liefert für Nicht-Objekte die Default-Config in der Fallback-Sprache', () => {
 		const config = migrate('kaputt', 'de');
-		expect(config.version).toBe(1);
+		expect(config.version).toBe(2);
 		expect(Object.keys(config.widgets)).toHaveLength(5);
 	});
 
@@ -45,6 +45,26 @@ describe('migrate', () => {
 		expect(calls).toEqual([1, 2]);
 		expect(config.language).toBe('de');
 		expect(config.layout.columns).toBe(2);
+	});
+
+	it('v1 → v2: jedes Widget wird zur eigenen Zeile, Breiten im 24er-Raster', () => {
+		const config = migrate({
+			version: 1,
+			widgets: { a: { type: 'clock' }, b: { type: 'calendar' }, c: { type: 'search' } },
+			layout: { columns: 2, columnItems: [['a', 'b'], ['c']], columnWidths: [4, 8], gap: 32 }
+		});
+		expect(config.version).toBe(2);
+		expect(config.layout.columnRows).toEqual([
+			[
+				{ items: ['a'], spans: [8] },
+				{ items: ['b'], spans: [8] }
+			],
+			[{ items: ['c'], spans: [16] }]
+		]);
+		expect(config.layout.columnWidths).toEqual([8, 16]);
+		expect(config.layout.columnGap).toBe(32);
+		expect(config.layout.panelGap).toBe(32);
+		expect('columnItems' in config.layout).toBe(false);
 	});
 
 	it('überspringt bereits erreichte Versionen', () => {

@@ -23,10 +23,12 @@ export const en: Dictionary = {
 	'edit.done': 'Done',
 	'edit.toolbar': 'Edit toolbar',
 	'edit.columns': 'Columns',
-	'edit.gap': 'Spacing',
+	'edit.columnGap': 'Space between columns',
+	'edit.panelGap': 'Space between widgets',
 	'edit.resizeColumns': 'Width of columns {left} and {right}',
+	'edit.resizeRow': 'Width of the widgets in this row',
 	'edit.resizeHint':
-		'Drag or use arrow keys to resize on a 12-unit grid, hold Shift for symmetry. Double-click resets all columns.',
+		'Drag or use arrow keys to resize on a 24-unit grid, hold Shift for symmetry. Double-click spreads evenly.',
 	'edit.maxWidth': 'Maximum width',
 	'edit.fullWidth': 'Full',
 	'edit.equalWidths': 'Equal widths',
@@ -40,9 +42,11 @@ export const en: Dictionary = {
 	'edit.emptyColumn': 'Empty column',
 	'edit.singletonUsed': 'Already added',
 
-	'dnd.grabbed': '{name} grabbed. Use arrow keys to move, Space to drop, Escape to cancel.',
-	'dnd.position': 'Column {column}, position {position}',
-	'dnd.dropped': '{name} dropped: column {column}, position {position}',
+	'dnd.grabbed':
+		'{name} grabbed. Use arrow keys to move, Shift with up or down places it next to the row above or below. Space drops, Escape cancels.',
+	'dnd.position': 'Column {column}, row {row}',
+	'dnd.positionShared': 'Column {column}, row {row}, slot {slot} of {count}',
+	'dnd.dropped': '{name} dropped: {position}',
 	'dnd.cancelled': 'Move cancelled',
 
 	'widget.clock': 'Clock',

@@ -188,3 +188,33 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
 - **Ziehen:** Der Drag-Klon eines Panels zeichnet sein Glas per CSS (er liegt über allem), das
   Original wird auf dem Canvas mit verringerter Deckkraft gezeichnet. Die Markierung beim
   Tastatur-Verschieben ist eine `outline`, weil Panels im WebGL-Modus keinen `box-shadow` zeichnen.
+
+## Nach M5 – Zeilen im Layout (Schema v2)
+
+- **Spalten → Zeilen → Widgets** (Erweiterung des Schemas aus §4/§5): Eine Spalte ist ein Stapel
+  aus Zeilen, eine Zeile enthält 1 bis 3 Widgets nebeneinander. `layout.columnItems` ist durch
+  `layout.columnRows` ersetzt (`{ items, spans }` pro Zeile). Eine beliebig tiefe Verschachtelung
+  gibt es bewusst nicht. Ein freies Dashboard-Raster wurde verworfen, weil es feste Widget-Höhen
+  bräuchte und die einzeln scrollenden Spalten aufgäbe.
+- **24er-Raster statt 12er:** Spalten mindestens 4 Einheiten, Widgets in einer Zeile mindestens 3.
+  Die Breiten einer Zeile sind absolute Raster-Einheiten und ergeben zusammen die Spaltenbreite.
+  Ändert sich die Spaltenbreite, werden die Zeilen proportional angepasst. Während einer Geste
+  (Ziehen oder Fokus auf dem Trenner) wird immer vom Ausgangszustand aus gerechnet, damit
+  wiederholtes Runden die Aufteilung nicht verschiebt.
+- **Getrennte Abstände:** `columnGap` (0–128 px) zwischen den Spalten und `panelGap` (4–64 px)
+  zwischen Panels, untereinander wie nebeneinander. Beide sitzen als Regler in der Edit-Leiste.
+- **Migration v1 → v2:** Jedes Widget wird zur eigenen Zeile, Spaltenbreiten werden auf das
+  24er-Raster umgerechnet, der bisherige Abstand gilt für beide neuen Abstände. Das sichtbare
+  Layout bleibt gleich.
+- **Ziehen mit der Maus:** Im linken bzw. rechten Randbereich eines Panels (28 % der Breite,
+  höchstens 120 px) wird daneben abgelegt, sonst als eigene Zeile darüber oder darunter. Wie
+  bisher wird live umsortiert. Der Sortable hat dafür eine eigene Platzierungs-Funktion
+  (`resolve`) und einen Schnappschuss für den Abbruch bekommen.
+- **Tastatur:** Pfeil hoch/runter wechselt die Zeile (ein Widget aus einer geteilten Zeile wird
+  dabei zur eigenen Zeile). Links/rechts tauscht innerhalb der Zeile und wechselt am Rand die
+  Spalte. Umschalt + hoch/runter setzt das Widget neben die Zeile darüber bzw. darunter.
+- **Responsiv:** Würde ein Widget einer Zeile schmaler als 13 rem, stehen die Widgets der Zeile
+  untereinander (nur in der Darstellung). Breitenänderungen und Ablegen „daneben“, die das
+  auslösen würden, werden im Edit-Modus nicht übernommen.
+- **Gleich hohe Panels:** Widgets einer Zeile werden auf die Höhe des höchsten gestreckt, damit
+  die Glasflächen eine gemeinsame Unterkante haben.

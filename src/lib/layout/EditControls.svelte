@@ -7,13 +7,16 @@
 	import Segmented from '$lib/ui/Segmented.svelte';
 	import {
 		COLUMN_COUNTS,
+		COLUMN_GAP_MAX,
+		COLUMN_GAP_MIN,
 		equalSpans,
 		equalWidths,
-		GAP_MAX,
-		GAP_MIN,
+		fitRows,
 		MAX_WIDTH_MAX,
 		MAX_WIDTH_MIN,
 		MAX_WIDTH_STEP,
+		PANEL_GAP_MAX,
+		PANEL_GAP_MIN,
 		setColumnCount
 	} from './operations';
 
@@ -22,9 +25,16 @@
 
 	function setColumns(count: ColumnCount) {
 		const live = app.config.value.layout;
-		live.columnItems = setColumnCount(live.columnItems, count);
-		live.columnWidths = equalSpans(count);
+		const next = setColumnCount(live.columnRows, count);
+		live.columnRows = next.columnRows;
+		live.columnWidths = next.columnWidths;
 		live.columns = count;
+	}
+
+	function equalize() {
+		const live = app.config.value.layout;
+		live.columnWidths = equalSpans(live.columns);
+		live.columnRows = fitRows(live.columnRows, live.columnWidths);
 	}
 
 	const id = $props.id();
@@ -50,29 +60,41 @@
 			onchange={setColumns}
 		/>
 		{#if !equalWidths(layout.columnWidths)}
-			<button
-				type="button"
-				class="btn"
-				onclick={() => (app.config.value.layout.columnWidths = equalSpans(layout.columns))}
-			>
+			<button type="button" class="btn" onclick={equalize}>
 				{t('edit.equalWidths')}
 			</button>
 		{/if}
 		<span class="divider"></span>
-		<label class="gap" for="{id}-gap" title={t('edit.gap')}>
+		<label class="gap" for="{id}-column-gap" title={t('edit.columnGap')}>
 			<Icon name="gap" size={16} />
-			<span class="visually-hidden">{t('edit.gap')}</span>
+			<span class="visually-hidden">{t('edit.columnGap')}</span>
 		</label>
 		<input
-			id="{id}-gap"
+			id="{id}-column-gap"
 			class="gap-range"
 			type="range"
-			min={GAP_MIN}
-			max={GAP_MAX}
+			min={COLUMN_GAP_MIN}
+			max={COLUMN_GAP_MAX}
 			step="4"
-			bind:value={app.config.value.layout.gap}
-			aria-valuetext="{layout.gap} px"
+			bind:value={app.config.value.layout.columnGap}
+			aria-valuetext="{layout.columnGap} px"
 		/>
+		<output class="value short" for="{id}-column-gap">{layout.columnGap}</output>
+		<label class="gap" for="{id}-panel-gap" title={t('edit.panelGap')}>
+			<Icon name="gapVertical" size={16} />
+			<span class="visually-hidden">{t('edit.panelGap')}</span>
+		</label>
+		<input
+			id="{id}-panel-gap"
+			class="gap-range"
+			type="range"
+			min={PANEL_GAP_MIN}
+			max={PANEL_GAP_MAX}
+			step="4"
+			bind:value={app.config.value.layout.panelGap}
+			aria-valuetext="{layout.panelGap} px"
+		/>
+		<output class="value short" for="{id}-panel-gap">{layout.panelGap}</output>
 		<span class="divider"></span>
 		<label class="gap" for="{id}-width" title={t('edit.maxWidth')}>
 			<Icon name="maxWidth" size={16} />
@@ -173,7 +195,7 @@
 	}
 
 	.gap-range {
-		width: 96px;
+		width: 88px;
 	}
 
 	.value {
@@ -183,6 +205,10 @@
 		font-weight: 600;
 		color: var(--text-secondary);
 		font-variant-numeric: tabular-nums;
+
+		&.short {
+			min-width: 2em;
+		}
 	}
 
 	.divider {

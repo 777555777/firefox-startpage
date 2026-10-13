@@ -24,6 +24,15 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
 - [ ] Widget entfernen → Toast → Rückgängig
 - [ ] Spaltenzahl ändern, schmales Fenster legt Spalten nur optisch zusammen
 
+## Layout mit Zeilen (nach M5)
+
+- [ ] Widget an den linken/rechten Rand eines anderen ziehen: steht daneben, gleich hoch
+- [ ] Trenner in einer Zeile ziehen, Pfeiltasten, Umschalt (symmetrisch), Doppelklick (gleichmäßig)
+- [ ] Tastatur: Pfeil hoch/runter löst aus der Zeile, Umschalt + hoch/runter heftet an
+- [ ] Spaltenabstand und Widget-Abstand getrennt einstellbar
+- [ ] Schmales Fenster: Widgets einer Zeile stehen untereinander
+- [ ] Bestehende Config (v1) wird ohne sichtbare Änderung übernommen
+
 ## Ab M3
 
 - [ ] Uhr tickt auf die Sekunde, Kalender blättert, Feiertage mit Tooltip

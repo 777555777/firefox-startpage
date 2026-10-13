@@ -9,13 +9,14 @@ import type {
 	Config,
 	DayPhase,
 	Language,
+	LayoutRow,
 	SearchConfig,
 	SearchEngine
 } from './types';
 
-export const CONFIG_VERSION = 1;
+export const CONFIG_VERSION = 2;
 
-/** Abstand zwischen Spalten und Panels in px */
+/** Abstand zwischen Spalten bzw. zwischen Panels in px */
 export const DEFAULT_GAP = 24;
 
 /** Sattes Aero-Blau */
@@ -82,6 +83,9 @@ function board(tabs: LinkTab[]): LinksSettings {
 	return { tabs, activeTabId: tabs[0].id, showStats: false };
 }
 
+/** Zeile mit einem Widget über die ganze Spaltenbreite (Default-Spalten sind 8 breit) */
+const single = (id: string): LayoutRow => ({ items: [id], spans: [8] });
+
 /**
  * Config für den Erststart: 3 Spalten mit Uhr + Kalender | Suche + Links | Links.
  * Die Namen der Beispiel-Gruppen folgen der erkannten Sprache.
@@ -103,9 +107,14 @@ export function createDefaultConfig(language: Language = 'en'): Config {
 		language: 'auto',
 		layout: {
 			columns: 3,
-			columnItems: [[ids.clock, ids.calendar], [ids.search, ids.links], [ids.tools]],
-			columnWidths: [4, 4, 4],
-			gap: DEFAULT_GAP,
+			columnRows: [
+				[single(ids.clock), single(ids.calendar)],
+				[single(ids.search), single(ids.links)],
+				[single(ids.tools)]
+			],
+			columnWidths: [8, 8, 8],
+			columnGap: DEFAULT_GAP,
+			panelGap: DEFAULT_GAP,
 			maxWidth: 96
 		},
 		widgets: {

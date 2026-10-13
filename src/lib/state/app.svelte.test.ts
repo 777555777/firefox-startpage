@@ -11,7 +11,8 @@ describe('AppState', () => {
 
 		const imported = createDefaultConfig('de');
 		imported.layout.columns = 1;
-		imported.layout.columnItems = [imported.layout.columnItems.flat()];
+		imported.layout.columnRows = [imported.layout.columnRows.flat()];
+		imported.layout.columnWidths = [24];
 		const result = app.readImport(JSON.stringify(createExport(imported, null)));
 		const missing = await app.applyImport(result);
 

@@ -25,14 +25,24 @@ export type WidgetInstance<T extends WidgetType = WidgetType> = {
 	[K in T]: { id: string; type: K; settings: WidgetSettingsMap[K] };
 }[T];
 
+/** Widgets nebeneinander in einer Zeile einer Spalte */
+export type LayoutRow = {
+	/** Widget-Instanz-IDs von links nach rechts (1 bis 3) */
+	items: string[];
+	/** Breite pro Widget in Raster-Einheiten; Summe = Breite der Spalte */
+	spans: number[];
+};
+
 export type LayoutConfig = {
 	columns: ColumnCount;
-	/** Widget-Instanz-IDs pro Spalte, in Reihenfolge; Länge entspricht immer `columns` */
-	columnItems: string[][];
-	/** Relative Breite pro Spalte (wie `fr`), Länge entspricht `columns` */
+	/** Pro Spalte die Zeilen von oben nach unten; Länge entspricht immer `columns` */
+	columnRows: LayoutRow[][];
+	/** Breite pro Spalte in Raster-Einheiten (24er-Raster), Summe 24 */
 	columnWidths: number[];
-	/** Abstand zwischen Spalten und Panels in px */
-	gap: number;
+	/** Abstand zwischen den Spalten in px */
+	columnGap: number;
+	/** Abstand zwischen Panels (untereinander und nebeneinander in einer Zeile) in px */
+	panelGap: number;
 	/** Maximale Inhaltsbreite in rem */
 	maxWidth?: number;
 };

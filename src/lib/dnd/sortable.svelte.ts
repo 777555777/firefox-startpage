@@ -41,6 +41,13 @@ export type SortableOptions = {
 	threshold?: number;
 	/** Langes Drücken startet das Ziehen ebenfalls (ms); false = aus */
 	longPress?: number | false;
+	/**
+	 * Eigene Platzierung statt Listen-Index, z. B. für Zeilen mit Widgets nebeneinander.
+	 * Liefert die Änderung für die Zeigerposition oder null, wenn sich nichts ändern soll.
+	 */
+	resolve?: (id: string, point: Point, hit: Element | null) => (() => void) | null;
+	/** Merkt sich beim Start den Zustand; die gelieferte Funktion stellt ihn bei Abbruch wieder her */
+	snapshot?: () => () => void;
 };
 
 type Pending = {
@@ -62,9 +69,10 @@ type Session = {
 	y: number;
 	busy: boolean;
 	scrollFrame: number;
+	restore?: () => void;
 };
 
-type Point = { x: number; y: number };
+export type Point = { x: number; y: number };
 
 /**
  * Index, an dem ein Element bei Zeigerposition `p` zwischen den übrigen Elementen landet.
@@ -293,7 +301,8 @@ export class Sortable {
 			x,
 			y,
 			busy: false,
-			scrollFrame: requestAnimationFrame(this.#autoScroll)
+			scrollFrame: requestAnimationFrame(this.#autoScroll),
+			restore: this.#options.snapshot?.()
 		};
 		this.active = { id: pending.id, list: origin.list };
 		document.documentElement.classList.add('dnd-dragging');
@@ -322,6 +331,15 @@ export class Sortable {
 			return;
 		}
 		this.overTarget = null;
+
+		if (this.#options.resolve) {
+			const change = this.#options.resolve(session.id, session, hit);
+			if (!change) return;
+			session.busy = true;
+			await this.animate(change);
+			session.busy = false;
+			return;
+		}
 
 		const listElement = hit?.closest<HTMLElement>(`[data-dnd-group="${group}"][data-dnd-list]`);
 		const listId = listElement?.dataset.dndList;
@@ -374,7 +392,8 @@ export class Sortable {
 
 		if (cancelled) {
 			const { list, index } = session.origin;
-			await this.animate(() => this.#options.onmove(session.id, list, index));
+			const restore = session.restore;
+			await this.animate(restore ?? (() => this.#options.onmove(session.id, list, index)));
 			this.#options.oncancel?.(session.id);
 		} else if (target) {
 			await this.animate(() => target.ondrop(session.id));
