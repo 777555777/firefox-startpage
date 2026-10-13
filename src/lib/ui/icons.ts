@@ -33,6 +33,7 @@ export const ICONS = {
 	more: [circle(5, 12, 1), circle(12, 12, 1), circle(19, 12, 1)],
 	columns: [rect(3, 4, 18, 16, 2), 'M9 4v16M15 4v16'],
 	gap: ['M4 4v16M20 4v16', 'm8 12h8M10 10l-2 2 2 2M14 10l2 2-2 2'],
+	maxWidth: ['M3 12h18', 'm6 9-3 3 3 3M18 9l3 3-3 3', 'M9 7h6M9 17h6'],
 	tiles: [
 		rect(4, 4, 7, 7, 1.5),
 		rect(13, 4, 7, 7, 1.5),

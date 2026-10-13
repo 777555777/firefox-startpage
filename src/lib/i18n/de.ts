@@ -27,7 +27,9 @@ export const de = {
 	'edit.gap': 'Abstand',
 	'edit.resizeColumns': 'Breite von Spalte {left} und {right}',
 	'edit.resizeHint':
-		'Ziehen oder Pfeiltasten ändern die Breite, Doppelklick setzt alle Spalten zurück',
+		'Ziehen oder Pfeiltasten ändern die Breite im 12er-Raster, mit Umschalt symmetrisch. Doppelklick setzt alle Spalten zurück.',
+	'edit.maxWidth': 'Maximale Breite',
+	'edit.fullWidth': 'Voll',
 	'edit.equalWidths': 'Gleich breit',
 	'edit.settings': 'Einstellungen',
 	'edit.addWidget': 'Widget hinzufügen',

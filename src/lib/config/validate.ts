@@ -1,6 +1,8 @@
 import {
 	GAP_MAX,
 	GAP_MIN,
+	MAX_WIDTH_MAX,
+	MAX_WIDTH_MIN,
 	normalizeColumnItems,
 	normalizeColumnWidths
 } from '$lib/layout/operations';
@@ -162,7 +164,10 @@ function parseLayout(raw: unknown, widgetIds: string[]): LayoutConfig {
 		// 4-px-Raster
 		gap: Math.round(num(r.gap, DEFAULT_GAP, GAP_MIN, GAP_MAX) / 4) * 4
 	};
-	if (r.maxWidth !== undefined) layout.maxWidth = num(r.maxWidth, 96, 30, 400);
+	// Ohne Angabe (oder `null`) nutzt das Layout die volle Breite
+	if (typeof r.maxWidth === 'number') {
+		layout.maxWidth = Math.round(num(r.maxWidth, 96, MAX_WIDTH_MIN, MAX_WIDTH_MAX));
+	}
 	return layout;
 }
 

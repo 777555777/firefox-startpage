@@ -25,7 +25,10 @@ export const en: Dictionary = {
 	'edit.columns': 'Columns',
 	'edit.gap': 'Spacing',
 	'edit.resizeColumns': 'Width of columns {left} and {right}',
-	'edit.resizeHint': 'Drag or use arrow keys to resize, double-click resets all columns',
+	'edit.resizeHint':
+		'Drag or use arrow keys to resize on a 12-unit grid, hold Shift for symmetry. Double-click resets all columns.',
+	'edit.maxWidth': 'Maximum width',
+	'edit.fullWidth': 'Full',
 	'edit.equalWidths': 'Equal widths',
 	'edit.settings': 'Settings',
 	'edit.addWidget': 'Add widget',

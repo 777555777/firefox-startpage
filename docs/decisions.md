@@ -99,14 +99,23 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
 
 ## Nach M3 – Feedback
 
-- **Spaltenbreiten und Abstand** (Erweiterung des Schemas aus §4): `layout.columnWidths` (relative
-  Breiten wie `fr`, je 0,5–3, Standard 1) und `layout.gap` (8–64 px im 4-px-Raster, Standard 24).
-  Die Felder sind additiv. Fehlen sie in alten Daten, ergänzt die Validierung die Standardwerte,
-  deshalb bleibt die Schema-Version 1. Im Edit-Modus liegen zwischen den Spalten ziehbare Trenner
-  (auch per Pfeiltasten, Doppelklick setzt alle zurück). Den Abstand stellt ein Regler in der
-  Edit-Leiste ein. Er gilt zwischen Spalten und zwischen Panels.
+- **Spaltenbreiten im 12er-Raster** (Erweiterung des Schemas aus §4): `layout.columnWidths` enthält
+  pro Spalte ganze Raster-Einheiten, zusammen immer 12 (z. B. `3·6·3`), mindestens 2 pro Spalte. 12
+  ist durch 1–4 teilbar, gleich breite Spalten gehen also immer auf. Im Edit-Modus rasten die
+  ziehbaren Trenner in ganzen Einheiten ein (auch per Pfeiltasten). Mit gedrückter Umschalttaste
+  wird die Gegenseite gespiegelt (symmetrisch, z. B. `2·8·2`), ein Doppelklick setzt alle zurück.
+  Beim Ziehen zeigt jede Spalte ihre Breite in Einheiten an. Ändert man die Spaltenzahl, werden die
+  Breiten gleichmäßig verteilt.
+- **Abstand und maximale Breite:** `layout.gap` (8–64 px im 4-px-Raster, Standard 24) gilt zwischen
+  Spalten und zwischen Panels. `layout.maxWidth` (48–160 rem in 8er-Schritten) begrenzt die
+  Gesamtbreite. Ganz rechts auf dem Regler steht „Voll“, dann fehlt das Feld und das Layout nutzt
+  die ganze Fensterbreite. Beides sitzt als Regler in der Edit-Leiste.
+- **Schema-Version bleibt 1:** Die Felder sind additiv. Fehlen sie, ergänzt die Validierung
+  Standardwerte. Ältere relative Breiten (z. B. `[0.8, 1.4, 0.8]`) werden proportional auf das
+  Raster gerundet (`[3, 6, 3]`).
 - **Zusammenlegen mit eigenen Breiten:** Spalten werden zusammengelegt, wenn sie im Mittel unter
-  20 rem fallen oder die schmalste Spalte unter 14 rem. Beim Ziehen lässt sich keine Spalte schmaler
-  als 14 rem machen. Sind Spalten zusammengelegt, sind die sichtbaren Spalten gleich breit.
+  20 rem fallen oder die schmalste Spalte unter 14 rem. Breitenänderungen, die das auslösen würden,
+  werden beim Ziehen nicht übernommen. Sind Spalten zusammengelegt, sind die sichtbaren Spalten
+  gleich breit.
 - **Einstellungsdialog** hat eine feste Höhe. Nur der Inhalt des Abschnitts scrollt, damit der
   Dialog beim Wechseln der Abschnitte nicht springt.

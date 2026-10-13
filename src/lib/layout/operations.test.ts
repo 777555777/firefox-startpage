@@ -3,6 +3,8 @@ import {
 	collapseColumns,
 	findWidget,
 	insertWidget,
+	equalSpans,
+	mirrorSpans,
 	moveWidget,
 	normalizeColumnWidths,
 	removeWidget,
@@ -123,28 +125,54 @@ describe('Responsives Zusammenlegen', () => {
 	});
 });
 
-describe('Spaltenbreiten', () => {
-	it('normalisiert Breiten auf die Spaltenzahl und die Grenzen', () => {
-		expect(normalizeColumnWidths([1, 2], 3)).toEqual([1, 2, 1]);
-		expect(normalizeColumnWidths([0.1, 9, 'x', 1.234], 4)).toEqual([0.5, 3, 1, 1.23]);
-		expect(normalizeColumnWidths(undefined, 2)).toEqual([1, 1]);
+describe('Spaltenbreiten im 12er-Raster', () => {
+	it('verteilt Spalten gleichmäßig, wenn nichts Gültiges gespeichert ist', () => {
+		expect(normalizeColumnWidths(undefined, 3)).toEqual([4, 4, 4]);
+		expect(normalizeColumnWidths([1, 'x'], 2)).toEqual([6, 6]);
+		expect(normalizeColumnWidths([5, 5, 2], 4)).toEqual([3, 3, 3, 3]);
+		expect(equalSpans(1)).toEqual([12]);
 	});
 
-	it('verteilt die Breite zweier Nachbarn neu und hält die Summe', () => {
-		expect(resizePair([1, 1, 1], 0, 0.25)).toEqual([0.5, 1.5, 1]);
-		expect(resizePair([1, 2, 1], 1, 0.5)).toEqual([1, 1.5, 1.5]);
-		// Grenzen: keine Spalte unter 0.5 oder über 3
-		expect(resizePair([1, 1], 0, 0)).toEqual([0.5, 1.5]);
-		expect(resizePair([2, 2], 0, 1)).toEqual([3, 1]);
-		expect(resizePair([1, 1], 1, 0.5)).toEqual([1, 1]);
+	it('übernimmt gültige Raster-Breiten unverändert', () => {
+		expect(normalizeColumnWidths([3, 6, 3], 3)).toEqual([3, 6, 3]);
+		expect(normalizeColumnWidths([2, 8, 2], 3)).toEqual([2, 8, 2]);
+	});
+
+	it('rastert ältere relative Breiten auf 12 Einheiten', () => {
+		expect(normalizeColumnWidths([0.79, 1.44, 0.77], 3)).toEqual([3, 6, 3]);
+		expect(normalizeColumnWidths([1, 1, 1], 3)).toEqual([4, 4, 4]);
+		expect(normalizeColumnWidths([1, 2], 2)).toEqual([4, 8]);
+	});
+
+	it('hebt zu schmale Spalten auf das Minimum', () => {
+		expect(normalizeColumnWidths([0.1, 10, 0.1], 3)).toEqual([2, 8, 2]);
+		expect(normalizeColumnWidths([1, 100, 1, 1], 4)).toEqual([2, 6, 2, 2]);
+	});
+
+	it('verschiebt einen Trenner in ganzen Einheiten und hält die Summe', () => {
+		expect(resizePair([4, 4, 4], 0, 3)).toEqual([3, 5, 4]);
+		expect(resizePair([4, 4, 4], 1, 5.4)).toEqual([4, 5, 3]);
+		// mindestens zwei Einheiten pro Spalte
+		expect(resizePair([4, 4, 4], 0, 0)).toEqual([2, 6, 4]);
+		expect(resizePair([4, 4, 4], 0, 99)).toEqual([6, 2, 4]);
+		expect(resizePair([6, 6], 1, 3)).toEqual([6, 6]);
+	});
+
+	it('spiegelt die Außenspalten für symmetrische Layouts', () => {
+		expect(mirrorSpans([3, 5, 4], 0)).toEqual([3, 6, 3]);
+		expect(mirrorSpans([4, 6, 2], 1)).toEqual([2, 8, 2]);
+		expect(mirrorSpans([2, 4, 3, 3], 0)).toEqual([2, 4, 4, 2]);
+		// mittlerer Trenner bei 4 Spalten hat kein Gegenstück
+		expect(mirrorSpans([2, 4, 3, 3], 1)).toEqual([2, 4, 3, 3]);
+		// geht nicht auf: Mitte wäre zu schmal
+		expect(mirrorSpans([6, 2, 4], 0)).toEqual([6, 2, 4]);
 	});
 
 	it('legt Spalten zusammen, wenn die schmalste Spalte zu schmal würde', () => {
-		// 1:2:1 bei 1100 px: schmalste Spalte ≈ 263 px > 224 px → passt
-		expect(visibleColumnCount(3, 1100, 16, 24, [1, 2, 1])).toBe(3);
-		// 1:3:1 bei 1100 px: schmalste Spalte ≈ 210 px < 224 px → eine Spalte weniger
-		expect(visibleColumnCount(3, 1100, 16, 24, [1, 3, 1])).toBe(2);
-		// gleich breit verhält sich wie ohne Gewichte
-		expect(visibleColumnCount(3, 1100, 16, 24, [1, 1, 1])).toBe(3);
+		// 3·6·3 bei 1100 px: schmalste Spalte ≈ 263 px > 224 px → passt
+		expect(visibleColumnCount(3, 1100, 16, 24, [3, 6, 3])).toBe(3);
+		// 2·8·2 bei 1100 px: schmalste Spalte ≈ 175 px < 224 px → eine Spalte weniger
+		expect(visibleColumnCount(3, 1100, 16, 24, [2, 8, 2])).toBe(2);
+		expect(visibleColumnCount(3, 1100, 16, 24, [4, 4, 4])).toBe(3);
 	});
 });

@@ -104,7 +104,7 @@ export function createDefaultConfig(language: Language = 'en'): Config {
 		layout: {
 			columns: 3,
 			columnItems: [[ids.clock, ids.calendar], [ids.search, ids.links], [ids.tools]],
-			columnWidths: [1, 1, 1],
+			columnWidths: [4, 4, 4],
 			gap: DEFAULT_GAP,
 			maxWidth: 96
 		},

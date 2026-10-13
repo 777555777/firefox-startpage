@@ -7,10 +7,13 @@
 	import Segmented from '$lib/ui/Segmented.svelte';
 	import {
 		COLUMN_COUNTS,
+		equalSpans,
 		equalWidths,
 		GAP_MAX,
 		GAP_MIN,
-		normalizeColumnWidths,
+		MAX_WIDTH_MAX,
+		MAX_WIDTH_MIN,
+		MAX_WIDTH_STEP,
 		setColumnCount
 	} from './operations';
 
@@ -20,11 +23,21 @@
 	function setColumns(count: ColumnCount) {
 		const live = app.config.value.layout;
 		live.columnItems = setColumnCount(live.columnItems, count);
-		live.columnWidths = normalizeColumnWidths(live.columnWidths, count);
+		live.columnWidths = equalSpans(count);
 		live.columns = count;
 	}
 
-	const gapId = $props.id();
+	const id = $props.id();
+
+	/** Ganz rechts auf dem Regler bedeutet „volle Breite“ (kein Maximum) */
+	const FULL = MAX_WIDTH_MAX + MAX_WIDTH_STEP;
+	const maxWidthValue = $derived(layout.maxWidth ?? FULL);
+
+	function setMaxWidth(value: number) {
+		const live = app.config.value.layout;
+		if (value >= FULL) delete live.maxWidth;
+		else live.maxWidth = value;
+	}
 </script>
 
 {#if ui.editing}
@@ -40,18 +53,18 @@
 			<button
 				type="button"
 				class="btn"
-				onclick={() => (app.config.value.layout.columnWidths = layout.columnWidths.map(() => 1))}
+				onclick={() => (app.config.value.layout.columnWidths = equalSpans(layout.columns))}
 			>
 				{t('edit.equalWidths')}
 			</button>
 		{/if}
 		<span class="divider"></span>
-		<label class="gap" for={gapId} title={t('edit.gap')}>
+		<label class="gap" for="{id}-gap" title={t('edit.gap')}>
 			<Icon name="gap" size={16} />
 			<span class="visually-hidden">{t('edit.gap')}</span>
 		</label>
 		<input
-			id={gapId}
+			id="{id}-gap"
 			class="gap-range"
 			type="range"
 			min={GAP_MIN}
@@ -60,6 +73,25 @@
 			bind:value={app.config.value.layout.gap}
 			aria-valuetext="{layout.gap} px"
 		/>
+		<span class="divider"></span>
+		<label class="gap" for="{id}-width" title={t('edit.maxWidth')}>
+			<Icon name="maxWidth" size={16} />
+			<span class="visually-hidden">{t('edit.maxWidth')}</span>
+		</label>
+		<input
+			id="{id}-width"
+			class="gap-range"
+			type="range"
+			min={MAX_WIDTH_MIN}
+			max={FULL}
+			step={MAX_WIDTH_STEP}
+			value={maxWidthValue}
+			oninput={(event) => setMaxWidth(Number(event.currentTarget.value))}
+			aria-valuetext={layout.maxWidth ? `${layout.maxWidth} rem` : t('edit.fullWidth')}
+		/>
+		<output class="value" for="{id}-width">
+			{layout.maxWidth ? `${layout.maxWidth * 16} px` : t('edit.fullWidth')}
+		</output>
 		<span class="divider"></span>
 		<button type="button" class="btn" onclick={() => ui.openSettings()}>
 			<Icon name="sliders" size={16} />
@@ -142,6 +174,15 @@
 
 	.gap-range {
 		width: 96px;
+	}
+
+	.value {
+		min-width: 4.5em;
+		white-space: nowrap;
+		font-size: var(--text-xs);
+		font-weight: 600;
+		color: var(--text-secondary);
+		font-variant-numeric: tabular-nums;
 	}
 
 	.divider {

@@ -13,8 +13,10 @@
 	import {
 		collapseColumns,
 		findWidget,
+		equalSpans,
+		GRID_UNITS,
 		insertWidget,
-		MIN_NARROW_COLUMN_REM,
+		mirrorSpans,
 		moveWidget,
 		removeWidget,
 		resizePair,
@@ -197,16 +199,24 @@
 	});
 
 	// --- Spaltenbreiten: Trenner im Edit-Modus ziehen oder per Pfeiltasten verschieben -------
+	// Breiten rasten im 12er-Raster ein; mit Shift wird die Gegenseite gespiegelt.
 
 	let board: HTMLElement;
 	let resizing = $state<number | null>(null);
+	/** Trenner, der gerade gehovert oder fokussiert ist; zeigt die Breiten an */
+	let gutterActive = $state<number | null>(null);
+	const showSpans = $derived(resizing !== null || gutterActive !== null);
 
 	/** Breite der Spalten-Elemente ohne den Rand für Fokusringe */
 	const columnWidthPx = (element: Element) => element.getBoundingClientRect().width - 24;
 
-	function setShare(index: number, share: number) {
+	function setLeftSpan(index: number, left: number, mirror: boolean) {
 		const live = app.config.value.layout;
-		live.columnWidths = resizePair(live.columnWidths, index, share);
+		let next = resizePair(live.columnWidths, index, left);
+		if (mirror) next = mirrorSpans(next, index);
+		// Nicht so schmal, dass die Spalten gleich wieder zusammengelegt würden
+		if (visibleColumnCount(live.columns, width, remPx, live.gap, next) < live.columns) return;
+		if (next.some((span, i) => span !== live.columnWidths[i])) live.columnWidths = next;
 	}
 
 	function onGutterPointerdown(event: PointerEvent, index: number) {
@@ -215,16 +225,15 @@
 		const columns = board.querySelectorAll(':scope > .column');
 		const left = columnWidthPx(columns[index]);
 		const total = left + columnWidthPx(columns[index + 1]);
-		// Nicht so schmal ziehen, dass die Spalten gleich wieder zusammengelegt würden
-		const minPx = Math.min(MIN_NARROW_COLUMN_REM * remPx, total / 2);
+		const pair = layout.columnWidths[index] + layout.columnWidths[index + 1];
 		const startX = event.clientX;
 		const gutter = event.currentTarget as HTMLElement;
 		gutter.setPointerCapture(event.pointerId);
 		resizing = index;
 
 		const onmove = (move: PointerEvent) => {
-			const px = Math.min(total - minPx, Math.max(minPx, left + move.clientX - startX));
-			setShare(index, px / total);
+			const px = left + move.clientX - startX;
+			setLeftSpan(index, (px / total) * pair, move.shiftKey);
 		};
 		const onup = () => {
 			resizing = null;
@@ -237,19 +246,16 @@
 		gutter.addEventListener('pointercancel', onup);
 	}
 
-	const shareOf = (index: number) =>
-		layout.columnWidths[index] / (layout.columnWidths[index] + layout.columnWidths[index + 1]);
-
 	function onGutterKeydown(event: KeyboardEvent, index: number) {
-		const step = event.key === 'ArrowLeft' ? -0.03 : event.key === 'ArrowRight' ? 0.03 : 0;
+		const step = event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0;
 		if (!step) return;
 		event.preventDefault();
-		setShare(index, shareOf(index) + step);
+		setLeftSpan(index, layout.columnWidths[index] + step, event.shiftKey);
 	}
 
 	function resetWidths() {
 		const live = app.config.value.layout;
-		live.columnWidths = live.columnWidths.map(() => 1);
+		live.columnWidths = equalSpans(live.columns);
 	}
 </script>
 
@@ -270,26 +276,32 @@
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 				<div
 					class="gutter interactive"
+					style:grid-column={2 * g}
 					class:active={resizing === g - 1}
 					role="separator"
 					aria-orientation="vertical"
 					aria-label={t('edit.resizeColumns', { left: g, right: g + 1 })}
-					aria-valuemin={0}
-					aria-valuemax={100}
-					aria-valuenow={Math.round(shareOf(g - 1) * 100)}
+					aria-valuemin={2}
+					aria-valuemax={layout.columnWidths[g - 1] + layout.columnWidths[g] - 2}
+					aria-valuenow={layout.columnWidths[g - 1]}
+					aria-valuetext={layout.columnWidths.join(' · ')}
 					tabindex="0"
 					title={t('edit.resizeHint')}
 					onpointerdown={(event) => onGutterPointerdown(event, g - 1)}
 					onkeydown={(event) => onGutterKeydown(event, g - 1)}
 					ondblclick={resetWidths}
+					onpointerenter={() => (gutterActive = g - 1)}
+					onpointerleave={() => (gutterActive = null)}
+					onfocus={() => (gutterActive = g - 1)}
+					onblur={() => (gutterActive = null)}
 				>
 					<span class="handle"></span>
 				</div>
 			{:else}
-				<div class="gutter" aria-hidden="true"></div>
+				<div class="gutter" style:grid-column={2 * g} aria-hidden="true"></div>
 			{/if}
 		{/if}
-		<div class="column">
+		<div class="column" style:grid-column={2 * g + 1}>
 			{#each group as column (column)}
 				<div
 					class="segment"
@@ -321,6 +333,11 @@
 				</div>
 			{/each}
 		</div>
+		{#if ui.editing && ownWidths && showSpans}
+			<div class="span-label" style:grid-column={2 * g + 1} aria-hidden="true">
+				{layout.columnWidths[g]}<span>/{GRID_UNITS}</span>
+			</div>
+		{/if}
 	{/each}
 </div>
 
@@ -345,6 +362,12 @@
 		width: 100%;
 		height: 100%;
 		margin-inline: auto;
+	}
+
+	/* Alle Elemente liegen fest in Zeile 1, sonst schiebt die Breitenanzeige Spalten nach unten */
+	.column,
+	.gutter {
+		grid-row: 1;
 	}
 
 	/* Jede Spalte scrollt für sich, die Page selbst nicht */
@@ -415,6 +438,37 @@
 	.resizing {
 		cursor: col-resize;
 		user-select: none;
+	}
+
+	/* Breite der Spalte in Raster-Einheiten, sichtbar beim Ziehen bzw. Fokus auf einem Trenner */
+	.span-label {
+		grid-row: 1;
+		z-index: 4;
+		align-self: center;
+		justify-self: center;
+		padding: var(--space-2) var(--space-4);
+		border-radius: var(--radius-full);
+		background: rgb(8 34 66 / 0.55);
+		backdrop-filter: blur(8px);
+		color: #fff;
+		font-size: var(--text-xl);
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+		pointer-events: none;
+		animation: label-in var(--duration) var(--ease-out);
+
+		span {
+			font-size: 0.6em;
+			font-weight: 500;
+			opacity: 0.75;
+		}
+	}
+
+	@keyframes label-in {
+		from {
+			opacity: 0;
+			transform: scale(0.9);
+		}
 	}
 
 	.editing .segment.empty {

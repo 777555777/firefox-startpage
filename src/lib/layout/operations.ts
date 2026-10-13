@@ -86,61 +86,120 @@ export const MIN_COLUMN_REM = 20;
 /** Mindestbreite der schmalsten Spalte bei unterschiedlichen Breiten */
 export const MIN_NARROW_COLUMN_REM = 14;
 
-/** Grenzen für relative Spaltenbreiten (wie `fr`) */
-export const WIDTH_MIN = 0.5;
-export const WIDTH_MAX = 3;
+/**
+ * Spaltenbreiten folgen einem 12er-Raster: Jede Spalte belegt ganze Einheiten, zusammen immer 12.
+ * 12 ist durch 1–4 teilbar, gleich breite Spalten gehen also immer auf.
+ */
+export const GRID_UNITS = 12;
+/** Mindestbreite einer Spalte in Raster-Einheiten */
+export const MIN_SPAN = 2;
 
 export const GAP_MIN = 8;
 export const GAP_MAX = 64;
 
-const round2 = (value: number) => Math.round(value * 100) / 100;
+/** Grenzen für die maximale Gesamtbreite in rem; fehlt der Wert, gilt die volle Breite */
+export const MAX_WIDTH_MIN = 48;
+export const MAX_WIDTH_MAX = 160;
+export const MAX_WIDTH_STEP = 8;
+
+const sum = (values: number[]) => values.reduce((a, b) => a + b, 0);
 
 /**
  * Wie viele Spalten bei der verfügbaren Breite tatsächlich nebeneinander passen. Mit
- * `weights` wird zusätzlich geprüft, ob die schmalste Spalte noch breit genug ist.
+ * `spans` wird zusätzlich geprüft, ob die schmalste Spalte noch breit genug ist.
  */
 export function visibleColumnCount(
 	columns: number,
 	availableWidthPx: number,
 	remPx = 16,
 	gapPx = 0,
-	weights?: number[]
+	spans?: number[]
 ): number {
 	const fit = Math.floor((availableWidthPx + gapPx) / (MIN_COLUMN_REM * remPx + gapPx));
 	const count = Math.max(1, Math.min(columns, fit));
-	if (count === columns && columns > 1 && weights) {
-		const used = weights.slice(0, columns);
+	if (count === columns && columns > 1 && spans) {
+		const used = spans.slice(0, columns);
 		const content = availableWidthPx - gapPx * (columns - 1);
-		const narrowest = (content * Math.min(...used)) / used.reduce((a, b) => a + b, 0);
+		const narrowest = (content * Math.min(...used)) / sum(used);
 		if (narrowest < MIN_NARROW_COLUMN_REM * remPx) return columns - 1;
 	}
 	return count;
 }
 
-/** Bringt relative Breiten auf die Spaltenzahl; fehlende Spalten bekommen 1 */
-export function normalizeColumnWidths(raw: unknown, columns: number): number[] {
-	const list = Array.isArray(raw) ? raw : [];
-	return Array.from({ length: columns }, (_, i) => {
-		const value = list[i];
-		return typeof value === 'number' && Number.isFinite(value)
-			? round2(Math.min(WIDTH_MAX, Math.max(WIDTH_MIN, value)))
-			: 1;
-	});
+export function equalSpans(columns: number): number[] {
+	return Array.from({ length: columns }, () => GRID_UNITS / columns);
 }
 
 /**
- * Verteilt die Breite zweier benachbarter Spalten neu. `share` ist der Anteil der linken
- * Spalte an beiden (0…1). Die Summe des Paars bleibt gleich, die Grenzen werden eingehalten.
+ * Bringt beliebige Breiten auf das Raster: proportional auf 12 Einheiten skaliert, ganzzahlig
+ * gerundet (größter Rest zuerst) und mit mindestens `MIN_SPAN` pro Spalte. Ältere relative
+ * Breiten wie `[0.8, 1.4, 0.8]` werden so zu `[3, 6, 3]`.
  */
-export function resizePair(widths: number[], index: number, share: number): number[] {
-	if (index < 0 || index + 1 >= widths.length) return widths;
-	const pair = widths[index] + widths[index + 1];
-	const low = Math.max(WIDTH_MIN, pair - WIDTH_MAX);
-	const high = Math.min(WIDTH_MAX, pair - WIDTH_MIN);
-	const left = round2(Math.min(high, Math.max(low, pair * share)));
-	const next = [...widths];
-	next[index] = left;
-	next[index + 1] = round2(pair - left);
+export function normalizeColumnWidths(raw: unknown, columns: number): number[] {
+	const list = Array.isArray(raw) ? raw : [];
+	const weights = Array.from({ length: columns }, (_, i) => {
+		const value = list[i];
+		return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+	});
+	if (weights.some((w) => w === null)) return equalSpans(columns);
+
+	const total = sum(weights as number[]);
+	const exact = (weights as number[]).map((w) => (w / total) * GRID_UNITS);
+	const spans = exact.map(Math.floor);
+	const byRemainder = exact
+		.map((value, i) => ({ i, rest: value - Math.floor(value) }))
+		.sort((a, b) => b.rest - a.rest);
+	for (let k = 0; sum(spans) < GRID_UNITS; k++) spans[byRemainder[k % columns].i]++;
+
+	// Zu schmale Spalten auf das Minimum heben, die Einheiten von der breitesten nehmen
+	for (let i = 0; i < columns; i++) {
+		while (spans[i] < MIN_SPAN) {
+			const widest = spans.indexOf(Math.max(...spans));
+			if (spans[widest] <= MIN_SPAN) break;
+			spans[widest]--;
+			spans[i]++;
+		}
+	}
+	return spans;
+}
+
+/**
+ * Setzt die linke Spalte eines Nachbarpaars auf `left` Einheiten (gerastert und begrenzt).
+ * Die Summe des Paars bleibt gleich.
+ */
+export function resizePair(spans: number[], index: number, left: number): number[] {
+	if (index < 0 || index + 1 >= spans.length) return spans;
+	const pair = spans[index] + spans[index + 1];
+	const clamped = Math.min(pair - MIN_SPAN, Math.max(MIN_SPAN, Math.round(left)));
+	const next = [...spans];
+	next[index] = clamped;
+	next[index + 1] = pair - clamped;
+	return next;
+}
+
+/**
+ * Spiegelt die Außenspalten der Seite, an der Trenner `index` liegt, auf die andere Seite
+ * (symmetrisches Layout, z. B. 3·6·3). Die Spalten dazwischen teilen sich den Rest.
+ * Liefert die Eingabe unverändert, wenn das nicht aufgeht.
+ */
+export function mirrorSpans(spans: number[], index: number): number[] {
+	const n = spans.length;
+	const mirrored = n - 2 - index;
+	if (n < 3 || mirrored === index) return spans;
+	const next = [...spans];
+	// Die Seite des gezogenen Trenners gibt die Außenspalten vor
+	const fromLeft = index < mirrored;
+	const outer = fromLeft ? index + 1 : n - 1 - index;
+	for (let k = 0; k < outer; k++) {
+		if (fromLeft) next[n - 1 - k] = next[k];
+		else next[k] = next[n - 1 - k];
+	}
+	const middle = n - 2 * outer;
+	const rest = GRID_UNITS - 2 * sum(next.slice(0, outer));
+	if (middle <= 0 || rest < middle * MIN_SPAN) return spans;
+	for (let k = 0; k < middle; k++) {
+		next[outer + k] = Math.floor(rest / middle) + (k < rest % middle ? 1 : 0);
+	}
 	return next;
 }
 
