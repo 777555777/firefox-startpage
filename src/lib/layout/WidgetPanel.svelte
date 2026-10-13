@@ -133,6 +133,11 @@
 			padding-top: var(--space-3);
 		}
 
+		/* Aufklappendes (z. B. Suchvorschläge) liegt über den Nachbar-Panels */
+		&:focus-within {
+			z-index: 2;
+		}
+
 		&.dragging {
 			opacity: 0.35;
 		}

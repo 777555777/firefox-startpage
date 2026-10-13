@@ -1,8 +1,12 @@
 import type { WidgetSettingsMap, WidgetType } from '$lib/config/types';
 import Calendar from './calendar/Calendar.svelte';
+import CalendarSettings from './calendar/CalendarSettings.svelte';
 import Clock from './clock/Clock.svelte';
+import ClockSettings from './clock/ClockSettings.svelte';
 import LinkBoard from './links/LinkBoard.svelte';
+import LinkBoardSettings from './links/LinkBoardSettings.svelte';
 import Search from './search/Search.svelte';
+import SearchSettings from './search/SearchSettings.svelte';
 import { widgetSettings } from './settings';
 import type { WidgetDefinition } from './types';
 
@@ -16,28 +20,32 @@ export const registry: { [K in WidgetType]: WidgetDefinition<WidgetSettingsMap[K
 		name: 'widget.clock',
 		icon: 'clock',
 		...widgetSettings.clock,
-		component: Clock
+		component: Clock,
+		settingsComponent: ClockSettings
 	},
 	calendar: {
 		type: 'calendar',
 		name: 'widget.calendar',
 		icon: 'calendar',
 		...widgetSettings.calendar,
-		component: Calendar
+		component: Calendar,
+		settingsComponent: CalendarSettings
 	},
 	search: {
 		type: 'search',
 		name: 'widget.search',
 		icon: 'search',
 		...widgetSettings.search,
-		component: Search
+		component: Search,
+		settingsComponent: SearchSettings
 	},
 	links: {
 		type: 'links',
 		name: 'widget.links',
 		icon: 'link',
 		...widgetSettings.links,
-		component: LinkBoard
+		component: LinkBoard,
+		settingsComponent: LinkBoardSettings
 	}
 };
 

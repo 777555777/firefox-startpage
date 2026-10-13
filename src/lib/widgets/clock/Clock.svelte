@@ -1,18 +1,95 @@
 <script lang="ts">
-	import { t } from '$lib/i18n/index.svelte';
+	import { i18n, t } from '$lib/i18n/index.svelte';
+	import { everyMinute, everySecond } from '$lib/utils/now.svelte';
 	import type { WidgetProps } from '../types';
 	import type { ClockSettings } from './settings';
 
 	let { settings }: WidgetProps<ClockSettings> = $props();
+
+	const now = $derived(settings.showSeconds ? everySecond.current : everyMinute.current);
+
+	const timeFormat = $derived(
+		new Intl.DateTimeFormat(i18n.lang, {
+			hour: settings.hourCycle === '12' ? 'numeric' : '2-digit',
+			minute: '2-digit',
+			second: settings.showSeconds ? '2-digit' : undefined,
+			...(settings.hourCycle !== 'auto' && {
+				hourCycle: settings.hourCycle === '12' ? 'h12' : 'h23'
+			})
+		})
+	);
+
+	const dateFormat = $derived(
+		new Intl.DateTimeFormat(
+			i18n.lang,
+			settings.dateStyle === 'long'
+				? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
+				: { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }
+		)
+	);
+
+	/** Stunden/Minuten groß, Sekunden und AM/PM kleiner */
+	const parts = $derived.by(() => {
+		const all = timeFormat.formatToParts(now);
+		const secondIndex = all.findIndex((p) => p.type === 'second');
+		const main = all
+			.filter((p, i) => p.type !== 'dayPeriod' && (secondIndex === -1 || i < secondIndex - 1))
+			.map((p) => p.value)
+			.join('')
+			.trim();
+		return {
+			main,
+			seconds: secondIndex === -1 ? '' : all[secondIndex].value,
+			period: all.find((p) => p.type === 'dayPeriod')?.value ?? ''
+		};
+	});
 </script>
 
-<!-- Platzhalter bis M3 -->
-<p class="placeholder" data-settings={Object.keys(settings).length}>{t('widget.clock')}</p>
+<div class="clock">
+	<time class="time" datetime={now.toISOString()} aria-label={t('clock.label')}>
+		<span class="main">{parts.main}</span>
+		{#if parts.seconds}<span class="seconds">{parts.seconds}</span>{/if}
+		{#if parts.period}<span class="period">{parts.period}</span>{/if}
+	</time>
+	{#if settings.showDate}
+		<p class="date">{dateFormat.format(now)}</p>
+	{/if}
+</div>
 
 <style>
-	.placeholder {
-		padding: var(--space-6);
+	.clock {
+		display: grid;
+		gap: var(--space-1);
+		padding: var(--space-2) var(--space-1);
+	}
+
+	.time {
+		display: flex;
+		align-items: baseline;
+		gap: 0.12em;
+		font-size: var(--text-display);
+		font-weight: 300;
+		line-height: 1;
+		letter-spacing: -0.035em;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.seconds,
+	.period {
+		font-size: 0.38em;
+		font-weight: 500;
+		letter-spacing: 0;
 		color: var(--text-secondary);
-		text-align: center;
+	}
+
+	.period {
+		margin-left: 0.2em;
+		text-transform: uppercase;
+	}
+
+	.date {
+		font-size: var(--text-lg);
+		font-weight: 500;
+		color: var(--text-secondary);
 	}
 </style>

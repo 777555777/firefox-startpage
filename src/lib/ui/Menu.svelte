@@ -36,9 +36,24 @@
 	$effect(() => {
 		if (!anchor) return;
 		returnFocus = document.activeElement as HTMLElement | null;
-		// Popover liegt im Top-Layer und ist damit unabhängig von Glas-Containern
+		// Popover liegt im Top-Layer und ist damit unabhängig von Glas-Containern. „manual“,
+		// weil das automatische Light-Dismiss ein per Rechtsklick geöffnetes Menü beim
+		// Loslassen der Maustaste sofort wieder schließen würde.
 		menu.showPopover();
 		void place(anchor).then(() => buttons()[0]?.focus());
+
+		const onpointerdown = (event: PointerEvent) => {
+			if (!menu.contains(event.target as Node)) close(false);
+		};
+		const dismiss = () => close(false);
+		window.addEventListener('pointerdown', onpointerdown, true);
+		window.addEventListener('blur', dismiss);
+		window.addEventListener('resize', dismiss);
+		return () => {
+			window.removeEventListener('pointerdown', onpointerdown, true);
+			window.removeEventListener('blur', dismiss);
+			window.removeEventListener('resize', dismiss);
+		};
 	});
 
 	async function place(target: MenuAnchor) {
@@ -101,7 +116,7 @@
 <div
 	bind:this={menu}
 	class="menu glass"
-	popover="auto"
+	popover="manual"
 	role="menu"
 	aria-label={label}
 	tabindex="-1"

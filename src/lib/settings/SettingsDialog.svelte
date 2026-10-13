@@ -9,6 +9,7 @@
 	import DataSection from './DataSection.svelte';
 	import GeneralSection from './GeneralSection.svelte';
 	import PerformanceSection from './PerformanceSection.svelte';
+	import SearchSection from './SearchSection.svelte';
 
 	type Section = { id: SettingsSection; label: I18nKey; icon: IconName; component: Component };
 
@@ -26,6 +27,7 @@
 			icon: 'gauge',
 			component: PerformanceSection
 		},
+		{ id: 'search', label: 'settings.search', icon: 'search', component: SearchSection },
 		{ id: 'data', label: 'settings.data', icon: 'database', component: DataSection }
 	];
 

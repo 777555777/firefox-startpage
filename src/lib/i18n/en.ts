@@ -141,6 +141,7 @@ export const en: Dictionary = {
 	'calendar.today': 'Today',
 	'calendar.weekShort': 'Wk',
 	'calendar.week': 'Week {week}',
+	'calendar.weekNumber': 'Week number',
 	'calendar.weekStart': 'Week starts on',
 	'calendar.monday': 'Monday',
 	'calendar.sunday': 'Sunday',

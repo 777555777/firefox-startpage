@@ -10,6 +10,8 @@
 	import { announcer } from '$lib/ui/announcer.svelte';
 	import Toasts from '$lib/ui/Toasts.svelte';
 	import { isOverlayOpen, isTypingTarget } from '$lib/utils/keyboard';
+	import { firstBoard } from '$lib/widgets/links/boards';
+	import { digitOf } from '$lib/widgets/links/nav';
 
 	let { app }: { app: AppState } = $props();
 
@@ -47,6 +49,20 @@
 			ui.editing = !ui.editing;
 		} else if (event.key === 'Escape' && ui.editing) {
 			ui.editing = false;
+		} else if (event.key === '/') {
+			// Firefox fokussiert beim neuen Tab die Adressleiste; `/` holt die (erste) Suche
+			const search = document.querySelector<HTMLInputElement>('[data-search-input]');
+			if (search) {
+				event.preventDefault();
+				search.focus();
+			}
+		} else if (!event.shiftKey) {
+			// 1…9 ohne Fokus auf einem Board öffnet Links des ersten Boards
+			const digit = digitOf(event);
+			if (digit) {
+				event.preventDefault();
+				firstBoard()?.openNth(digit);
+			}
 		}
 	}
 </script>

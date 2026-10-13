@@ -68,3 +68,31 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
 - **Default-Akzent** ist `#1872d6` statt eines helleren Blaus, damit weißer Text darauf AA erreicht.
   Text auf dem Akzent ist Weiß, solange es AA erreicht, sonst die kontrastreichere Variante.
 - `Esc` verlässt den Edit-Modus, wenn kein Dialog offen ist und nichts gegriffen ist.
+
+## M3 – Widgets
+
+- **Suche ist kein Singleton.** §6.3 spricht von der „(ersten)“ Suche, die `/` fokussiert. Mehrere
+  Suchen sind also erlaubt. Die Registry unterstützt `singleton` trotzdem, das „+ Widget“-Menü
+  sperrt solche Typen dann.
+- **Suchvorschläge** erscheinen nur ohne erkannten Bang. Mit Bang ist klar, wohin die Suche geht.
+  Die letzte Option der Liste ist immer „Mit … suchen“. Ohne Suchtext öffnet ein Bang die
+  Startseite der Engine (z. B. `!yt` → youtube.com).
+- **Engine-Verwaltung:** Name, URL und Bang werden als Entwurf bearbeitet und erst übernommen,
+  wenn sie gültig sind (URL mit `%s`, Bang eindeutig). So entstehen keine halb gültigen Engines,
+  die beim Speichern verworfen würden. Eigene Engine-Icons (Data-URL) sind im Schema vorgesehen,
+  in der Oberfläche aber noch nicht hochladbar. Es wird immer das Favicon genutzt.
+- **Link-Board:** „+ Link“ ist immer sichtbar (dezent), nicht nur im Edit-Modus, damit Links ohne
+  Umweg hinzugefügt werden können. Tabs bearbeitet man per Doppelklick oder Kontextmenü. Löschen von
+  Links und Tabs geht ohne Bestätigungsdialog, dafür mit Rückgängig-Toast (wie bei Widgets). Der
+  letzte Tab eines Boards kann nicht gelöscht werden.
+- **Links zwischen Boards verschieben** (nice-to-have) ist noch nicht umgesetzt.
+- **Kontextmenü** nutzt `popover="manual"` mit eigenem Schließen bei Klick außerhalb. Das
+  automatische Light-Dismiss würde ein per Rechtsklick geöffnetes Menü beim Loslassen der Maustaste
+  sofort wieder schließen.
+- **Ziffern-Kürzel** werden über `KeyboardEvent.code` gelesen, damit `Alt+1…9` auch auf macOS
+  funktioniert (dort liefert `key` Sonderzeichen).
+- **Feiertage:** Zusätzlich zu den in der Spec genannten Sonderfällen kennt die Berechnung
+  Ostersonntag/Pfingstsonntag (BB), den bundesweiten Reformationstag 2017 und den einmaligen Tag der
+  Befreiung in Berlin (2020, 2025).
+- **Uhr:** Ein Ticker pro Takt (Sekunde/Minute) für die ganze Page, auf die Grenze synchronisiert.
+  Beim Zurückkehren in einen Hintergrund-Tab wird sofort aktualisiert.

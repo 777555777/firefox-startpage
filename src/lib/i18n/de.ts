@@ -143,6 +143,7 @@ export const de = {
 	'calendar.today': 'Heute',
 	'calendar.weekShort': 'KW',
 	'calendar.week': 'Kalenderwoche {week}',
+	'calendar.weekNumber': 'Kalenderwoche',
 	'calendar.weekStart': 'Wochenbeginn',
 	'calendar.monday': 'Montag',
 	'calendar.sunday': 'Sonntag',

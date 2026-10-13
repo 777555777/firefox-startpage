@@ -32,6 +32,7 @@
 <style>
 	.segmented {
 		display: inline-flex;
+		justify-self: start;
 		gap: 2px;
 		padding: 3px;
 		border-radius: var(--radius-full);
