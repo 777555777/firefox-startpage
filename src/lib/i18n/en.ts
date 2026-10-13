@@ -125,8 +125,21 @@ export const en: Dictionary = {
 	'quality.medium': 'Medium',
 	'quality.low': 'Low',
 	'quality.static': 'Static (no WebGL)',
-	'settings.qualityNote':
-		'WebGL glass is not built in yet. Until then the static level is always used.',
+	'settings.qualityAuto':
+		'“Automatic” starts at “High”. Stepping down on its own on slow computers comes with the next milestone.',
+	'render.current': 'Current rendering',
+	'render.webgl': 'WebGL glass, level “{level}”',
+	'render.static': 'Static (CSS, no WebGL)',
+	'render.fps': '{fps} frames per second',
+	'render.onDemand': 'Only draws when something changes',
+	'render.unavailable': 'WebGL2 is not available here, so the static level is used.',
+	'render.lost': 'The graphics context was lost. The static level is used until it comes back.',
+
+	'debug.title': 'Glass debug',
+	'debug.time': 'Time',
+	'debug.realTime': 'Real time',
+	'debug.reset': 'Reset',
+	'debug.close': 'Close debug panel',
 
 	'settings.engines': 'Search engines',
 	'settings.enginesHint':

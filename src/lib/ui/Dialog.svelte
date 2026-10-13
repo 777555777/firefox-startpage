@@ -1,6 +1,7 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import { t } from '$lib/i18n/index.svelte';
+	import { ui } from '$lib/state/ui.svelte';
 	import Icon from './Icon.svelte';
 
 	let {
@@ -33,6 +34,12 @@
 	$effect(() => {
 		if (open && !dialog.open) dialog.showModal();
 		else if (!open && dialog.open) dialog.close();
+	});
+
+	$effect(() => {
+		if (!open) return;
+		untrack(() => ui.modals++);
+		return () => untrack(() => ui.modals--);
 	});
 </script>
 

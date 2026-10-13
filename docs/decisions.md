@@ -144,3 +144,47 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   Config noch eines der Backups verweist. So bleibt ein Backup samt Hintergrund wiederherstellbar.
 - **Drag & Drop** geht auf jeden einzelnen Slot (Haupt-Hintergrund und Tageszeiten). Daneben
   abgelegte Dateien werden ignoriert, statt den Browser-Viewer zu öffnen.
+
+## M5 – WebGL-Glas
+
+- **Welche Flächen WebGL-Glas sind:** Nur die Widget-Panels melden sich beim Glas-Layer an.
+  Dialoge, Menüs, Toasts, die Edit-Leiste und die Suchvorschläge bleiben CSS-Glas mit
+  `backdrop-filter`. Sie liegen über anderen Panels, und ihr DOM-Inhalt würde sonst durch das
+  Glas scheinen. Der Canvas kann nur die Szene brechen, nicht den DOM darüber (Grenze aus §7.1).
+  Mit `backdrop-filter` zeichnen sie die WebGL-Szene samt Panels weich. Das Attachment kennt die
+  Varianten `popover` und `button` schon, damit das später ohne Umbau geht.
+- **Instanz-Attribute statt Uniform-Buffer:** Jede Fläche ist eine Instanz (Rechteck, Clip,
+  Radius, Tiefe, Deckkraft, Variante; 12 Floats, höchstens 64). Gezeichnet wird ein um den
+  Schatten vergrößertes Quad pro Fläche. So kostet ein Pixel nur die Flächen, die ihn berühren.
+- **Clip auf den Scroll-Container:** Panels liegen in scrollenden Spalten. Glas und Schatten werden
+  wie der DOM-Inhalt an der Spaltenkante abgeschnitten.
+- **Blur:** Dual-Kawase mit 5 Stufen. Die mittlere Stärke kommt aus Stufe 3, die starke aus Stufe 5.
+  Frost blendet von scharf über mittel bis stark. Unabhängig vom Frost hält eine adaptive
+  Aufhellung bzw. Abdunklung die Helligkeit unter der Fläche in einem Bereich, in dem Text Kontrast
+  hat (§7.2 Punkt 5).
+- **Scrim hinter Dialogen:** Der Shader zeichnet die Szene hinter einem offenen Dialog weich und legt
+  eine Abdunklung über Szene und Panels (blendet in ~260 ms ein). Das DOM-`::backdrop` dunkelt im
+  WebGL-Modus nur noch leicht ab, damit auch der Panel-Text zurücktritt.
+- **On-Demand-Rendering:** Rechtecke werden nach ResizeObserver, Scrollen, Fenstergröße,
+  Layout-Änderung oder Schriftladen gelesen. Während Federanimationen (DnD) und 600 ms nach einer
+  CSS-Transition wird in jedem Frame gelesen. Die Szene wird nur bei Änderungen, Video-Frames,
+  Überblendungen oder im 15-fps-Takt des Himmelsverlaufs neu gezeichnet. Im Hintergrund-Tab steht
+  alles, Videos pausieren.
+- **Qualitätsstufen** Hoch, Mittel und Niedrig sind schon wirksam (DPR-Grenze, halbe Szenen-
+  Auflösung, ohne Dispersion bzw. Refraktion, Video-Bildrate). „Automatisch“ startet auf Hoch.
+  Das Herunterstufen nach Frame-Zeit ist Teil von M6.
+- **Übergang Static → WebGL:** Bis der erste WebGL-Frame steht, bleibt die Static-Darstellung
+  sichtbar, das Canvas ist so lange durchsichtig. Damit nachts beim Öffnen nichts hell aufblitzt,
+  merkt sich die Page Tonalität und Himmelsfarbe in `localStorage` (`startpage:paint`) und setzt
+  sie vor dem Laden der Config.
+- **Beim Öffnen** blendet ein eigener Hintergrund nur kurz ein (250 ms). Die ~2 s lange
+  Überblendung gilt für Phasenwechsel und neue Uploads.
+- **Kontextverlust:** Der Verlust wird abgefangen, die Static-Darstellung übernimmt. Nach
+  `webglcontextrestored` wird alles neu aufgebaut. Fehlt WebGL2 ganz, bleibt es bei Static, und
+  die Einstellungen zeigen den Grund. Feinschliff und Tests dazu folgen in M6.
+- **Debug-Panel** (`?debug`, nur Dev-Build) wird dynamisch importiert und fällt im
+  Produktions-Build ganz weg. Die Reglernamen sind die Parameter-Bezeichner aus dem Code und werden
+  bewusst nicht übersetzt.
+- **Ziehen:** Der Drag-Klon eines Panels zeichnet sein Glas per CSS (er liegt über allem), das
+  Original wird auf dem Canvas mit verringerter Deckkraft gezeichnet. Die Markierung beim
+  Tastatur-Verschieben ist eine `outline`, weil Panels im WebGL-Modus keinen `box-shadow` zeichnen.

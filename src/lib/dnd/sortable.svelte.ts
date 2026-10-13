@@ -270,6 +270,8 @@ export class Sortable {
 		ghost.removeAttribute('id');
 		for (const el of ghost.querySelectorAll('[id]')) el.removeAttribute('id');
 		ghost.classList.add('dnd-ghost');
+		// Der Klon zeichnet sein Glas selbst (CSS), nicht über den WebGL-Layer
+		delete ghost.dataset.glass;
 		ghost.setAttribute('aria-hidden', 'true');
 		Object.assign(ghost.style, {
 			position: 'fixed',

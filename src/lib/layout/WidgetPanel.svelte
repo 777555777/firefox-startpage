@@ -3,6 +3,7 @@
 	import type { Sortable } from '$lib/dnd/sortable.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { getApp } from '$lib/state/context';
+	import { glass } from '$lib/glass/layer';
 	import Icon from '$lib/ui/Icon.svelte';
 	import { definitionOf } from '$lib/widgets/registry';
 
@@ -31,6 +32,7 @@
 	const app = getApp();
 	const definition = $derived(definitionOf(instance.type));
 	const name = $derived(t(definition.name));
+	const dragging = $derived(sortable.isDragging(instance.id));
 
 	/** Änderungen gehen direkt in die gespeicherte Instanz */
 	function update(mutate: (settings: unknown) => void) {
@@ -47,7 +49,7 @@
 <section
 	class="panel glass"
 	class:editing
-	class:dragging={sortable.isDragging(instance.id)}
+	class:dragging
 	class:grabbed
 	aria-label={name}
 	data-widget={instance.type}
@@ -57,6 +59,7 @@
 		handle: '.grip',
 		disabled: !editing
 	})}
+	{@attach glass({ depth: 1, opacity: dragging ? 0.35 : 1 })}
 >
 	{#if editing}
 		<div class="controls">
@@ -142,12 +145,10 @@
 			opacity: 0.35;
 		}
 
+		/* Kontur statt Schatten, damit sie auch im WebGL-Modus sichtbar ist */
 		&.grabbed {
-			box-shadow:
-				inset 0 1px 0 var(--glass-edge),
-				inset 0 0 0 1px var(--glass-rim),
-				0 0 0 3px var(--accent),
-				var(--glass-shadow-raised);
+			outline: 3px solid var(--accent);
+			outline-offset: 0;
 		}
 	}
 

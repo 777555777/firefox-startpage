@@ -1,5 +1,8 @@
 <script lang="ts">
 	import StaticBackground from '$lib/background/StaticBackground.svelte';
+	import GlassCanvas from '$lib/glass/GlassCanvas.svelte';
+	import type { RenderLevel } from '$lib/glass/params.svelte';
+	import { renderState } from '$lib/glass/render-state.svelte';
 	import { i18n, t } from '$lib/i18n/index.svelte';
 	import Board from '$lib/layout/Board.svelte';
 	import EditControls from '$lib/layout/EditControls.svelte';
@@ -21,6 +24,16 @@
 	setApp(app);
 
 	const config = $derived(app.config.value);
+	/** Debug-Panel für das Glas, nur im Dev-Build */
+	const debug = import.meta.env.DEV && new URLSearchParams(location.search).has('debug');
+	/** Gewünschte WebGL-Stufe; „Automatisch“ beginnt auf Hoch, `null` = Static */
+	const level = $derived<RenderLevel | null>(
+		config.appearance.quality === 'static'
+			? null
+			: config.appearance.quality === 'auto'
+				? 'high'
+				: config.appearance.quality
+	);
 
 	$effect.pre(() => {
 		i18n.setting = config.language;
@@ -57,6 +70,22 @@
 		root.style.setProperty('--glass-tint', rgbCss(app.timeOfDay.glassTint));
 	});
 
+	$effect(() => {
+		document.documentElement.dataset.renderer = renderState.mode;
+	});
+
+	// Farbe für den allerersten Paint des nächsten Tabs merken (siehe main.ts)
+	$effect(() => {
+		try {
+			localStorage.setItem(
+				'startpage:paint',
+				JSON.stringify({ tone: app.timeOfDay.tone, color: rgbCss(app.timeOfDay.sky.middle) })
+			);
+		} catch {
+			// ohne localStorage startet die Seite eben mit der Standardfarbe
+		}
+	});
+
 	function onkeydown(event: KeyboardEvent) {
 		if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
 		if (isTypingTarget(event.target) || isOverlayOpen()) return;
@@ -85,13 +114,23 @@
 
 <svelte:window {onkeydown} />
 
-<StaticBackground />
+{#if level && renderState.failure !== 'unavailable'}
+	<GlassCanvas {level} />
+{/if}
+{#if renderState.mode === 'static'}
+	<StaticBackground />
+{/if}
 
 <main class="page" aria-label={t('app.main')}>
 	<Board />
 </main>
 
 <EditControls />
+{#if import.meta.env.DEV && debug}
+	{#await import('$lib/glass/DebugPanel.svelte') then { default: DebugPanel }}
+		<DebugPanel />
+	{/await}
+{/if}
 <SettingsDialog />
 <Toasts />
 

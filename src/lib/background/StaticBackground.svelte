@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import type { MediaRef } from '$lib/config/types';
 	import { getApp } from '$lib/state/context';
@@ -21,6 +22,15 @@
 	const SKY: Layer = { key: 'sky', kind: 'sky', url: null };
 
 	let shown = $state<Layer>(SKY);
+	let fadeMs = $state(250);
+	const mountedAt = performance.now();
+
+	/** Beim Öffnen der Seite nur kurz einblenden, beim Phasenwechsel weich (~2 s) überblenden */
+	function show(layer: Layer) {
+		if (layer.key === untrack(() => shown.key)) return;
+		fadeMs = performance.now() - mountedAt < 1500 ? 250 : 2000;
+		shown = layer;
+	}
 
 	$effect(() => {
 		if (ref) return mediaLibrary.retain(ref.id);
@@ -28,17 +38,17 @@
 
 	$effect(() => {
 		if (!ref) {
-			shown = SKY;
+			show(SKY);
 			return;
 		}
 		const status = mediaLibrary.status(ref.id);
 		const url = mediaLibrary.url(ref.id);
 		// Während des Ladens bleibt das Bisherige stehen, damit nichts doppelt überblendet
-		if (status === 'missing') shown = SKY;
+		if (status === 'missing') show(SKY);
 		if (status !== 'ready' || !url) return;
 		const next: Layer = { key: ref.id, kind: ref.kind, url };
 		if (ref.kind === 'video') {
-			shown = next;
+			show(next);
 			return;
 		}
 		// Bilder erst nach dem Dekodieren zeigen, sonst blitzt der Verlauf durch
@@ -49,7 +59,7 @@
 			.decode()
 			.catch(() => {})
 			.finally(() => {
-				if (!cancelled) shown = next;
+				if (!cancelled) show(next);
 			});
 		return () => (cancelled = true);
 	});
@@ -71,18 +81,18 @@
 
 	/** Video-Standbild: erster Frame, keine Wiedergabe (Static-Stufe ist ohne Animation) */
 	function poster(video: HTMLVideoElement) {
-		const show = () => {
+		const seek = () => {
 			if (video.currentTime === 0) video.currentTime = 0.001;
 		};
-		video.addEventListener('loadeddata', show);
-		return () => video.removeEventListener('loadeddata', show);
+		video.addEventListener('loadeddata', seek);
+		return () => video.removeEventListener('loadeddata', seek);
 	}
 </script>
 
 <div class="background" aria-hidden="true">
 	<div class="sky" style:background={skyStyle}></div>
 	{#key shown.key}
-		<div class="layer" transition:fade={{ duration: 2000 }}>
+		<div class="layer" transition:fade={{ duration: fadeMs }}>
 			{#if shown.kind === 'image' && shown.url}
 				<img
 					class="media"

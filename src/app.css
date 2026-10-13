@@ -194,6 +194,11 @@
 	box-sizing: border-box;
 }
 
+/* Nur bis der Hintergrund gezeichnet ist; main.ts setzt die Farbe des letzten Besuchs */
+html {
+	background-color: #2f8de0;
+}
+
 html,
 body {
 	height: 100%;
@@ -208,8 +213,6 @@ body {
 	color: var(--text);
 	-webkit-font-smoothing: antialiased;
 	text-rendering: optimizeLegibility;
-	/* Nur bis der Hintergrund gezeichnet ist */
-	background-color: #2f8de0;
 }
 
 h1,
@@ -320,6 +323,24 @@ img {
 		rgb(255 255 255 / 0)
 	);
 	pointer-events: none;
+}
+
+/* WebGL-Stufe: angemeldete Flächen zeichnet der Canvas-Layer, das Element bleibt durchsichtig */
+:root[data-renderer='webgl'] .glass[data-glass] {
+	background: none;
+	backdrop-filter: none;
+	box-shadow: none;
+
+	&::before,
+	&::after {
+		display: none;
+	}
+}
+
+/* Den Scrim hinter Dialogen übernimmt dort der Shader; im DOM nur eine leichte Abdunklung */
+:root[data-renderer='webgl'] dialog::backdrop {
+	background: rgb(var(--shade) / 0.12);
+	backdrop-filter: none;
 }
 
 /* --- Bedienelemente ------------------------------------------------------------------------ */

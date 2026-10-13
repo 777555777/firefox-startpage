@@ -41,6 +41,18 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
 - [ ] Import einer Config mit fehlendem Medium: Slot ist markiert, Himmelsverlauf erscheint
 - [ ] Static-Stufe mit hellem und dunklem Testbild lesbar
 
-## Ab M5/M6
+## Ab M5
+
+- [ ] Leistung zeigt „WebGL-Glas, Stufe Hoch“; Panels mit Refraktion, Farbsäumen, Glanzkante und Schatten
+- [ ] Himmelsverlauf bewegt sich kaum merklich (~15 fps), ohne Flimmern oder Banding
+- [ ] Video-Hintergrund läuft flüssig, pausiert im Hintergrund-Tab
+- [ ] Spalten scrollen: Glas bleibt deckungsgleich mit dem Inhalt und endet an der Spaltenkante
+- [ ] Widgets ziehen: Glas folgt den Panels während der Federanimation
+- [ ] Dialog öffnen: Szene dahinter wird weich und dunkler
+- [ ] Qualitätsstufe „Statisch“ schaltet sofort auf CSS-Glas, zurück auf „Automatisch“ wieder auf WebGL
+- [ ] `pnpm dev` mit `?debug`: Regler ändern das Glas live, Uhrzeit-Regler wechselt die Phase
+- [ ] Kontrast mit hellem und dunklem Testbild prüfen (Text auf Glas lesbar)
+
+## Ab M6
 
 - [ ] Reduced Motion (System-Einstellung) respektiert
