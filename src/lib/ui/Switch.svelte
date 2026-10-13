@@ -39,8 +39,8 @@
 		width: 42px;
 		height: 24px;
 		border-radius: var(--radius-full);
-		background: rgb(12 31 51 / 0.18);
-		box-shadow: inset 0 1px 2px rgb(8 34 66 / 0.2);
+		background: var(--track-strong);
+		box-shadow: inset 0 1px 2px rgb(var(--shade) / 0.2);
 		transition: background-color var(--duration) var(--ease-out);
 	}
 
@@ -52,7 +52,7 @@
 		height: 20px;
 		border-radius: 50%;
 		background: linear-gradient(180deg, #fff, #eef3f8);
-		box-shadow: 0 1px 3px rgb(8 34 66 / 0.35);
+		box-shadow: 0 1px 3px rgb(var(--shade) / 0.35);
 		transition: transform var(--duration) var(--ease-spring);
 	}
 

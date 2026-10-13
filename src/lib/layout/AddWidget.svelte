@@ -54,7 +54,7 @@
 		background: rgb(255 255 255 / 0.12);
 		color: #fff;
 		font-weight: 600;
-		text-shadow: 0 1px 2px rgb(8 34 66 / 0.35);
+		text-shadow: 0 1px 2px rgb(var(--shade) / 0.35);
 		transition: background-color var(--duration-fast) ease;
 
 		&:hover {

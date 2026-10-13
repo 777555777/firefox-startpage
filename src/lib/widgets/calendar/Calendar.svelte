@@ -202,7 +202,7 @@
 			min-width: 1.9em;
 			height: 1.6em;
 			border-radius: var(--radius-xs);
-			background: rgb(12 31 51 / 0.07);
+			background: var(--track);
 			font-size: var(--text-xs);
 			font-weight: 650;
 			color: var(--text-secondary);
@@ -210,8 +210,8 @@
 	}
 
 	.calendar {
-		--weekend-text: color-mix(in srgb, var(--accent-pressed) 75%, var(--text));
-		--holiday-text: #b4182f;
+		--weekend-text: var(--accent-text);
+		--holiday-text: var(--holiday);
 	}
 
 	.day {
@@ -234,7 +234,7 @@
 		/* Wochenende: getönte Fläche und Akzent-Schrift */
 		&.weekend {
 			border-radius: var(--radius-xs);
-			background: rgb(255 255 255 / 0.22);
+			background: var(--fill);
 			color: var(--weekend-text);
 		}
 

@@ -469,11 +469,11 @@
 		}
 
 		&[aria-selected='true'] {
-			background: rgb(255 255 255 / 0.85);
+			background: var(--raised);
 			color: var(--text);
 			box-shadow:
-				0 1px 3px rgb(8 34 66 / 0.16),
-				inset 0 1px 0 #fff;
+				0 1px 3px rgb(var(--shade) / 0.16),
+				inset 0 1px 0 var(--highlight);
 		}
 
 		&:focus-visible {
@@ -586,7 +586,7 @@
 
 		&:hover {
 			background: var(--fill-hover);
-			box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
+			box-shadow: inset 0 1px 0 var(--highlight);
 		}
 	}
 
@@ -597,7 +597,7 @@
 		border-radius: var(--radius-full);
 		background: var(--fill);
 		box-shadow:
-			inset 0 1px 0 rgb(255 255 255 / 0.7),
+			inset 0 1px 0 var(--highlight),
 			inset 0 0 0 1px var(--line);
 		font-size: var(--text-sm);
 		font-weight: 600;

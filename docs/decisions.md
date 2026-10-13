@@ -119,3 +119,28 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   gleich breit.
 - **Einstellungsdialog** hat eine feste Höhe. Nur der Inhalt des Abschnitts scrollt, damit der
   Dialog beim Wechseln der Abschnitte nicht springt.
+
+## M4 – Hintergrund
+
+- **Tageszeit-Übergänge** sind zentriert auf die Phasengrenzen und dauern etwa 60 Minuten
+  (bei kurzen Phasen höchstens deren halbe Länge). Die Startzeiten dürfen in beliebiger
+  Reihenfolge liegen, es gilt immer die Phase mit dem letzten Beginn vor der Uhrzeit.
+- **Hell und dunkel statt stufenlos:** Himmel, Grading und Glas-Farbstich werden kontinuierlich
+  gemischt. Die Tonalität der UI (Schrift, Flächen, Glas-Grundfarbe) wechselt dagegen diskret zur
+  Mitte des Übergangs in die Nacht (`data-tone` am Root). Ein stufenloser Wechsel von dunkler zu
+  heller Schrift ginge durch ein kontrastarmes Grau. Die Schriftfarbe blendet per registrierter
+  Custom Property in gut einer Sekunde über. Komponenten verwenden dafür Tokens (`--field`,
+  `--raised`, `--surface`, `--track`, `--highlight`, `--shade`, `--accent-text` …) statt fester Farben.
+- **Static-Darstellung von Videos:** Die Static-Stufe ist laut §7.4 ohne Animation. Videos zeigen
+  dort den ersten Frame. Abgespielt werden sie erst im WebGL-Layer (M5).
+- **Grading in der Static-Stufe** wird mit CSS-Filtern (Sättigung, Helligkeit, Kontrast) und einer
+  Farbschicht im Modus `soft-light` angenähert. Der Shader in M5 nutzt dieselben Werte.
+- **Fokuspunkt** entspricht `object-position` in Prozent. Der WebGL-Layer bildet ihn mit
+  derselben Formel ab, damit beide Stufen denselben Ausschnitt zeigen.
+- **Große Dateien** (über 200 MB) werden nach einer Warnung trotzdem gespeichert. Nicht
+  unterstützte Formate (alles außer JPG, PNG, WebP, AVIF, MP4, WebM) werden abgelehnt. Fehlt der
+  MIME-Typ, entscheidet die Dateiendung.
+- **Medien aufräumen:** Beim Ersetzen oder Entfernen werden Dateien gelöscht, auf die weder die
+  Config noch eines der Backups verweist. So bleibt ein Backup samt Hintergrund wiederherstellbar.
+- **Drag & Drop** geht auf jeden einzelnen Slot (Haupt-Hintergrund und Tageszeiten). Daneben
+  abgelegte Dateien werden ignoriert, statt den Browser-Viewer zu öffnen.

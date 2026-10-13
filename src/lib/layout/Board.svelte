@@ -423,7 +423,7 @@
 		height: 56px;
 		border-radius: var(--radius-full);
 		background: rgb(255 255 255 / 0.7);
-		box-shadow: 0 1px 4px rgb(8 34 66 / 0.3);
+		box-shadow: 0 1px 4px rgb(var(--shade) / 0.3);
 		transition:
 			height var(--duration) var(--ease-out),
 			background-color var(--duration-fast) ease;
@@ -448,7 +448,7 @@
 		justify-self: center;
 		padding: var(--space-2) var(--space-4);
 		border-radius: var(--radius-full);
-		background: rgb(8 34 66 / 0.55);
+		background: rgb(var(--shade) / 0.55);
 		backdrop-filter: blur(8px);
 		color: #fff;
 		font-size: var(--text-xl);
@@ -483,6 +483,6 @@
 		color: #fff;
 		font-weight: 600;
 		text-align: center;
-		text-shadow: 0 1px 2px rgb(8 34 66 / 0.35);
+		text-shadow: 0 1px 2px rgb(var(--shade) / 0.35);
 	}
 </style>

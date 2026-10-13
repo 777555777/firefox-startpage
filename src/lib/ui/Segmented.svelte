@@ -36,8 +36,8 @@
 		gap: 2px;
 		padding: 3px;
 		border-radius: var(--radius-full);
-		background: rgb(12 31 51 / 0.08);
-		box-shadow: inset 0 1px 2px rgb(8 34 66 / 0.12);
+		background: var(--track);
+		box-shadow: inset 0 1px 2px rgb(var(--shade) / 0.12);
 	}
 
 	.option {
@@ -61,11 +61,11 @@
 		}
 
 		&.active {
-			background: rgb(255 255 255 / 0.92);
+			background: var(--raised);
 			color: var(--text);
 			box-shadow:
-				0 1px 3px rgb(8 34 66 / 0.18),
-				inset 0 1px 0 #fff;
+				0 1px 3px rgb(var(--shade) / 0.18),
+				inset 0 1px 0 var(--highlight);
 		}
 
 		&:has(input:focus-visible) {

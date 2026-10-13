@@ -10,10 +10,13 @@ import {
 	type BackupReason,
 	type ImportResult
 } from '$lib/config/transfer';
-import type { Config, LinkStats } from '$lib/config/types';
+import type { Config, LinkStats, MediaRef } from '$lib/config/types';
+import { collectMediaRefs } from '$lib/config/validate';
+import { mediaKindOf, refOf, unusedMedia, type BackgroundSlot } from '$lib/background/media-utils';
 import { detectLanguage, i18n, t } from '$lib/i18n/index.svelte';
 import { createKeyValueStore, createMemoryStore, type KeyValueStore } from '$lib/storage/kv';
-import { hasMedia } from '$lib/storage/media';
+import { deleteMedia, hasMedia, listMediaIds, putMedia } from '$lib/storage/media';
+import { TimeOfDay } from '$lib/theme/time-of-day.svelte';
 import { SyncedValue } from './synced.svelte';
 import { toasts } from './toasts.svelte';
 
@@ -29,6 +32,7 @@ export class AppState {
 	readonly kv: KeyValueStore;
 	readonly config: SyncedValue<Config>;
 	readonly stats: SyncedValue<LinkStats>;
+	readonly timeOfDay: TimeOfDay;
 	ready = $state(false);
 
 	#saveFailedShown = false;
@@ -47,6 +51,7 @@ export class AppState {
 			{},
 			{ key: STATS_KEY, parse: parseStats, onSaveResult }
 		);
+		this.timeOfDay = new TimeOfDay(() => this.config.value.appearance.timeOfDay);
 	}
 
 	/** Lädt alles und startet Autosave + Sync; liefert eine Aufräumfunktion */
@@ -113,6 +118,39 @@ export class AppState {
 		await this.backup('reset');
 		await this.config.replace(createDefaultConfig(i18n.detected));
 		await this.stats.replace({});
+	}
+
+	/**
+	 * Speichert eine Datei als Hintergrund für den Slot. Das vorige Medium wird gelöscht, wenn
+	 * nichts mehr darauf verweist. Liefert, was schiefging, oder die neue Referenz.
+	 */
+	async setBackground(slot: BackgroundSlot, file: File): Promise<MediaRef | 'type' | 'failed'> {
+		const kind = mediaKindOf(file);
+		if (!kind) return 'type';
+		const ref = await putMedia(file, kind);
+		if (!ref) return 'failed';
+		const background = this.config.value.appearance.background;
+		if (slot === 'main') background.main = ref;
+		else background.slots[slot] = ref;
+		await this.collectMedia();
+		return ref;
+	}
+
+	async clearBackground(slot: BackgroundSlot): Promise<void> {
+		const background = this.config.value.appearance.background;
+		if (!refOf(background, slot)) return;
+		if (slot === 'main') background.main = null;
+		else delete background.slots[slot];
+		await this.collectMedia();
+	}
+
+	/** Löscht Medien, auf die weder die Config noch ein Backup verweist */
+	async collectMedia(): Promise<void> {
+		await this.config.save();
+		const backups = (await this.loadBackups()).map((b) => migrate(b.config, i18n.detected));
+		const configs = [this.config.value, ...backups];
+		const referenced = configs.flatMap((config) => collectMediaRefs(config).map((r) => r.id));
+		for (const id of unusedMedia(await listMediaIds(), referenced)) await deleteMedia(id);
 	}
 
 	#onSaveResult(ok: boolean) {

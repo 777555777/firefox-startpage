@@ -58,8 +58,7 @@ async function run<T>(
 }
 
 /** Speichert eine Datei; liefert die Referenz für die Config oder null bei Fehler */
-export async function putMedia(file: File): Promise<MediaRef | null> {
-	const kind = file.type.startsWith('video/') ? 'video' : 'image';
+export async function putMedia(file: File, kind: MediaRef['kind']): Promise<MediaRef | null> {
 	const record: MediaRecord = {
 		id: createId(),
 		kind,
@@ -84,4 +83,9 @@ export async function hasMedia(id: string): Promise<boolean> {
 
 export async function deleteMedia(id: string): Promise<void> {
 	await run('readwrite', (store) => store.delete(id));
+}
+
+export async function listMediaIds(): Promise<string[]> {
+	const keys = await run('readonly', (store) => store.getAllKeys());
+	return (keys ?? []).filter((key): key is string => typeof key === 'string');
 }

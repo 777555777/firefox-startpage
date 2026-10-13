@@ -1,4 +1,5 @@
 <script lang="ts">
+	import StaticBackground from '$lib/background/StaticBackground.svelte';
 	import { i18n, t } from '$lib/i18n/index.svelte';
 	import Board from '$lib/layout/Board.svelte';
 	import EditControls from '$lib/layout/EditControls.svelte';
@@ -7,6 +8,7 @@
 	import { setApp } from '$lib/state/context';
 	import { ui } from '$lib/state/ui.svelte';
 	import { accentPalette } from '$lib/theme/accent';
+	import { rgbCss } from '$lib/theme/palette';
 	import { announcer } from '$lib/ui/announcer.svelte';
 	import Toasts from '$lib/ui/Toasts.svelte';
 	import { isOverlayOpen, isTypingTarget } from '$lib/utils/keyboard';
@@ -36,9 +38,23 @@
 		style.setProperty('--accent', palette.base);
 		style.setProperty('--accent-hover', palette.hover);
 		style.setProperty('--accent-pressed', palette.pressed);
-		style.setProperty('--accent-subtle', palette.subtle);
+		// Nachts eine durchscheinende statt einer hellen Fläche
+		style.setProperty(
+			'--accent-subtle',
+			app.timeOfDay.tone === 'dark'
+				? `color-mix(in srgb, ${palette.base} 32%, transparent)`
+				: palette.subtle
+		);
 		style.setProperty('--on-accent', palette.onAccent);
 		style.setProperty('--frost', String(config.appearance.glass.frost));
+	});
+
+	// Tageszeit: Tonalität (hell/dunkel) und Glasfarbe folgen der Phase
+	$effect(() => {
+		const root = document.documentElement;
+		root.dataset.tone = app.timeOfDay.tone;
+		root.dataset.phase = app.timeOfDay.phase;
+		root.style.setProperty('--glass-tint', rgbCss(app.timeOfDay.glassTint));
 	});
 
 	function onkeydown(event: KeyboardEvent) {
@@ -69,6 +85,8 @@
 
 <svelte:window {onkeydown} />
 
+<StaticBackground />
+
 <main class="page" aria-label={t('app.main')}>
 	<Board />
 </main>
@@ -81,6 +99,8 @@
 
 <style>
 	.page {
+		position: relative;
+		z-index: 1;
 		height: 100vh;
 		height: 100dvh;
 		padding: clamp(16px, 4vh, 48px) clamp(16px, 4vw, 56px) 0;

@@ -32,6 +32,9 @@ export const ICONS = {
 	download: ['M12 3v12m-5-5 5 5 5-5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2'],
 	more: [circle(5, 12, 1), circle(12, 12, 1), circle(19, 12, 1)],
 	columns: [rect(3, 4, 18, 16, 2), 'M9 4v16M15 4v16'],
+	image: [rect(3, 4, 18, 16, 2), circle(9, 10, 1.75), 'm21 16-5-5-9 9'],
+	video: [rect(3, 5, 18, 14, 2), 'm10 9 5 3-5 3Z'],
+	warning: ['M12 4 2.5 20h19Z', 'M12 10v4M12 17h.01'],
 	gap: ['M4 4v16M20 4v16', 'm8 12h8M10 10l-2 2 2 2M14 10l2 2-2 2'],
 	maxWidth: ['M3 12h18', 'm6 9-3 3 3 3M18 9l3 3-3 3', 'M9 7h6M9 17h6'],
 	tiles: [

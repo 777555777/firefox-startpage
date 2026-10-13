@@ -6,6 +6,7 @@
 	import Icon from '$lib/ui/Icon.svelte';
 	import type { IconName } from '$lib/ui/icons';
 	import AppearanceSection from './AppearanceSection.svelte';
+	import BackgroundSection from './BackgroundSection.svelte';
 	import DataSection from './DataSection.svelte';
 	import GeneralSection from './GeneralSection.svelte';
 	import PerformanceSection from './PerformanceSection.svelte';
@@ -20,6 +21,12 @@
 			label: 'settings.appearance',
 			icon: 'palette',
 			component: AppearanceSection
+		},
+		{
+			id: 'background',
+			label: 'settings.background',
+			icon: 'image',
+			component: BackgroundSection
 		},
 		{
 			id: 'performance',

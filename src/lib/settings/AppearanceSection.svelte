@@ -97,7 +97,7 @@
 		);
 		box-shadow:
 			inset 0 1px 0 rgb(255 255 255 / 0.5),
-			0 2px 6px -2px rgb(8 34 66 / 0.4);
+			0 2px 6px -2px rgb(var(--shade) / 0.4);
 		color: #fff;
 		cursor: pointer;
 

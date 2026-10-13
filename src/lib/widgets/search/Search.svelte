@@ -236,16 +236,16 @@
 		height: 52px;
 		padding: 0 var(--space-2) 0 var(--space-2);
 		border-radius: var(--radius-full);
-		background: rgb(255 255 255 / 0.66);
+		background: var(--field);
 		box-shadow:
-			inset 0 1px 3px rgb(8 34 66 / 0.14),
+			inset 0 1px 3px rgb(var(--shade) / 0.14),
 			inset 0 0 0 1px var(--line),
-			0 1px 0 rgb(255 255 255 / 0.6);
+			0 1px 0 var(--highlight);
 		transition: box-shadow var(--duration-fast) ease;
 
 		&:focus-within {
 			box-shadow:
-				inset 0 1px 3px rgb(8 34 66 / 0.14),
+				inset 0 1px 3px rgb(var(--shade) / 0.14),
 				0 0 0 2px var(--accent),
 				0 0 0 6px color-mix(in srgb, var(--accent) 20%, transparent);
 		}
@@ -313,10 +313,10 @@
 		gap: 2px;
 		padding: var(--space-1);
 		border-radius: var(--radius-lg);
-		background: rgb(255 255 255 / 0.9);
+		background: var(--surface);
 		backdrop-filter: blur(30px) saturate(1.6);
 		box-shadow:
-			inset 0 1px 0 #fff,
+			inset 0 1px 0 var(--highlight),
 			inset 0 0 0 1px var(--glass-rim),
 			var(--glass-shadow-raised);
 
