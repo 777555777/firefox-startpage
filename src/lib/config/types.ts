@@ -29,6 +29,10 @@ export type LayoutConfig = {
 	columns: ColumnCount;
 	/** Widget-Instanz-IDs pro Spalte, in Reihenfolge; Länge entspricht immer `columns` */
 	columnItems: string[][];
+	/** Relative Breite pro Spalte (wie `fr`), Länge entspricht `columns` */
+	columnWidths: number[];
+	/** Abstand zwischen Spalten und Panels in px */
+	gap: number;
 	/** Maximale Inhaltsbreite in rem */
 	maxWidth?: number;
 };

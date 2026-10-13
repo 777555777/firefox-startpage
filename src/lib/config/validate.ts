@@ -1,6 +1,17 @@
-import { normalizeColumnItems } from '$lib/layout/operations';
+import {
+	GAP_MAX,
+	GAP_MIN,
+	normalizeColumnItems,
+	normalizeColumnWidths
+} from '$lib/layout/operations';
 import { isWidgetType, widgetSettings } from '$lib/widgets/settings';
-import { CONFIG_VERSION, createDefaultConfig, defaultAppearance, defaultSearch } from './defaults';
+import {
+	CONFIG_VERSION,
+	createDefaultConfig,
+	DEFAULT_GAP,
+	defaultAppearance,
+	defaultSearch
+} from './defaults';
 import {
 	bool,
 	hexColor,
@@ -146,7 +157,10 @@ function parseLayout(raw: unknown, widgetIds: string[]): LayoutConfig {
 	const columns = oneOf<ColumnCount>(r.columns, [1, 2, 3, 4], 3);
 	const layout: LayoutConfig = {
 		columns,
-		columnItems: normalizeColumnItems(r.columnItems, columns, widgetIds)
+		columnItems: normalizeColumnItems(r.columnItems, columns, widgetIds),
+		columnWidths: normalizeColumnWidths(r.columnWidths, columns),
+		// 4-px-Raster
+		gap: Math.round(num(r.gap, DEFAULT_GAP, GAP_MIN, GAP_MAX) / 4) * 4
 	};
 	if (r.maxWidth !== undefined) layout.maxWidth = num(r.maxWidth, 96, 30, 400);
 	return layout;

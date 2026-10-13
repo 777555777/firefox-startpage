@@ -15,6 +15,9 @@ import type {
 
 export const CONFIG_VERSION = 1;
 
+/** Abstand zwischen Spalten und Panels in px */
+export const DEFAULT_GAP = 24;
+
 /** Sattes Aero-Blau */
 export const DEFAULT_ACCENT = '#1872d6';
 
@@ -101,6 +104,8 @@ export function createDefaultConfig(language: Language = 'en'): Config {
 		layout: {
 			columns: 3,
 			columnItems: [[ids.clock, ids.calendar], [ids.search, ids.links], [ids.tools]],
+			columnWidths: [1, 1, 1],
+			gap: DEFAULT_GAP,
 			maxWidth: 96
 		},
 		widgets: {

@@ -54,7 +54,7 @@
 	}
 </script>
 
-<Dialog bind:open={ui.settingsOpen} title={t('settings.title')} size="lg">
+<Dialog bind:open={ui.settingsOpen} title={t('settings.title')} size="lg" fixedHeight>
 	<div class="layout">
 		<div
 			class="nav"
@@ -94,9 +94,10 @@
 <style>
 	.layout {
 		display: grid;
+		flex: 1;
 		grid-template-columns: 200px minmax(0, 1fr);
 		gap: var(--space-6);
-		min-height: 420px;
+		min-height: 0;
 	}
 
 	.nav {
@@ -130,13 +131,20 @@
 		}
 	}
 
+	/* Nur der Inhalt scrollt, Navigation und Dialoghöhe bleiben stehen */
 	.panel {
 		min-width: 0;
+		min-height: 0;
+		margin-right: calc(var(--space-6) * -1);
+		padding-right: var(--space-6);
+		overflow-y: auto;
+		overscroll-behavior: contain;
 	}
 
 	@media (width < 720px) {
 		.layout {
 			grid-template-columns: 1fr;
+			grid-template-rows: auto minmax(0, 1fr);
 		}
 
 		.nav {

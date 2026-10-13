@@ -81,18 +81,71 @@ export function stepPosition(
 	}
 }
 
-/** Mindestbreite einer Spalte in rem, bevor Spalten zusammengelegt werden */
+/** Mindestbreite einer Spalte in rem (im Mittel), bevor Spalten zusammengelegt werden */
 export const MIN_COLUMN_REM = 20;
+/** Mindestbreite der schmalsten Spalte bei unterschiedlichen Breiten */
+export const MIN_NARROW_COLUMN_REM = 14;
 
-/** Wie viele Spalten bei der verfügbaren Breite tatsächlich nebeneinander passen */
+/** Grenzen für relative Spaltenbreiten (wie `fr`) */
+export const WIDTH_MIN = 0.5;
+export const WIDTH_MAX = 3;
+
+export const GAP_MIN = 8;
+export const GAP_MAX = 64;
+
+const round2 = (value: number) => Math.round(value * 100) / 100;
+
+/**
+ * Wie viele Spalten bei der verfügbaren Breite tatsächlich nebeneinander passen. Mit
+ * `weights` wird zusätzlich geprüft, ob die schmalste Spalte noch breit genug ist.
+ */
 export function visibleColumnCount(
 	columns: number,
 	availableWidthPx: number,
 	remPx = 16,
-	gapPx = 0
+	gapPx = 0,
+	weights?: number[]
 ): number {
 	const fit = Math.floor((availableWidthPx + gapPx) / (MIN_COLUMN_REM * remPx + gapPx));
-	return Math.max(1, Math.min(columns, fit));
+	const count = Math.max(1, Math.min(columns, fit));
+	if (count === columns && columns > 1 && weights) {
+		const used = weights.slice(0, columns);
+		const content = availableWidthPx - gapPx * (columns - 1);
+		const narrowest = (content * Math.min(...used)) / used.reduce((a, b) => a + b, 0);
+		if (narrowest < MIN_NARROW_COLUMN_REM * remPx) return columns - 1;
+	}
+	return count;
+}
+
+/** Bringt relative Breiten auf die Spaltenzahl; fehlende Spalten bekommen 1 */
+export function normalizeColumnWidths(raw: unknown, columns: number): number[] {
+	const list = Array.isArray(raw) ? raw : [];
+	return Array.from({ length: columns }, (_, i) => {
+		const value = list[i];
+		return typeof value === 'number' && Number.isFinite(value)
+			? round2(Math.min(WIDTH_MAX, Math.max(WIDTH_MIN, value)))
+			: 1;
+	});
+}
+
+/**
+ * Verteilt die Breite zweier benachbarter Spalten neu. `share` ist der Anteil der linken
+ * Spalte an beiden (0…1). Die Summe des Paars bleibt gleich, die Grenzen werden eingehalten.
+ */
+export function resizePair(widths: number[], index: number, share: number): number[] {
+	if (index < 0 || index + 1 >= widths.length) return widths;
+	const pair = widths[index] + widths[index + 1];
+	const low = Math.max(WIDTH_MIN, pair - WIDTH_MAX);
+	const high = Math.min(WIDTH_MAX, pair - WIDTH_MIN);
+	const left = round2(Math.min(high, Math.max(low, pair * share)));
+	const next = [...widths];
+	next[index] = left;
+	next[index + 1] = round2(pair - left);
+	return next;
+}
+
+export function equalWidths(widths: number[]): boolean {
+	return widths.every((width) => width === widths[0]);
 }
 
 /**

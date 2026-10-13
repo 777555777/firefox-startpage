@@ -5,7 +5,14 @@
 	import { ui } from '$lib/state/ui.svelte';
 	import Icon from '$lib/ui/Icon.svelte';
 	import Segmented from '$lib/ui/Segmented.svelte';
-	import { COLUMN_COUNTS, setColumnCount } from './operations';
+	import {
+		COLUMN_COUNTS,
+		equalWidths,
+		GAP_MAX,
+		GAP_MIN,
+		normalizeColumnWidths,
+		setColumnCount
+	} from './operations';
 
 	const app = getApp();
 	const layout = $derived(app.config.value.layout);
@@ -13,8 +20,11 @@
 	function setColumns(count: ColumnCount) {
 		const live = app.config.value.layout;
 		live.columnItems = setColumnCount(live.columnItems, count);
+		live.columnWidths = normalizeColumnWidths(live.columnWidths, count);
 		live.columns = count;
 	}
+
+	const gapId = $props.id();
 </script>
 
 {#if ui.editing}
@@ -25,6 +35,30 @@
 			value={layout.columns}
 			options={COLUMN_COUNTS.map((count) => ({ value: count, label: String(count) }))}
 			onchange={setColumns}
+		/>
+		{#if !equalWidths(layout.columnWidths)}
+			<button
+				type="button"
+				class="btn"
+				onclick={() => (app.config.value.layout.columnWidths = layout.columnWidths.map(() => 1))}
+			>
+				{t('edit.equalWidths')}
+			</button>
+		{/if}
+		<span class="divider"></span>
+		<label class="gap" for={gapId} title={t('edit.gap')}>
+			<Icon name="gap" size={16} />
+			<span class="visually-hidden">{t('edit.gap')}</span>
+		</label>
+		<input
+			id={gapId}
+			class="gap-range"
+			type="range"
+			min={GAP_MIN}
+			max={GAP_MAX}
+			step="4"
+			bind:value={app.config.value.layout.gap}
+			aria-valuetext="{layout.gap} px"
 		/>
 		<span class="divider"></span>
 		<button type="button" class="btn" onclick={() => ui.openSettings()}>
@@ -100,8 +134,14 @@
 		animation: bar-in var(--duration-slow) var(--ease-spring);
 	}
 
-	.label {
+	.label,
+	.gap {
+		display: inline-flex;
 		color: var(--text-secondary);
+	}
+
+	.gap-range {
+		width: 96px;
 	}
 
 	.divider {

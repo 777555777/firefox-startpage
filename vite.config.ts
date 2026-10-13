@@ -46,7 +46,8 @@ export default defineConfig({
 	},
 	build: {
 		outDir: 'dist',
-		emptyOutDir: true,
+		// Im Watch-Modus (ext:dev) dist/ nicht leeren, während web-ext daraus lädt
+		emptyOutDir: !process.argv.includes('--watch'),
 		target: 'firefox140',
 		// MV3-CSP: keine Inline-Skripte, also auch kein Preload-Polyfill
 		modulePreload: { polyfill: false },

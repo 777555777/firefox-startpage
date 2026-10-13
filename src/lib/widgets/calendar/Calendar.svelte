@@ -39,7 +39,12 @@
 	<header class="header">
 		<h3 class="title" id={titleId} aria-live="polite">{monthTitle}</h3>
 		<div class="nav">
-			<button type="button" class="today btn" disabled={offset === 0} onclick={() => (offset = 0)}>
+			<button
+				type="button"
+				class="today-btn btn"
+				disabled={offset === 0}
+				onclick={() => (offset = 0)}
+			>
 				{t('calendar.today')}
 			</button>
 			<button
@@ -69,8 +74,11 @@
 						><abbr title={t('calendar.weekNumber')}>{t('calendar.weekShort')}</abbr></th
 					>
 				{/if}
-				{#each weekdays as weekday (weekday.long)}
-					<th scope="col"><abbr title={weekday.long}>{weekday.short.replace('.', '')}</abbr></th>
+				{#each weekdays as weekday, i (weekday.long)}
+					{@const dayOfWeek = (weekStartsOn + i) % 7}
+					<th scope="col" class:weekend={dayOfWeek === 0 || dayOfWeek === 6}>
+						<abbr title={weekday.long}>{weekday.short.replace('.', '')}</abbr>
+					</th>
 				{/each}
 			</tr>
 		</thead>
@@ -79,7 +87,7 @@
 				<tr>
 					{#if settings.weekNumbers}
 						<th class="week" scope="row" aria-label={t('calendar.week', { week: week.week })}>
-							{week.week}
+							<span>{week.week}</span>
 						</th>
 					{/if}
 					{#each week.days as day (day.date.getTime())}
@@ -136,7 +144,7 @@
 		gap: 2px;
 	}
 
-	.today {
+	.today-btn {
 		min-height: 30px;
 		margin-right: var(--space-1);
 		padding: 0 var(--space-3);
@@ -151,40 +159,71 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	th {
-		padding-bottom: var(--space-1);
+	/* Wochentage: klar als Überschrift, Wochenende farblich abgesetzt */
+	thead th {
+		padding-bottom: var(--space-2);
+		border-bottom: 1px solid var(--line);
 		font-size: var(--text-xs);
-		font-weight: 600;
-		color: var(--text-tertiary);
+		font-weight: 700;
+		color: var(--text-secondary);
 		text-transform: uppercase;
-		letter-spacing: 0.04em;
+		letter-spacing: 0.05em;
 
 		abbr {
 			text-decoration: none;
 		}
+
+		&.weekend {
+			color: var(--weekend-text);
+		}
 	}
 
+	tbody tr:first-child > * {
+		padding-top: var(--space-1);
+	}
+
+	/* KW-Spalte: eigene, ruhige Spalte mit Trennlinie */
 	.week-head,
 	.week {
-		width: 2.2em;
+		width: 2.4em;
+		border-right: 1px solid var(--line);
+	}
+
+	.week-head {
+		color: var(--text-tertiary);
 	}
 
 	.week {
-		font-size: var(--text-xs);
-		font-weight: 500;
-		color: var(--text-tertiary);
-		text-transform: none;
-		letter-spacing: 0;
+		padding: 0 4px 0 0;
+
+		span {
+			display: inline-grid;
+			place-items: center;
+			min-width: 1.9em;
+			height: 1.6em;
+			border-radius: var(--radius-xs);
+			background: rgb(12 31 51 / 0.07);
+			font-size: var(--text-xs);
+			font-weight: 650;
+			color: var(--text-secondary);
+		}
+	}
+
+	.calendar {
+		--weekend-text: color-mix(in srgb, var(--accent-pressed) 75%, var(--text));
+		--holiday-text: #b4182f;
 	}
 
 	.day {
-		height: 2.25em;
+		height: 2.3em;
 		padding: 0;
 		text-align: center;
 		font-size: var(--text-sm);
-		font-weight: 500;
+		font-weight: 600;
+		color: var(--text);
 
 		span {
+			position: relative;
 			display: inline-grid;
 			place-items: center;
 			width: 2em;
@@ -192,20 +231,40 @@
 			border-radius: 50%;
 		}
 
+		/* Wochenende: getönte Fläche und Akzent-Schrift */
 		&.weekend {
-			color: var(--text-secondary);
+			border-radius: var(--radius-xs);
+			background: rgb(255 255 255 / 0.22);
+			color: var(--weekend-text);
 		}
 
+		/* Tage aus Vor- und Folgemonat deutlich zurücknehmen */
 		&.outside {
-			color: var(--text-tertiary);
-			opacity: 0.6;
+			font-weight: 400;
+			color: var(--text);
+			opacity: 0.32;
 		}
 
-		&.holiday span {
-			color: var(--accent-pressed);
-			font-weight: 700;
-			background: color-mix(in srgb, var(--accent) 14%, transparent);
+		/* Feiertage: rot mit Punkt, wie im gedruckten Kalender */
+		&.holiday {
+			color: var(--holiday-text);
 			cursor: help;
+
+			span {
+				font-weight: 800;
+			}
+
+			span::after {
+				content: '';
+				position: absolute;
+				bottom: 1px;
+				left: 50%;
+				width: 4px;
+				height: 4px;
+				border-radius: 50%;
+				background: currentColor;
+				transform: translateX(-50%);
+			}
 		}
 
 		&.today span {
@@ -215,7 +274,7 @@
 				var(--accent)
 			);
 			color: var(--on-accent);
-			font-weight: 700;
+			font-weight: 800;
 			box-shadow:
 				inset 0 1px 0 rgb(255 255 255 / 0.45),
 				0 3px 8px -3px color-mix(in srgb, var(--accent) 80%, transparent);

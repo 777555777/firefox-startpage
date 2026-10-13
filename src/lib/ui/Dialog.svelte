@@ -7,6 +7,7 @@
 		open = $bindable(false),
 		title,
 		size = 'md',
+		fixedHeight = false,
 		onclose,
 		children,
 		footer
@@ -14,6 +15,11 @@
 		open?: boolean;
 		title: string;
 		size?: 'sm' | 'md' | 'lg';
+		/**
+		 * Feste Höhe, z. B. für Dialoge mit Abschnitten unterschiedlicher Länge. Der Inhalt füllt
+		 * dann den Körper (Flex-Spalte) und scrollt selbst, statt den Dialog wachsen zu lassen.
+		 */
+		fixedHeight?: boolean;
 		onclose?: () => void;
 		children: Snippet;
 		footer?: Snippet;
@@ -33,6 +39,7 @@
 <dialog
 	bind:this={dialog}
 	class="dialog glass size-{size}"
+	class:fixed-height={fixedHeight}
 	aria-labelledby={titleId}
 	onclose={() => {
 		open = false;
@@ -85,7 +92,13 @@
 		overflow: hidden;
 
 		&[open] {
+			display: flex;
+			flex-direction: column;
 			animation: dialog-in var(--duration-slow) var(--ease-spring);
+		}
+
+		&.fixed-height {
+			height: min(100% - 48px, 680px);
 		}
 
 		&::backdrop {
@@ -108,8 +121,9 @@
 
 	.frame {
 		display: flex;
+		flex: 1;
 		flex-direction: column;
-		max-height: inherit;
+		min-height: 0;
 	}
 
 	.header {
@@ -131,6 +145,12 @@
 		min-height: 0;
 		padding: var(--space-2) var(--space-6) var(--space-6);
 		overflow: auto;
+	}
+
+	.fixed-height .body {
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
 	}
 
 	.footer {

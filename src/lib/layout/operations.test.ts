@@ -4,7 +4,9 @@ import {
 	findWidget,
 	insertWidget,
 	moveWidget,
+	normalizeColumnWidths,
 	removeWidget,
+	resizePair,
 	setColumnCount,
 	stepPosition,
 	visibleColumnCount
@@ -118,5 +120,31 @@ describe('Responsives Zusammenlegen', () => {
 		]);
 		expect(collapseColumns(4, 3)).toEqual([[0, 1], [2], [3]]);
 		expect(collapseColumns(4, 1)).toEqual([[0, 1, 2, 3]]);
+	});
+});
+
+describe('Spaltenbreiten', () => {
+	it('normalisiert Breiten auf die Spaltenzahl und die Grenzen', () => {
+		expect(normalizeColumnWidths([1, 2], 3)).toEqual([1, 2, 1]);
+		expect(normalizeColumnWidths([0.1, 9, 'x', 1.234], 4)).toEqual([0.5, 3, 1, 1.23]);
+		expect(normalizeColumnWidths(undefined, 2)).toEqual([1, 1]);
+	});
+
+	it('verteilt die Breite zweier Nachbarn neu und hält die Summe', () => {
+		expect(resizePair([1, 1, 1], 0, 0.25)).toEqual([0.5, 1.5, 1]);
+		expect(resizePair([1, 2, 1], 1, 0.5)).toEqual([1, 1.5, 1.5]);
+		// Grenzen: keine Spalte unter 0.5 oder über 3
+		expect(resizePair([1, 1], 0, 0)).toEqual([0.5, 1.5]);
+		expect(resizePair([2, 2], 0, 1)).toEqual([3, 1]);
+		expect(resizePair([1, 1], 1, 0.5)).toEqual([1, 1]);
+	});
+
+	it('legt Spalten zusammen, wenn die schmalste Spalte zu schmal würde', () => {
+		// 1:2:1 bei 1100 px: schmalste Spalte ≈ 263 px > 224 px → passt
+		expect(visibleColumnCount(3, 1100, 16, 24, [1, 2, 1])).toBe(3);
+		// 1:3:1 bei 1100 px: schmalste Spalte ≈ 210 px < 224 px → eine Spalte weniger
+		expect(visibleColumnCount(3, 1100, 16, 24, [1, 3, 1])).toBe(2);
+		// gleich breit verhält sich wie ohne Gewichte
+		expect(visibleColumnCount(3, 1100, 16, 24, [1, 1, 1])).toBe(3);
 	});
 });

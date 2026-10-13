@@ -24,6 +24,11 @@ export const de = {
 	'edit.done': 'Fertig',
 	'edit.toolbar': 'Bearbeiten-Leiste',
 	'edit.columns': 'Spalten',
+	'edit.gap': 'Abstand',
+	'edit.resizeColumns': 'Breite von Spalte {left} und {right}',
+	'edit.resizeHint':
+		'Ziehen oder Pfeiltasten ändern die Breite, Doppelklick setzt alle Spalten zurück',
+	'edit.equalWidths': 'Gleich breit',
 	'edit.settings': 'Einstellungen',
 	'edit.addWidget': 'Widget hinzufügen',
 	'edit.addWidgetTo': 'Widget zu Spalte {column} hinzufügen',

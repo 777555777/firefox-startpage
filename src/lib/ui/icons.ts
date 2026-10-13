@@ -32,6 +32,7 @@ export const ICONS = {
 	download: ['M12 3v12m-5-5 5 5 5-5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2'],
 	more: [circle(5, 12, 1), circle(12, 12, 1), circle(19, 12, 1)],
 	columns: [rect(3, 4, 18, 16, 2), 'M9 4v16M15 4v16'],
+	gap: ['M4 4v16M20 4v16', 'm8 12h8M10 10l-2 2 2 2M14 10l2 2-2 2'],
 	tiles: [
 		rect(4, 4, 7, 7, 1.5),
 		rect(13, 4, 7, 7, 1.5),

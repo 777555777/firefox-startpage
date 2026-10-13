@@ -96,3 +96,17 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   Befreiung in Berlin (2020, 2025).
 - **Uhr:** Ein Ticker pro Takt (Sekunde/Minute) für die ganze Page, auf die Grenze synchronisiert.
   Beim Zurückkehren in einen Hintergrund-Tab wird sofort aktualisiert.
+
+## Nach M3 – Feedback
+
+- **Spaltenbreiten und Abstand** (Erweiterung des Schemas aus §4): `layout.columnWidths` (relative
+  Breiten wie `fr`, je 0,5–3, Standard 1) und `layout.gap` (8–64 px im 4-px-Raster, Standard 24).
+  Die Felder sind additiv. Fehlen sie in alten Daten, ergänzt die Validierung die Standardwerte,
+  deshalb bleibt die Schema-Version 1. Im Edit-Modus liegen zwischen den Spalten ziehbare Trenner
+  (auch per Pfeiltasten, Doppelklick setzt alle zurück). Den Abstand stellt ein Regler in der
+  Edit-Leiste ein. Er gilt zwischen Spalten und zwischen Panels.
+- **Zusammenlegen mit eigenen Breiten:** Spalten werden zusammengelegt, wenn sie im Mittel unter
+  20 rem fallen oder die schmalste Spalte unter 14 rem. Beim Ziehen lässt sich keine Spalte schmaler
+  als 14 rem machen. Sind Spalten zusammengelegt, sind die sichtbaren Spalten gleich breit.
+- **Einstellungsdialog** hat eine feste Höhe. Nur der Inhalt des Abschnitts scrollt, damit der
+  Dialog beim Wechseln der Abschnitte nicht springt.

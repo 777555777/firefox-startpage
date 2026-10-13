@@ -14,15 +14,15 @@
 		collapseColumns,
 		findWidget,
 		insertWidget,
+		MIN_NARROW_COLUMN_REM,
 		moveWidget,
 		removeWidget,
+		resizePair,
 		stepPosition,
 		visibleColumnCount,
 		type Position
 	} from './operations';
 	import WidgetPanel from './WidgetPanel.svelte';
-
-	const COLUMN_GAP = 24;
 
 	const app = getApp();
 	const config = $derived(app.config.value);
@@ -33,8 +33,17 @@
 		typeof document === 'undefined'
 			? 16
 			: parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-	const visible = $derived(visibleColumnCount(layout.columns, width, remPx, COLUMN_GAP));
+	const visible = $derived(
+		visibleColumnCount(layout.columns, width, remPx, layout.gap, layout.columnWidths)
+	);
 	const groups = $derived(collapseColumns(layout.columns, visible));
+	/** Eigene Breiten gelten nur, solange keine Spalten zusammengelegt sind */
+	const ownWidths = $derived(visible === layout.columns);
+	const template = $derived(
+		groups
+			.map((_, g) => `minmax(0, ${ownWidths ? layout.columnWidths[g] : 1}fr)`)
+			.join(` ${layout.gap}px `)
+	);
 	const used = $derived(new Set(Object.values(config.widgets).map((w) => w.type)));
 
 	const nameOf = (id: string) => {
@@ -186,16 +195,100 @@
 	$effect(() => {
 		if (!ui.editing) grabbed = null;
 	});
+
+	// --- Spaltenbreiten: Trenner im Edit-Modus ziehen oder per Pfeiltasten verschieben -------
+
+	let board: HTMLElement;
+	let resizing = $state<number | null>(null);
+
+	/** Breite der Spalten-Elemente ohne den Rand für Fokusringe */
+	const columnWidthPx = (element: Element) => element.getBoundingClientRect().width - 24;
+
+	function setShare(index: number, share: number) {
+		const live = app.config.value.layout;
+		live.columnWidths = resizePair(live.columnWidths, index, share);
+	}
+
+	function onGutterPointerdown(event: PointerEvent, index: number) {
+		if (event.button !== 0) return;
+		event.preventDefault();
+		const columns = board.querySelectorAll(':scope > .column');
+		const left = columnWidthPx(columns[index]);
+		const total = left + columnWidthPx(columns[index + 1]);
+		// Nicht so schmal ziehen, dass die Spalten gleich wieder zusammengelegt würden
+		const minPx = Math.min(MIN_NARROW_COLUMN_REM * remPx, total / 2);
+		const startX = event.clientX;
+		const gutter = event.currentTarget as HTMLElement;
+		gutter.setPointerCapture(event.pointerId);
+		resizing = index;
+
+		const onmove = (move: PointerEvent) => {
+			const px = Math.min(total - minPx, Math.max(minPx, left + move.clientX - startX));
+			setShare(index, px / total);
+		};
+		const onup = () => {
+			resizing = null;
+			gutter.removeEventListener('pointermove', onmove);
+			gutter.removeEventListener('pointerup', onup);
+			gutter.removeEventListener('pointercancel', onup);
+		};
+		gutter.addEventListener('pointermove', onmove);
+		gutter.addEventListener('pointerup', onup);
+		gutter.addEventListener('pointercancel', onup);
+	}
+
+	const shareOf = (index: number) =>
+		layout.columnWidths[index] / (layout.columnWidths[index] + layout.columnWidths[index + 1]);
+
+	function onGutterKeydown(event: KeyboardEvent, index: number) {
+		const step = event.key === 'ArrowLeft' ? -0.03 : event.key === 'ArrowRight' ? 0.03 : 0;
+		if (!step) return;
+		event.preventDefault();
+		setShare(index, shareOf(index) + step);
+	}
+
+	function resetWidths() {
+		const live = app.config.value.layout;
+		live.columnWidths = live.columnWidths.map(() => 1);
+	}
 </script>
 
 <div
 	class="board"
 	class:editing={ui.editing}
-	style:--columns={visible}
+	class:resizing={resizing !== null}
+	style:grid-template-columns={template}
+	style:--gap="{layout.gap}px"
 	style:max-width={layout.maxWidth ? `${layout.maxWidth}rem` : undefined}
 	bind:clientWidth={width}
+	bind:this={board}
 >
 	{#each groups as group, g (g)}
+		{#if g > 0}
+			{#if ui.editing && ownWidths}
+				<!-- Fokussierbarer Separator mit Wert ist das ARIA-Muster „Window Splitter“ -->
+				<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+				<div
+					class="gutter interactive"
+					class:active={resizing === g - 1}
+					role="separator"
+					aria-orientation="vertical"
+					aria-label={t('edit.resizeColumns', { left: g, right: g + 1 })}
+					aria-valuemin={0}
+					aria-valuemax={100}
+					aria-valuenow={Math.round(shareOf(g - 1) * 100)}
+					tabindex="0"
+					title={t('edit.resizeHint')}
+					onpointerdown={(event) => onGutterPointerdown(event, g - 1)}
+					onkeydown={(event) => onGutterKeydown(event, g - 1)}
+					ondblclick={resetWidths}
+				>
+					<span class="handle"></span>
+				</div>
+			{:else}
+				<div class="gutter" aria-hidden="true"></div>
+			{/if}
+		{/if}
 		<div class="column">
 			{#each group as column (column)}
 				<div
@@ -249,8 +342,6 @@
 <style>
 	.board {
 		display: grid;
-		grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
-		gap: 24px;
 		width: 100%;
 		height: 100%;
 		margin-inline: auto;
@@ -260,7 +351,7 @@
 	.column {
 		display: flex;
 		flex-direction: column;
-		gap: 24px;
+		gap: var(--gap);
 		min-height: 0;
 		/* Platz für Fokusringe und Schatten, die sonst abgeschnitten würden */
 		margin: -12px;
@@ -272,7 +363,58 @@
 	.segment {
 		display: flex;
 		flex-direction: column;
-		gap: 24px;
+		gap: var(--gap);
+	}
+
+	/* Trenner zwischen den Spalten; im Edit-Modus ziehbar */
+	.gutter {
+		position: relative;
+		z-index: 3;
+		min-width: 0;
+	}
+
+	.gutter.interactive {
+		display: grid;
+		place-items: center;
+		cursor: col-resize;
+		touch-action: none;
+
+		/* Größere Trefferfläche, auch bei kleinem Abstand */
+		&::before {
+			content: '';
+			position: absolute;
+			inset: 0 -8px;
+		}
+
+		&:focus-visible {
+			box-shadow: none;
+
+			.handle {
+				box-shadow: var(--focus-ring);
+			}
+		}
+	}
+
+	.handle {
+		width: 6px;
+		height: 56px;
+		border-radius: var(--radius-full);
+		background: rgb(255 255 255 / 0.7);
+		box-shadow: 0 1px 4px rgb(8 34 66 / 0.3);
+		transition:
+			height var(--duration) var(--ease-out),
+			background-color var(--duration-fast) ease;
+	}
+
+	.gutter.interactive:hover .handle,
+	.gutter.active .handle {
+		height: 96px;
+		background: #fff;
+	}
+
+	.resizing {
+		cursor: col-resize;
+		user-select: none;
 	}
 
 	.editing .segment.empty {
