@@ -1,0 +1,10 @@
+{
+	"extName": {
+		"message": "Startpage",
+		"description": "Name of the extension"
+	},
+	"extDescription": {
+		"message": "A fully configurable new tab page with widgets and a glass look.",
+		"description": "Description of the extension"
+	}
+}
