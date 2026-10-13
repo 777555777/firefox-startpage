@@ -211,15 +211,23 @@ describe('Tastatur-Verschiebung', () => {
 describe('Responsives Zusammenlegen', () => {
 	it('berechnet, wie viele Spalten nebeneinander passen', () => {
 		expect(visibleColumnCount(4, 1400)).toBe(4);
-		expect(visibleColumnCount(4, 1000)).toBe(3);
-		expect(visibleColumnCount(3, 700)).toBe(2);
+		expect(visibleColumnCount(2, 700)).toBe(2);
 		expect(visibleColumnCount(3, 200)).toBe(1);
-		expect(visibleColumnCount(3, 990, 16, 24)).toBe(2);
+		expect(visibleColumnCount(2, 5000)).toBe(2);
+	});
+
+	it('legt nur in gleich großen Gruppen zusammen', () => {
+		// Platz für 3 von 4 Spalten: 2 Gruppen à 2
+		expect(visibleColumnCount(4, 1000)).toBe(2);
+		// Platz für 2 von 3 Spalten: direkt eine
+		expect(visibleColumnCount(3, 700)).toBe(1);
+		expect(visibleColumnCount(3, 990, 16, 24)).toBe(1);
 	});
 
 	it('legt Spalten zusammen, wenn die schmalste Spalte zu schmal würde', () => {
 		expect(visibleColumnCount(3, 1100, 16, 24, [6, 12, 6])).toBe(3);
-		expect(visibleColumnCount(3, 1100, 16, 24, [4, 16, 4])).toBe(2);
+		expect(visibleColumnCount(3, 1100, 16, 24, [4, 16, 4])).toBe(1);
+		expect(visibleColumnCount(4, 1400, 16, 24, [3, 9, 9, 3])).toBe(2);
 	});
 
 	it('fasst benachbarte Spalten zusammen, ohne die Reihenfolge zu ändern', () => {

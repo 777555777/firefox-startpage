@@ -28,6 +28,7 @@
 		restorePlacement,
 		rowFits,
 		rowIndexWithout,
+		SINGLE_COLUMN_MAX_REM,
 		stepPlacement,
 		visibleColumnCount,
 		type Placement,
@@ -40,13 +41,26 @@
 	const config = $derived(app.config.value);
 	const layout = $derived(config.layout);
 
-	let width = $state(typeof innerWidth === 'number' ? innerWidth : 1280);
+	/** Verfügbare Breite der Page; die Breite des Boards hängt von Maximalbreite und Spaltenzahl ab */
+	let available = $state(typeof innerWidth === 'number' ? innerWidth : 1280);
 	const remPx =
 		typeof document === 'undefined'
 			? 16
 			: parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+	const limit = $derived(layout.maxWidth ? layout.maxWidth * remPx : Infinity);
 	const visible = $derived(
-		visibleColumnCount(layout.columns, width, remPx, layout.columnGap, layout.columnWidths)
+		visibleColumnCount(
+			layout.columns,
+			Math.min(available, limit),
+			remPx,
+			layout.columnGap,
+			layout.columnWidths
+		)
+	);
+	/** Alles in einer Spalte: schmaler und mittig, sonst würden die Panels riesig */
+	const single = $derived(visible === 1 && layout.columns > 1);
+	const width = $derived(
+		Math.min(available, limit, single ? SINGLE_COLUMN_MAX_REM * remPx : Infinity)
 	);
 	const groups = $derived(collapseColumns(layout.columns, visible));
 	/** Eigene Breiten gelten nur, solange keine Spalten zusammengelegt sind */
@@ -411,105 +425,106 @@
 	}
 </script>
 
-<div
-	class="board"
-	class:editing={ui.editing}
-	class:resizing={resizing !== null}
-	style:grid-template-columns={template}
-	style:--gap="{layout.panelGap}px"
-	style:max-width={layout.maxWidth ? `${layout.maxWidth}rem` : undefined}
-	bind:clientWidth={width}
-	bind:this={board}
->
-	{#each groups as group, g (g)}
-		{#if g > 0}
-			{#if ui.editing && ownWidths}
-				<!-- Fokussierbarer Separator mit Wert ist das ARIA-Muster „Window Splitter“ -->
-				<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
-				<div
-					class="gutter interactive"
-					style:grid-column={2 * g}
-					class:active={resizing === g - 1}
-					role="separator"
-					aria-orientation="vertical"
-					aria-label={t('edit.resizeColumns', { left: g, right: g + 1 })}
-					aria-valuemin={minColumnSpan(layout.columnRows[g - 1])}
-					aria-valuemax={layout.columnWidths[g - 1] +
-						layout.columnWidths[g] -
-						minColumnSpan(layout.columnRows[g])}
-					aria-valuenow={layout.columnWidths[g - 1]}
-					aria-valuetext={layout.columnWidths.join(' · ')}
-					tabindex="0"
-					title={t('edit.resizeHint')}
-					onpointerdown={(event) => onGutterPointerdown(event, g - 1)}
-					onkeydown={(event) => onGutterKeydown(event, g - 1)}
-					ondblclick={resetWidths}
-					onpointerenter={() => (gutterActive = g - 1)}
-					onpointerleave={() => (gutterActive = null)}
-					onfocus={() => {
-						gutterActive = g - 1;
-						resizeBase = $state.snapshot(layout.columnRows) as Rows;
-					}}
-					onblur={() => {
-						gutterActive = null;
-						resizeBase = null;
-					}}
-				>
-					<span class="handle"></span>
-				</div>
-			{:else}
-				<div class="gutter" style:grid-column={2 * g} aria-hidden="true"></div>
+<div class="frame" bind:clientWidth={available}>
+	<div
+		class="board"
+		class:editing={ui.editing}
+		class:resizing={resizing !== null}
+		style:grid-template-columns={template}
+		style:--gap="{layout.panelGap}px"
+		style:max-width={Number.isFinite(width) ? `${width}px` : undefined}
+		bind:this={board}
+	>
+		{#each groups as group, g (g)}
+			{#if g > 0}
+				{#if ui.editing && ownWidths}
+					<!-- Fokussierbarer Separator mit Wert ist das ARIA-Muster „Window Splitter“ -->
+					<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+					<div
+						class="gutter interactive"
+						style:grid-column={2 * g}
+						class:active={resizing === g - 1}
+						role="separator"
+						aria-orientation="vertical"
+						aria-label={t('edit.resizeColumns', { left: g, right: g + 1 })}
+						aria-valuemin={minColumnSpan(layout.columnRows[g - 1])}
+						aria-valuemax={layout.columnWidths[g - 1] +
+							layout.columnWidths[g] -
+							minColumnSpan(layout.columnRows[g])}
+						aria-valuenow={layout.columnWidths[g - 1]}
+						aria-valuetext={layout.columnWidths.join(' · ')}
+						tabindex="0"
+						title={t('edit.resizeHint')}
+						onpointerdown={(event) => onGutterPointerdown(event, g - 1)}
+						onkeydown={(event) => onGutterKeydown(event, g - 1)}
+						ondblclick={resetWidths}
+						onpointerenter={() => (gutterActive = g - 1)}
+						onpointerleave={() => (gutterActive = null)}
+						onfocus={() => {
+							gutterActive = g - 1;
+							resizeBase = $state.snapshot(layout.columnRows) as Rows;
+						}}
+						onblur={() => {
+							gutterActive = null;
+							resizeBase = null;
+						}}
+					>
+						<span class="handle"></span>
+					</div>
+				{:else}
+					<div class="gutter" style:grid-column={2 * g} aria-hidden="true"></div>
+				{/if}
 			{/if}
-		{/if}
-		<div class="column" style:grid-column={2 * g + 1}>
-			{#each group as column (column)}
-				{@const rows = layout.columnRows[column]}
-				<div
-					class="segment"
-					class:empty={rows.length === 0}
-					{@attach sortable.list({ id: String(column), axis: 'vertical' })}
-				>
-					{#each rows as row, r (row.items[0])}
-						<PanelRow
-							{row}
-							stacked={!rowFits(row.spans, columnPx(column), layout.panelGap, remPx)}
-							editing={ui.editing}
-							onresize={(index, left, mirror) => resizeRow(column, r, index, left, mirror)}
-							onequalize={() => setRows(equalizeRow(layout.columnRows, column, r))}
-						>
-							{#snippet panel(id)}
-								{@const instance = config.widgets[id]}
-								{#if instance}
-									<WidgetPanel
-										{instance}
-										{column}
-										{sortable}
-										editing={ui.editing}
-										grabbed={grabbed?.id === id}
-										ongripkeydown={(event) => onGripKeydown(event, id)}
-										ongripblur={() => onGripBlur(id)}
-										onsettings={() => openSettings(id)}
-										onremove={() => remove(id)}
-									/>
-								{/if}
-							{/snippet}
-						</PanelRow>
-					{/each}
-					{#if ui.editing}
-						{#if rows.length === 0}
-							<p class="empty-hint">{t('edit.emptyColumn')}</p>
+			<div class="column" style:grid-column={2 * g + 1}>
+				{#each group as column (column)}
+					{@const rows = layout.columnRows[column]}
+					<div
+						class="segment"
+						class:empty={rows.length === 0}
+						{@attach sortable.list({ id: String(column), axis: 'vertical' })}
+					>
+						{#each rows as row, r (row.items[0])}
+							<PanelRow
+								{row}
+								stacked={!rowFits(row.spans, columnPx(column), layout.panelGap, remPx)}
+								editing={ui.editing}
+								onresize={(index, left, mirror) => resizeRow(column, r, index, left, mirror)}
+								onequalize={() => setRows(equalizeRow(layout.columnRows, column, r))}
+							>
+								{#snippet panel(id)}
+									{@const instance = config.widgets[id]}
+									{#if instance}
+										<WidgetPanel
+											{instance}
+											{column}
+											{sortable}
+											editing={ui.editing}
+											grabbed={grabbed?.id === id}
+											ongripkeydown={(event) => onGripKeydown(event, id)}
+											ongripblur={() => onGripBlur(id)}
+											onsettings={() => openSettings(id)}
+											onremove={() => remove(id)}
+										/>
+									{/if}
+								{/snippet}
+							</PanelRow>
+						{/each}
+						{#if ui.editing}
+							{#if rows.length === 0}
+								<p class="empty-hint">{t('edit.emptyColumn')}</p>
+							{/if}
+							<AddWidget {column} {used} onadd={(type) => addWidget(type, column)} />
 						{/if}
-						<AddWidget {column} {used} onadd={(type) => addWidget(type, column)} />
-					{/if}
-				</div>
-			{/each}
-		</div>
-		{#if ui.editing && ownWidths && showSpans}
-			<div class="span-label" style:grid-column={2 * g + 1} aria-hidden="true">
-				{layout.columnWidths[g]}<span>/{GRID_UNITS}</span>
+					</div>
+				{/each}
 			</div>
-		{/if}
-	{/each}
+			{#if ui.editing && ownWidths && showSpans}
+				<div class="span-label" style:grid-column={2 * g + 1} aria-hidden="true">
+					{layout.columnWidths[g]}<span>/{GRID_UNITS}</span>
+				</div>
+			{/if}
+		{/each}
+	</div>
 </div>
 
 <Dialog
@@ -528,11 +543,21 @@
 </Dialog>
 
 <style>
+	.frame {
+		width: 100%;
+		height: 100%;
+	}
+
 	.board {
 		display: grid;
 		width: 100%;
 		height: 100%;
 		margin-inline: auto;
+	}
+
+	/* Leere Spalten nehmen außerhalb des Edit-Modus keinen Platz ein (auch keinen Abstand) */
+	.board:not(.editing) .segment.empty {
+		display: none;
 	}
 
 	/* Alle Elemente liegen fest in Zeile 1, sonst schiebt die Breitenanzeige Spalten nach unten */

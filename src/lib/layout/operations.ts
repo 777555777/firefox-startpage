@@ -33,6 +33,8 @@ export const MIN_COLUMN_REM = 20;
 export const MIN_NARROW_COLUMN_REM = 14;
 /** Mindestbreite eines Widgets in einer Zeile, sonst stehen die Widgets untereinander */
 export const MIN_ITEM_REM = 13;
+/** Größte Breite, wenn alle Spalten zu einer zusammengelegt sind */
+export const SINGLE_COLUMN_MAX_REM = 48;
 
 export type Rows = LayoutRow[][];
 
@@ -161,6 +163,8 @@ export function fitRows(columnRows: Rows, columnWidths: number[]): Rows {
 /**
  * Wie viele Spalten bei der verfügbaren Breite tatsächlich nebeneinander passen. Mit
  * `spans` wird zusätzlich geprüft, ob die schmalste Spalte noch breit genug ist.
+ * Zusammengelegt wird nur in gleich großen Gruppen (3 → 1, 4 → 2 → 1), sonst stünden auf
+ * einer Seite zwei Spalten untereinander und auf der anderen eine.
  */
 export function visibleColumnCount(
 	columns: number,
@@ -170,13 +174,14 @@ export function visibleColumnCount(
 	spans?: number[]
 ): number {
 	const fit = Math.floor((availableWidthPx + gapPx) / (MIN_COLUMN_REM * remPx + gapPx));
-	const count = Math.max(1, Math.min(columns, fit));
+	let count = Math.max(1, Math.min(columns, fit));
 	if (count === columns && columns > 1 && spans) {
 		const used = spans.slice(0, columns);
 		const content = availableWidthPx - gapPx * (columns - 1);
 		const narrowest = (content * Math.min(...used)) / sum(used);
-		if (narrowest < MIN_NARROW_COLUMN_REM * remPx) return columns - 1;
+		if (narrowest < MIN_NARROW_COLUMN_REM * remPx) count = columns - 1;
 	}
+	while (columns % count !== 0) count--;
 	return count;
 }
 

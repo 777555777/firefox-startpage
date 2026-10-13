@@ -30,7 +30,8 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
 - [ ] Trenner in einer Zeile ziehen, Pfeiltasten, Umschalt (symmetrisch), Doppelklick (gleichmäßig)
 - [ ] Tastatur: Pfeil hoch/runter löst aus der Zeile, Umschalt + hoch/runter heftet an
 - [ ] Spaltenabstand und Widget-Abstand getrennt einstellbar
-- [ ] Schmales Fenster: Widgets einer Zeile stehen untereinander
+- [ ] Schmales Fenster: 3 Spalten werden direkt zu einer (mittig, max. 48 rem), 4 Spalten erst zu 2
+- [ ] Sehr schmales Fenster: Widgets einer Zeile stehen untereinander
 - [ ] Bestehende Config (v1) wird ohne sichtbare Änderung übernommen
 
 ## Ab M3

@@ -218,3 +218,13 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   auslösen würden, werden im Edit-Modus nicht übernommen.
 - **Gleich hohe Panels:** Widgets einer Zeile werden auf die Höhe des höchsten gestreckt, damit
   die Glasflächen eine gemeinsame Unterkante haben.
+
+## Nach M5 – Zusammenlegen in gleich großen Gruppen
+
+- **Responsives Zusammenlegen** (präzisiert §5): Spalten werden nur in gleich großen Gruppen
+  zusammengelegt, also 3 → 1 und 4 → 2 → 1. Bei 3 → 2 stünden auf einer Seite zwei Spalten
+  untereinander und auf der anderen eine, das ließ sich nie stimmig anordnen.
+- **Eine Spalte** ist höchstens 48 rem breit und mittig. So bleiben Panels lesbar, und Zeilen mit
+  mehreren Widgets passen oft wieder nebeneinander.
+- **Leere Spalten** werden außerhalb des Edit-Modus nicht gerendert. Sonst rückte ihr Abstand die
+  darunterliegende Spalte nach unten, wenn beide zusammengelegt sind.
