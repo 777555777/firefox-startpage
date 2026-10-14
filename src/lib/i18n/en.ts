@@ -22,19 +22,22 @@ export const en: Dictionary = {
 	'edit.enter': 'Edit',
 	'edit.done': 'Done',
 	'edit.toolbar': 'Edit toolbar',
-	'edit.columns': 'Columns',
+	'edit.sides': 'Side columns',
 	'edit.columnGap': 'Space between columns',
 	'edit.panelGap': 'Space between widgets',
-	'edit.resizeColumns': 'Width of columns {left} and {right}',
+	'edit.resizeCenter': 'Width of the center',
 	'edit.resizeRow': 'Width of the widgets in this row',
 	'edit.resizeHint':
+		'Drag or use arrow keys to resize the center on a 24-unit grid; both sides stay equally wide. Double-click resets.',
+	'edit.resizeRowHint':
 		'Drag or use arrow keys to resize on a 24-unit grid, hold Shift for symmetry. Double-click spreads evenly.',
 	'edit.maxWidth': 'Maximum width',
 	'edit.fullWidth': 'Full',
-	'edit.equalWidths': 'Equal widths',
+	'edit.resetWidths': 'Default width',
+	'edit.sideMerged': 'The side column’s widgets are now in the center',
 	'edit.settings': 'Settings',
 	'edit.addWidget': 'Add widget',
-	'edit.addWidgetTo': 'Add widget to column {column}',
+	'edit.addWidgetTo': 'Add widget: {area}',
 	'edit.move': 'Move {name}',
 	'edit.widgetSettings': '{name} settings',
 	'edit.remove': 'Remove {name}',
@@ -44,8 +47,12 @@ export const en: Dictionary = {
 
 	'dnd.grabbed':
 		'{name} grabbed. Use arrow keys to move, Shift with up or down places it next to the row above or below. Space drops, Escape cancels.',
-	'dnd.position': 'Column {column}, row {row}',
-	'dnd.positionShared': 'Column {column}, row {row}, slot {slot} of {count}',
+	'dnd.position': '{area}, row {row}',
+	'dnd.positionShared': '{area}, row {row}, slot {slot} of {count}',
+
+	'area.center': 'Center',
+	'area.left': 'Left column',
+	'area.right': 'Right column',
 	'dnd.dropped': '{name} dropped: {position}',
 	'dnd.cancelled': 'Move cancelled',
 

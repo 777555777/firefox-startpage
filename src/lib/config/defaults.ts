@@ -14,7 +14,7 @@ import type {
 	SearchEngine
 } from './types';
 
-export const CONFIG_VERSION = 2;
+export const CONFIG_VERSION = 3;
 
 /** Abstand zwischen Spalten bzw. zwischen Panels in px */
 export const DEFAULT_GAP = 24;
@@ -82,11 +82,11 @@ function board(tabs: LinkTab[]): LinksSettings {
 	return { tabs, activeTabId: tabs[0].id, showStats: false };
 }
 
-/** Zeile mit einem Widget über die ganze Spaltenbreite (Default-Spalten sind 8 breit) */
-const single = (id: string): LayoutRow => ({ items: [id], spans: [8] });
+/** Zeile mit einem Widget über die ganze Breite seines Bereichs */
+const single = (id: string, span: number): LayoutRow => ({ items: [id], spans: [span] });
 
 /**
- * Config für den Erststart: 3 Spalten mit Uhr + Kalender | Suche + Links | Links.
+ * Config für den Erststart: Uhr + Kalender links, Suche + Links in der Mitte, Links rechts.
  * Die Namen der Beispiel-Gruppen folgen der erkannten Sprache.
  */
 export function createDefaultConfig(language: Language = 'en'): Config {
@@ -105,13 +105,14 @@ export function createDefaultConfig(language: Language = 'en'): Config {
 		version: CONFIG_VERSION,
 		language: 'auto',
 		layout: {
-			columns: 3,
+			// Mitte, rechts, links
 			columnRows: [
-				[single(ids.clock), single(ids.calendar)],
-				[single(ids.search), single(ids.links)],
-				[single(ids.tools)]
+				[single(ids.search, 12), single(ids.links, 12)],
+				[single(ids.tools, 6)],
+				[single(ids.clock, 6), single(ids.calendar, 6)]
 			],
-			columnWidths: [8, 8, 8],
+			sides: { left: true, right: true },
+			centerSpan: 12,
 			columnGap: DEFAULT_GAP,
 			panelGap: DEFAULT_GAP,
 			maxWidth: 96

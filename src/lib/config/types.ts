@@ -9,8 +9,6 @@ export type LanguageSetting = Language | 'auto';
 export type Quality = 'auto' | 'high' | 'medium' | 'low' | 'static';
 export type DayPhase = 'morning' | 'day' | 'evening' | 'night';
 
-export type ColumnCount = 1 | 2 | 3 | 4;
-
 /** Einstellungen je Widget-Typ; neue Typen werden hier ergänzt */
 export type WidgetSettingsMap = {
 	clock: ClockSettings;
@@ -33,12 +31,19 @@ export type LayoutRow = {
 	spans: number[];
 };
 
+/** Bereiche des Layouts: eine Mittelspalte und zwei Seitenspalten */
+export type LayoutArea = 'center' | 'right' | 'left';
+
 export type LayoutConfig = {
-	columns: ColumnCount;
-	/** Pro Spalte die Zeilen von oben nach unten; Länge entspricht immer `columns` */
+	/**
+	 * Pro Bereich die Zeilen von oben nach unten, immer in der Reihenfolge Mitte, rechts, links
+	 * (`LAYOUT_AREAS`). Das ist auch die Lese- und Stapelreihenfolge auf schmalen Fenstern.
+	 */
 	columnRows: LayoutRow[][];
-	/** Breite pro Spalte in Raster-Einheiten (24er-Raster), Summe 24 */
-	columnWidths: number[];
+	/** Seitenspalten ein- oder ausgeschaltet; die Mitte gibt es immer */
+	sides: { left: boolean; right: boolean };
+	/** Breite der Mitte im 24er-Raster (gerade); die Seiten teilen sich den Rest gleichmäßig */
+	centerSpan: number;
 	/** Abstand zwischen den Spalten in px */
 	columnGap: number;
 	/** Abstand zwischen Panels (untereinander und nebeneinander in einer Zeile) in px */

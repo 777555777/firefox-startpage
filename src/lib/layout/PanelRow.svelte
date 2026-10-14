@@ -96,7 +96,7 @@
 					aria-valuenow={row.spans[i - 1]}
 					aria-valuetext={row.spans.join(' · ')}
 					tabindex="0"
-					title={t('edit.resizeHint')}
+					title={t('edit.resizeRowHint')}
 					onpointerdown={(event) => onpointerdown(event, i - 1)}
 					onkeydown={(event) => onkeydown(event, i - 1)}
 					ondblclick={onequalize}

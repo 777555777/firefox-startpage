@@ -1,40 +1,56 @@
 <script lang="ts">
-	import type { ColumnCount } from '$lib/config/types';
 	import { t } from '$lib/i18n/index.svelte';
 	import { getApp } from '$lib/state/context';
+	import { toasts } from '$lib/state/toasts.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import Icon from '$lib/ui/Icon.svelte';
-	import Segmented from '$lib/ui/Segmented.svelte';
 	import {
-		COLUMN_COUNTS,
+		areaWidths,
 		COLUMN_GAP_MAX,
 		COLUMN_GAP_MIN,
-		equalSpans,
-		equalWidths,
+		DEFAULT_CENTER_SPAN,
+		fitCenterSpan,
 		fitRows,
+		hasSides,
+		LEFT,
 		MAX_WIDTH_MAX,
 		MAX_WIDTH_MIN,
 		MAX_WIDTH_STEP,
 		PANEL_GAP_MAX,
 		PANEL_GAP_MIN,
-		setColumnCount
+		RIGHT,
+		setSide,
+		type Rows,
+		type Side
 	} from './operations';
 
 	const app = getApp();
 	const layout = $derived(app.config.value.layout);
 
-	function setColumns(count: ColumnCount) {
+	/** Seitenspalte ein- oder ausschalten; ihre Widgets wandern dabei in die Mitte */
+	function toggleSide(side: Side) {
 		const live = app.config.value.layout;
-		const next = setColumnCount(live.columnRows, count);
-		live.columnRows = next.columnRows;
-		live.columnWidths = next.columnWidths;
-		live.columns = count;
+		const on = !live.sides[side];
+		const moved = !on && live.columnRows[side === 'left' ? LEFT : RIGHT].length > 0;
+		const before = {
+			columnRows: $state.snapshot(live.columnRows) as Rows,
+			sides: { ...live.sides },
+			centerSpan: live.centerSpan
+		};
+		Object.assign(live, setSide(live, side, on));
+		if (!moved) return;
+		toasts.show(t('edit.sideMerged'), {
+			action: {
+				label: t('common.undo'),
+				run: () => Object.assign(app.config.value.layout, before)
+			}
+		});
 	}
 
-	function equalize() {
+	function resetWidths() {
 		const live = app.config.value.layout;
-		live.columnWidths = equalSpans(live.columns);
-		live.columnRows = fitRows(live.columnRows, live.columnWidths);
+		live.centerSpan = fitCenterSpan(DEFAULT_CENTER_SPAN, live.columnRows, live.sides);
+		live.columnRows = fitRows(live.columnRows, areaWidths(live.centerSpan, live.sides));
 	}
 
 	const id = $props.id();
@@ -52,16 +68,23 @@
 
 {#if ui.editing}
 	<div class="edit-bar glass" role="toolbar" aria-label={t('edit.toolbar')}>
-		<span class="label" aria-hidden="true"><Icon name="columns" size={16} /></span>
-		<Segmented
-			label={t('edit.columns')}
-			value={layout.columns}
-			options={COLUMN_COUNTS.map((count) => ({ value: count, label: String(count) }))}
-			onchange={setColumns}
-		/>
-		{#if !equalWidths(layout.columnWidths)}
-			<button type="button" class="btn" onclick={equalize}>
-				{t('edit.equalWidths')}
+		<div class="sides" role="group" aria-label={t('edit.sides')}>
+			{#each [['left', 'sideLeft'], ['right', 'sideRight']] as const as [side, icon] (side)}
+				<button
+					type="button"
+					class="side"
+					aria-pressed={layout.sides[side]}
+					title={t(`area.${side}`)}
+					onclick={() => toggleSide(side)}
+				>
+					<Icon name={icon} size={18} />
+					<span class="visually-hidden">{t(`area.${side}`)}</span>
+				</button>
+			{/each}
+		</div>
+		{#if hasSides(layout.sides) && layout.centerSpan !== DEFAULT_CENTER_SPAN}
+			<button type="button" class="btn" onclick={resetWidths}>
+				{t('edit.resetWidths')}
 			</button>
 		{/if}
 		<span class="divider"></span>
@@ -188,7 +211,39 @@
 		animation: bar-in var(--duration-slow) var(--ease-spring);
 	}
 
-	.label,
+	.sides {
+		display: flex;
+		gap: 2px;
+		padding: 2px;
+		border-radius: var(--radius-full);
+		background: var(--track);
+	}
+
+	.side {
+		display: grid;
+		place-items: center;
+		width: 34px;
+		height: 30px;
+		padding: 0;
+		border: none;
+		border-radius: var(--radius-full);
+		background: none;
+		color: var(--text-secondary);
+		transition:
+			background-color var(--duration-fast) ease,
+			color var(--duration-fast) ease;
+
+		&[aria-pressed='true'] {
+			background: var(--raised);
+			color: var(--text);
+			box-shadow: 0 1px 3px rgb(var(--shade) / 0.18);
+		}
+
+		&:focus-visible {
+			box-shadow: var(--focus-ring);
+		}
+	}
+
 	.gap {
 		display: inline-flex;
 		color: var(--text-secondary);

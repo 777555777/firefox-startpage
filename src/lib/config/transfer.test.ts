@@ -66,12 +66,12 @@ describe('Import', () => {
 		const result = parseImport(
 			JSON.stringify({
 				app: EXPORT_APP,
-				config: { language: 'de', layout: { columns: 9 } },
+				config: { version: 3, language: 'de', layout: { centerSpan: 99 } },
 				stats: { 'https://a.de': { count: 'viele' }, 'https://b.de': { count: 2, lastOpened: 1 } }
 			})
 		);
 		expect(result.config.language).toBe('de');
-		expect(result.config.layout.columns).toBe(3);
+		expect(result.config.layout.centerSpan).toBe(16);
 		expect(result.stats).toEqual({ 'https://b.de': { count: 2, lastOpened: 1 } });
 	});
 

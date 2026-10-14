@@ -12,27 +12,36 @@
 	import { definitionOf } from '$lib/widgets/registry';
 	import AddWidget from './AddWidget.svelte';
 	import {
+		areaWidths,
 		canJoin,
-		collapseColumns,
+		CENTER,
+		centerSpanRange,
+		clampCenterSpan,
+		DEFAULT_CENTER_SPAN,
+		enabledAreas,
 		equalizeRow,
 		equalSpans,
 		findWidget,
 		fitRows,
+		fitsSideBySide,
 		GRID_UNITS,
-		minColumnSpan,
-		mirrorSpans,
+		hasSides,
+		LAYOUT_AREAS,
+		LEFT,
 		placeWidget,
 		removeWidget,
-		resizePair,
 		resizeRowPair,
 		restorePlacement,
+		RIGHT,
 		rowFits,
 		rowIndexWithout,
+		sideSpan,
 		SINGLE_COLUMN_MAX_REM,
 		stepPlacement,
-		visibleColumnCount,
+		visualOrder,
 		type Placement,
-		type Rows
+		type Rows,
+		type Side
 	} from './operations';
 	import PanelRow from './PanelRow.svelte';
 	import WidgetPanel from './WidgetPanel.svelte';
@@ -41,54 +50,76 @@
 	const config = $derived(app.config.value);
 	const layout = $derived(config.layout);
 
-	/** Verfügbare Breite der Page; die Breite des Boards hängt von Maximalbreite und Spaltenzahl ab */
+	/** Verfügbare Breite der Page; die Breite des Boards hängt von Maximalbreite und Seiten ab */
 	let available = $state(typeof innerWidth === 'number' ? innerWidth : 1280);
 	const remPx =
 		typeof document === 'undefined'
 			? 16
 			: parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
 	const limit = $derived(layout.maxWidth ? layout.maxWidth * remPx : Infinity);
-	const visible = $derived(
-		visibleColumnCount(
-			layout.columns,
-			Math.min(available, limit),
-			remPx,
-			layout.columnGap,
-			layout.columnWidths
-		)
+	const anySide = $derived(hasSides(layout.sides));
+	/** Mitte und Seiten nebeneinander; sonst steht alles untereinander (Mitte, rechts, links) */
+	const sideBySide = $derived(
+		anySide &&
+			fitsSideBySide(layout.centerSpan, Math.min(available, limit), layout.columnGap, remPx)
 	);
-	/** Alles in einer Spalte: schmaler und mittig, sonst würden die Panels riesig */
-	const single = $derived(visible === 1 && layout.columns > 1);
+	/** Untereinander gestellt: schmaler und mittig, sonst würden die Panels riesig */
+	const collapsed = $derived(anySide && !sideBySide);
 	const width = $derived(
-		Math.min(available, limit, single ? SINGLE_COLUMN_MAX_REM * remPx : Infinity)
+		Math.min(available, limit, collapsed ? SINGLE_COLUMN_MAX_REM * remPx : Infinity)
 	);
-	const groups = $derived(collapseColumns(layout.columns, visible));
-	/** Eigene Breiten gelten nur, solange keine Spalten zusammengelegt sind */
-	const ownWidths = $derived(visible === layout.columns);
+	const widths = $derived(areaWidths(layout.centerSpan, layout.sides));
+	const side = $derived(sideSpan(layout.centerSpan));
+
+	/**
+	 * Gerenderte Spalten mit ihren Bereichen und der Spur im Grid (1 links, 3 Mitte, 5 rechts).
+	 * Im DOM steht die Mitte zuerst, dann rechts, dann links: so stimmen Lese- und
+	 * Tab-Reihenfolge mit dem Untereinanderstellen überein.
+	 */
+	const columns = $derived(
+		sideBySide
+			? [
+					{ areas: [CENTER], track: 3 },
+					...(layout.sides.right ? [{ areas: [RIGHT], track: 5 }] : []),
+					...(layout.sides.left ? [{ areas: [LEFT], track: 1 }] : [])
+				]
+			: [{ areas: enabledAreas(layout.sides), track: 1 }]
+	);
 	const template = $derived(
-		groups
-			.map((_, g) => `minmax(0, ${ownWidths ? layout.columnWidths[g] : 1}fr)`)
-			.join(` ${layout.columnGap}px `)
+		sideBySide
+			? [side, layout.centerSpan, side]
+					.map((span) => `minmax(0, ${span}fr)`)
+					.join(` ${layout.columnGap}px `)
+			: 'minmax(0, 1fr)'
 	);
+	/** Reihenfolge für Pfeiltasten links/rechts: so, wie die Spalten zu sehen sind */
+	const order = $derived(sideBySide ? visualOrder(layout.sides) : enabledAreas(layout.sides));
 	const used = $derived(new Set(Object.values(config.widgets).map((w) => w.type)));
 
-	/** Breite einer gespeicherten Spalte in px, für das Untereinanderstellen von Zeilen */
-	function columnPx(column: number, widths = layout.columnWidths): number {
-		const content = width - layout.columnGap * (groups.length - 1);
-		return ownWidths ? (content * widths[column]) / GRID_UNITS : content / groups.length;
+	/** Breite eines Bereichs in px, für das Untereinanderstellen von Zeilen */
+	function columnPx(area: number, areaSpans = widths): number {
+		if (!sideBySide) return width;
+		return ((width - 2 * layout.columnGap) * areaSpans[area]) / GRID_UNITS;
 	}
+
+	const liveWidths = () => {
+		const live = app.config.value.layout;
+		return areaWidths(live.centerSpan, live.sides);
+	};
 
 	const nameOf = (id: string) => {
 		const instance = config.widgets[id];
 		return instance ? t(definitionOf(instance.type).name) : id;
 	};
 
-	/** Position als Ansage, z. B. „Spalte 1, Zeile 2, Platz 1 von 2“ */
+	const areaName = (area: number) => t(`area.${LAYOUT_AREAS[area]}`);
+
+	/** Position als Ansage, z. B. „Mitte, Zeile 2, Platz 1 von 2“ */
 	function positionText(id: string): string {
 		const position = findWidget(app.config.value.layout.columnRows, id);
 		if (!position) return '';
 		const row = app.config.value.layout.columnRows[position.column][position.row];
-		const base = { column: position.column + 1, row: position.row + 1 };
+		const base = { area: areaName(position.column), row: position.row + 1 };
 		return row.items.length > 1
 			? t('dnd.positionShared', { ...base, slot: position.index + 1, count: row.items.length })
 			: t('dnd.position', base);
@@ -110,12 +141,13 @@
 	/** Ob `id` neben `target` passt, ohne dass die Zeile bei dieser Breite untereinander rutscht */
 	function fitsBeside(id: string, target: string): boolean {
 		const live = app.config.value.layout;
-		if (!canJoin(live.columnRows, id, target, live.columnWidths)) return false;
+		const current = liveWidths();
+		if (!canJoin(live.columnRows, id, target, current)) return false;
 		const position = findWidget(live.columnRows, target);
 		if (!position) return false;
 		const row = live.columnRows[position.column][position.row];
 		const count = row.items.length + (row.items.includes(id) ? 0 : 1);
-		const spans = equalSpans(count, live.columnWidths[position.column]);
+		const spans = equalSpans(count, current[position.column]);
 		return rowFits(spans, columnPx(position.column), live.panelGap, remPx);
 	}
 
@@ -172,7 +204,7 @@
 			const placement = placementAt(id, point, hit);
 			if (!placement) return null;
 			const live = app.config.value.layout;
-			const next = placeWidget(live.columnRows, id, placement, live.columnWidths);
+			const next = placeWidget(live.columnRows, id, placement, liveWidths());
 			if (JSON.stringify(next) === JSON.stringify(live.columnRows)) return null;
 			return () => setRows(next);
 		},
@@ -239,12 +271,13 @@
 			live.columnRows,
 			id,
 			direction,
-			live.columnWidths,
-			event.shiftKey
+			liveWidths(),
+			event.shiftKey,
+			order
 		);
 		if (!placement) return;
 		if (placement.kind === 'beside' && !fitsBeside(id, placement.target)) return;
-		const next = placeWidget(live.columnRows, id, placement, live.columnWidths);
+		const next = placeWidget(live.columnRows, id, placement, liveWidths());
 		if (next === live.columnRows) return;
 		await moveTo(id, next);
 		announcer.say(positionText(id));
@@ -264,13 +297,13 @@
 		const live = app.config.value;
 		live.widgets[id] = { id, type, settings: definition.defaultSettings() } as WidgetInstance;
 		await sortable.animate(() => {
-			const { columnRows, columnWidths } = live.layout;
+			const { columnRows } = live.layout;
 			setRows(
 				placeWidget(
 					columnRows,
 					id,
 					{ kind: 'row', column, index: columnRows[column].length },
-					columnWidths
+					liveWidths()
 				)
 			);
 		});
@@ -301,11 +334,15 @@
 					void sortable.animate(() => {
 						const current = app.config.value;
 						current.widgets[id] = backup;
-						const { columnRows, columnWidths } = current.layout;
+						const { columnRows, sides } = current.layout;
+						const columnWidths = liveWidths();
 						let next = placeWidget(columnRows, id, placement, columnWidths);
-						// Der alte Nachbar ist weg oder die Zeile ist voll: als eigene Zeile zurück
+						// Der alte Nachbar ist weg, die Zeile ist voll oder die Seite ausgeschaltet:
+						// als eigene Zeile zurück, notfalls in die Mitte
 						if (next === columnRows) {
-							const column = Math.min(position.column, columnRows.length - 1);
+							const column = enabledAreas(sides).includes(position.column)
+								? position.column
+								: CENTER;
 							next = placeWidget(
 								columnRows,
 								id,
@@ -340,10 +377,10 @@
 		if (!ui.editing) grabbed = null;
 	});
 
-	// Einspaltig liegt rechts und links viel freie Fläche: das Mausrad scrollt dort trotzdem
+	// Einspaltig liegt rechts und links oft freie Fläche: das Mausrad scrollt dort trotzdem
 	// die Spalte. Elemente, die selbst scrollen (Spalte, Dialoge, Listen), bleiben unberührt.
 	$effect(() => {
-		if (!single) return;
+		if (columns.length !== 1) return;
 		const onwheel = (event: WheelEvent) => {
 			if (event.ctrlKey || event.defaultPrevented) return;
 			// deltaY vor deltaMode lesen: Firefox liefert dann Pixel statt Zeilen
@@ -367,16 +404,14 @@
 		return () => window.removeEventListener('wheel', onwheel);
 	});
 
-	// --- Spaltenbreiten: Trenner im Edit-Modus ziehen oder per Pfeiltasten verschieben -------
-	// Breiten rasten im 24er-Raster ein; mit Shift wird die Gegenseite gespiegelt.
+	// --- Breite der Mitte: Trenner im Edit-Modus ziehen oder per Pfeiltasten verschieben -----
+	// Die Mitte rastet in Schritten von 2 Einheiten ein, beide Seiten bleiben gleich breit.
 
-	let resizing = $state<number | null>(null);
+	let resizing = $state<Side | null>(null);
 	/** Trenner, der gerade gehovert oder fokussiert ist; zeigt die Breiten an */
-	let gutterActive = $state<number | null>(null);
+	let gutterActive = $state<Side | null>(null);
 	const showSpans = $derived(resizing !== null || gutterActive !== null);
-
-	/** Breite der Spalten-Elemente ohne den Rand für Fokusringe */
-	const columnWidthPx = (element: Element) => element.getBoundingClientRect().width - 24;
+	const range = $derived(centerSpanRange(layout.columnRows, layout.sides));
 
 	/**
 	 * Zeilen zu Beginn einer Breitenänderung. Alle Schritte rechnen von hier aus, sonst würde
@@ -391,68 +426,79 @@
 		return resizeBase && shape(resizeBase) === shape(live) ? resizeBase : live;
 	}
 
-	function setLeftSpan(index: number, left: number, mirror: boolean) {
+	function setCenterSpan(value: number) {
 		const live = app.config.value.layout;
 		const base = currentBase();
-		const mins = base.map(minColumnSpan);
-		let next = resizePair(live.columnWidths, index, left, [mins[index], mins[index + 1]]);
-		if (mirror) next = mirrorSpans(next, index);
-		// Jede Spalte muss ihre Zeilen noch fassen
-		if (next.some((span, i) => span < mins[i])) return;
-		// Nicht so schmal, dass die Spalten gleich wieder zusammengelegt würden
-		if (visibleColumnCount(live.columns, width, remPx, live.columnGap, next) < live.columns) return;
-		if (next.every((span, i) => span === live.columnWidths[i])) return;
-		const rows = fitRows(base, next);
+		const [min, max] = centerSpanRange(base, live.sides);
+		const next = Math.min(max, Math.max(min, clampCenterSpan(value)));
+		if (next === live.centerSpan) return;
+		// Nicht so breit, dass die Seiten gleich wieder unter die Mitte rutschen würden
+		if (!fitsSideBySide(next, width, live.columnGap, remPx)) return;
+		const nextWidths = areaWidths(next, live.sides);
+		const rows = fitRows(base, nextWidths);
 		// … und keine Zeile so schmal, dass ihre Widgets untereinander rutschen müssten
 		const fits = rows.every((column, c) =>
-			column.every((row) => rowFits(row.spans, columnPx(c, next), live.panelGap, remPx))
+			column.every((row) => rowFits(row.spans, columnPx(c, nextWidths), live.panelGap, remPx))
 		);
 		if (!fits) return;
-		live.columnWidths = next;
+		live.centerSpan = next;
 		live.columnRows = rows;
 	}
 
-	function onGutterPointerdown(event: PointerEvent, index: number) {
+	/** Am linken Trenner wird die Mitte breiter, wenn er nach links wandert, am rechten umgekehrt */
+	const direction = (gutter: Side) => (gutter === 'left' ? -1 : 1);
+
+	function onGutterPointerdown(event: PointerEvent, gutter: Side) {
 		if (event.button !== 0) return;
 		event.preventDefault();
-		const columns = board.querySelectorAll(':scope > .column');
-		const left = columnWidthPx(columns[index]);
-		const total = left + columnWidthPx(columns[index + 1]);
-		const pair = layout.columnWidths[index] + layout.columnWidths[index + 1];
+		const content = width - 2 * layout.columnGap;
+		const start = (content * layout.centerSpan) / GRID_UNITS;
 		const startX = event.clientX;
-		const gutter = event.currentTarget as HTMLElement;
-		gutter.setPointerCapture(event.pointerId);
-		resizing = index;
+		const element = event.currentTarget as HTMLElement;
+		element.setPointerCapture(event.pointerId);
+		resizing = gutter;
 		resizeBase = $state.snapshot(layout.columnRows) as Rows;
 
 		const onmove = (move: PointerEvent) => {
-			const px = left + move.clientX - startX;
-			setLeftSpan(index, (px / total) * pair, move.shiftKey);
+			// Beide Seiten ändern sich gleich, die Mitte also doppelt so stark wie der Zeiger
+			const px = start + 2 * direction(gutter) * (move.clientX - startX);
+			setCenterSpan((px / content) * GRID_UNITS);
 		};
 		const onup = () => {
 			resizing = null;
 			resizeBase = null;
-			gutter.removeEventListener('pointermove', onmove);
-			gutter.removeEventListener('pointerup', onup);
-			gutter.removeEventListener('pointercancel', onup);
+			element.removeEventListener('pointermove', onmove);
+			element.removeEventListener('pointerup', onup);
+			element.removeEventListener('pointercancel', onup);
 		};
-		gutter.addEventListener('pointermove', onmove);
-		gutter.addEventListener('pointerup', onup);
-		gutter.addEventListener('pointercancel', onup);
+		element.addEventListener('pointermove', onmove);
+		element.addEventListener('pointerup', onup);
+		element.addEventListener('pointercancel', onup);
 	}
 
-	function onGutterKeydown(event: KeyboardEvent, index: number) {
+	function onGutterKeydown(event: KeyboardEvent, gutter: Side) {
 		const step = event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0;
 		if (!step) return;
 		event.preventDefault();
-		setLeftSpan(index, layout.columnWidths[index] + step, event.shiftKey);
+		setCenterSpan(layout.centerSpan + 2 * step * direction(gutter));
 	}
 
-	function resetWidths() {
-		const live = app.config.value.layout;
-		live.columnWidths = equalSpans(live.columns);
-		live.columnRows = fitRows(currentBase(), live.columnWidths);
-	}
+	/** Position des Trenners für ARIA: Einheiten links von ihm */
+	const gutterValue = (gutter: Side, center: number) =>
+		gutter === 'left' ? sideSpan(center) : sideSpan(center) + center;
+
+	/** Trenner neben eingeschalteten Seiten, mit ihrer Spur im Grid */
+	const gutters = $derived(
+		(['left', 'right'] as const)
+			.filter((gutter) => layout.sides[gutter])
+			.map((gutter) => ({ side: gutter, track: gutter === 'left' ? 2 : 4 }))
+	);
+	/** Breitenanzeige pro sichtbarer Spalte */
+	const spanLabels = $derived([
+		...(layout.sides.left ? [{ track: 1, span: side }] : []),
+		{ track: 3, span: layout.centerSpan },
+		...(layout.sides.right ? [{ track: 5, span: side }] : [])
+	]);
 </script>
 
 <div class="frame" bind:clientWidth={available}>
@@ -465,68 +511,30 @@
 		style:max-width={Number.isFinite(width) ? `${width}px` : undefined}
 		bind:this={board}
 	>
-		{#each groups as group, g (g)}
-			{#if g > 0}
-				{#if ui.editing && ownWidths}
-					<!-- Fokussierbarer Separator mit Wert ist das ARIA-Muster „Window Splitter“ -->
-					<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
-					<div
-						class="gutter interactive"
-						style:grid-column={2 * g}
-						class:active={resizing === g - 1}
-						role="separator"
-						aria-orientation="vertical"
-						aria-label={t('edit.resizeColumns', { left: g, right: g + 1 })}
-						aria-valuemin={minColumnSpan(layout.columnRows[g - 1])}
-						aria-valuemax={layout.columnWidths[g - 1] +
-							layout.columnWidths[g] -
-							minColumnSpan(layout.columnRows[g])}
-						aria-valuenow={layout.columnWidths[g - 1]}
-						aria-valuetext={layout.columnWidths.join(' · ')}
-						tabindex="0"
-						title={t('edit.resizeHint')}
-						onpointerdown={(event) => onGutterPointerdown(event, g - 1)}
-						onkeydown={(event) => onGutterKeydown(event, g - 1)}
-						ondblclick={resetWidths}
-						onpointerenter={() => (gutterActive = g - 1)}
-						onpointerleave={() => (gutterActive = null)}
-						onfocus={() => {
-							gutterActive = g - 1;
-							resizeBase = $state.snapshot(layout.columnRows) as Rows;
-						}}
-						onblur={() => {
-							gutterActive = null;
-							resizeBase = null;
-						}}
-					>
-						<span class="handle"></span>
-					</div>
-				{:else}
-					<div class="gutter" style:grid-column={2 * g} aria-hidden="true"></div>
-				{/if}
-			{/if}
-			<div class="column" style:grid-column={2 * g + 1}>
-				{#each group as column (column)}
-					{@const rows = layout.columnRows[column]}
+		{#each columns as column (column.track)}
+			<div class="column" style:grid-column={column.track}>
+				{#each column.areas as area (area)}
+					{@const rows = layout.columnRows[area]}
 					<div
 						class="segment"
 						class:empty={rows.length === 0}
-						{@attach sortable.list({ id: String(column), axis: 'vertical' })}
+						data-area={LAYOUT_AREAS[area]}
+						{@attach sortable.list({ id: String(area), axis: 'vertical' })}
 					>
 						{#each rows as row, r (row.items[0])}
 							<PanelRow
 								{row}
-								stacked={!rowFits(row.spans, columnPx(column), layout.panelGap, remPx)}
+								stacked={!rowFits(row.spans, columnPx(area), layout.panelGap, remPx)}
 								editing={ui.editing}
-								onresize={(index, left, mirror) => resizeRow(column, r, index, left, mirror)}
-								onequalize={() => setRows(equalizeRow(layout.columnRows, column, r))}
+								onresize={(index, left, mirror) => resizeRow(area, r, index, left, mirror)}
+								onequalize={() => setRows(equalizeRow(layout.columnRows, area, r))}
 							>
 								{#snippet panel(id)}
 									{@const instance = config.widgets[id]}
 									{#if instance}
 										<WidgetPanel
 											{instance}
-											{column}
+											column={area}
 											{sortable}
 											editing={ui.editing}
 											grabbed={grabbed?.id === id}
@@ -541,19 +549,59 @@
 						{/each}
 						{#if ui.editing}
 							{#if rows.length === 0}
-								<p class="empty-hint">{t('edit.emptyColumn')}</p>
+								<p class="empty-hint">
+									{area === CENTER ? t('edit.emptyColumn') : areaName(area)}
+								</p>
 							{/if}
-							<AddWidget {column} {used} onadd={(type) => addWidget(type, column)} />
+							<AddWidget label={areaName(area)} {used} onadd={(type) => addWidget(type, area)} />
 						{/if}
 					</div>
 				{/each}
 			</div>
-			{#if ui.editing && ownWidths && showSpans}
-				<div class="span-label" style:grid-column={2 * g + 1} aria-hidden="true">
-					{layout.columnWidths[g]}<span>/{GRID_UNITS}</span>
-				</div>
-			{/if}
 		{/each}
+
+		{#if ui.editing && sideBySide}
+			{#each gutters as gutter (gutter.side)}
+				<!-- Fokussierbarer Separator mit Wert ist das ARIA-Muster „Window Splitter“ -->
+				<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+				<div
+					class="gutter"
+					style:grid-column={gutter.track}
+					class:active={resizing === gutter.side}
+					role="separator"
+					aria-orientation="vertical"
+					aria-label={t('edit.resizeCenter')}
+					aria-valuemin={gutterValue(gutter.side, gutter.side === 'left' ? range[1] : range[0])}
+					aria-valuemax={gutterValue(gutter.side, gutter.side === 'left' ? range[0] : range[1])}
+					aria-valuenow={gutterValue(gutter.side, layout.centerSpan)}
+					aria-valuetext="{side} · {layout.centerSpan} · {side}"
+					tabindex="0"
+					title={t('edit.resizeHint')}
+					onpointerdown={(event) => onGutterPointerdown(event, gutter.side)}
+					onkeydown={(event) => onGutterKeydown(event, gutter.side)}
+					ondblclick={() => setCenterSpan(DEFAULT_CENTER_SPAN)}
+					onpointerenter={() => (gutterActive = gutter.side)}
+					onpointerleave={() => (gutterActive = null)}
+					onfocus={() => {
+						gutterActive = gutter.side;
+						resizeBase = $state.snapshot(layout.columnRows) as Rows;
+					}}
+					onblur={() => {
+						gutterActive = null;
+						resizeBase = null;
+					}}
+				>
+					<span class="handle"></span>
+				</div>
+			{/each}
+			{#if showSpans}
+				{#each spanLabels as label (label.track)}
+					<div class="span-label" style:grid-column={label.track} aria-hidden="true">
+						{label.span}<span>/{GRID_UNITS}</span>
+					</div>
+				{/each}
+			{/if}
+		{/if}
 	</div>
 </div>
 
@@ -615,14 +663,11 @@
 		gap: var(--gap);
 	}
 
-	/* Trenner zwischen den Spalten; im Edit-Modus ziehbar */
+	/* Trenner zwischen Mitte und Seite; im Edit-Modus ziehbar */
 	.gutter {
 		position: relative;
 		z-index: 3;
 		min-width: 0;
-	}
-
-	.gutter.interactive {
 		display: grid;
 		place-items: center;
 		cursor: col-resize;
@@ -655,7 +700,7 @@
 			background-color var(--duration-fast) ease;
 	}
 
-	.gutter.interactive:hover .handle,
+	.gutter:hover .handle,
 	.gutter.active .handle {
 		height: 96px;
 		background: #fff;

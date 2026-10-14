@@ -30,9 +30,18 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
 - [ ] Trenner in einer Zeile ziehen, Pfeiltasten, Umschalt (symmetrisch), Doppelklick (gleichmäßig)
 - [ ] Tastatur: Pfeil hoch/runter löst aus der Zeile, Umschalt + hoch/runter heftet an
 - [ ] Spaltenabstand und Widget-Abstand getrennt einstellbar
-- [ ] Schmales Fenster: 3 Spalten werden direkt zu einer (mittig, max. 48 rem), 4 Spalten erst zu 2
 - [ ] Sehr schmales Fenster: Widgets einer Zeile stehen untereinander
-- [ ] Bestehende Config (v1) wird ohne sichtbare Änderung übernommen
+
+## Mitte und Seitenspalten (Schema v3)
+
+- [ ] Bestehende Config (v2) wird übernommen: bei drei Spalten wird die mittlere zur Mitte
+- [ ] Mitte steht genau in der Bildschirmmitte, auch wenn eine Seite leer oder ausgeschaltet ist
+- [ ] Trenner links oder rechts ziehen: Mitte ändert sich in 2er-Schritten, beide Seiten gleich
+- [ ] Pfeiltasten auf dem Trenner, Doppelklick und „Standardbreite“ setzen auf 6 · 12 · 6
+- [ ] Seite ausschalten: Widgets stehen am Ende der Mitte, „Rückgängig“ stellt alles wieder her
+- [ ] Schmales Fenster: alles in einer Spalte (mittig, max. 48 rem) in der Reihenfolge Mitte,
+      rechts, links; Tab-Reihenfolge ebenso
+- [ ] Ohne Seiten nimmt die Mitte die ganze Breite (bis zur Maximalbreite) ein
 
 ## Ab M3
 

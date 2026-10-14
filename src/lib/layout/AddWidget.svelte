@@ -6,10 +6,15 @@
 	import { registry } from '$lib/widgets/registry';
 
 	let {
-		column,
+		label,
 		used,
 		onadd
-	}: { column: number; used: Set<WidgetType>; onadd: (type: WidgetType) => void } = $props();
+	}: {
+		/** Name des Bereichs, in den das Widget kommt */
+		label: string;
+		used: Set<WidgetType>;
+		onadd: (type: WidgetType) => void;
+	} = $props();
 
 	let anchor = $state<MenuAnchor | null>(null);
 
@@ -32,7 +37,7 @@
 	class="add"
 	aria-haspopup="menu"
 	aria-expanded={anchor !== null}
-	aria-label={t('edit.addWidgetTo', { column: column + 1 })}
+	aria-label={t('edit.addWidgetTo', { area: label })}
 	onclick={(event) => (anchor = event.currentTarget)}
 >
 	<Icon name="plus" size={16} />

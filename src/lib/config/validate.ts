@@ -1,10 +1,15 @@
 import {
 	COLUMN_GAP_MAX,
 	COLUMN_GAP_MIN,
+	areaWidths,
+	clampCenterSpan,
+	DEFAULT_CENTER_SPAN,
+	fitCenterSpan,
+	fitRows,
+	foldDisabledSides,
 	MAX_WIDTH_MAX,
 	MAX_WIDTH_MIN,
 	normalizeColumnRows,
-	normalizeColumnWidths,
 	PANEL_GAP_MAX,
 	PANEL_GAP_MIN
 } from '$lib/layout/operations';
@@ -32,7 +37,6 @@ import {
 import type {
 	AppearanceConfig,
 	BackgroundConfig,
-	ColumnCount,
 	Config,
 	DayPhase,
 	Language,
@@ -157,15 +161,23 @@ function parseWidgets(raw: unknown): Record<string, WidgetInstance> {
 
 function parseLayout(raw: unknown, widgetIds: string[]): LayoutConfig {
 	const r = record(raw);
-	const columns = oneOf<ColumnCount>(r.columns, [1, 2, 3, 4], 3);
-	const columnWidths = normalizeColumnWidths(r.columnWidths, columns);
+	const rawSides = record(r.sides);
+	const sides = { left: bool(rawSides.left, true), right: bool(rawSides.right, true) };
+	const requested = clampCenterSpan(num(r.centerSpan, DEFAULT_CENTER_SPAN, 0, 24));
+	// Widgets ausgeschalteter Seiten stehen in der Mitte
+	const rows = foldDisabledSides(
+		normalizeColumnRows(r.columnRows, widgetIds, areaWidths(requested, sides)),
+		sides,
+		areaWidths(requested, sides)
+	);
+	const centerSpan = fitCenterSpan(requested, rows, sides);
 	// Abstände im 4-px-Raster
 	const gap = (value: unknown, min: number, max: number) =>
 		Math.round(num(value, DEFAULT_GAP, min, max) / 4) * 4;
 	const layout: LayoutConfig = {
-		columns,
-		columnRows: normalizeColumnRows(r.columnRows, columns, widgetIds, columnWidths),
-		columnWidths,
+		columnRows: fitRows(rows, areaWidths(centerSpan, sides)),
+		sides,
+		centerSpan,
 		columnGap: gap(r.columnGap, COLUMN_GAP_MIN, COLUMN_GAP_MAX),
 		panelGap: gap(r.panelGap, PANEL_GAP_MIN, PANEL_GAP_MAX)
 	};

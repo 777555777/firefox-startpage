@@ -279,3 +279,29 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   (Gras mit Tautropfen) bei etwa 3:1. Ab Frost ~0,5 erreichen alle Tageszeiten AA. Das ist der
   bewusste Tausch für klares Glas. Die Einstellung erklärt es, und die Skala heißt jetzt
   „Klar … Matt“ statt „Klar … Milchig“, weil Frost nur noch weichzeichnet und nicht aufhellt.
+
+## Nach M6 – Mitte und Seitenspalten (Schema v3)
+
+- **Mitte + zwei Seiten statt 1–4 Spalten** (Abweichung von §5): Gleichrangige Spalten ließen
+  sich beim Zusammenlegen nie stimmig anordnen, und eine leere Spalte schob die anderen aus der
+  Mitte. Jetzt gibt es immer eine Mittelspalte und links und rechts je eine Seitenspalte, die
+  sich im Edit-Modus ein- und ausschalten lässt. Zeilen mit Widgets nebeneinander gibt es
+  weiter in allen drei Spalten.
+- **Symmetrisch:** Beide Seiten sind immer gleich breit, damit die Mitte genau in der
+  Bildschirmmitte steht. Das gilt auch, wenn eine Seite leer oder ausgeschaltet ist; ihr Platz
+  bleibt dann frei. Gespeichert wird nur die Breite der Mitte im 24er-Raster (`centerSpan`,
+  gerade, 8–16, Standard 12). Beide Trenner ändern sie, ein Schritt sind 2 Einheiten.
+- **Ohne Seiten** nimmt die Mitte die ganze Breite ein, begrenzt durch die Maximalbreite.
+- **Breite Bildschirme:** Die drei Spalten bleiben ein Block, den die Maximalbreite begrenzt,
+  und stehen nicht an den Bildschirmrändern.
+- **Untereinander ohne Zwischenstufe:** Ist die Mitte schmaler als 20 rem oder eine Seite
+  schmaler als 14 rem, steht alles in einer Spalte (mittig, max. 48 rem). Die Reihenfolge ist
+  Mitte, rechts, links. In dieser Reihenfolge stehen die Spalten auch im DOM und in der Config.
+  Lese- und Tab-Reihenfolge stimmen so überein, und „das erste Link-Board“ für `1…9` liegt in
+  der Mitte. Pfeiltasten links/rechts beim Verschieben folgen der sichtbaren Anordnung.
+- **Seite ausschalten:** Ihre Widgets wandern ans Ende der Mitte. Ein Hinweis bietet
+  „Rückgängig“ an. Im Edit-Modus stehen Hinweise über der Bearbeiten-Leiste statt darauf.
+- **Migration v2 → v3:** Bei drei Spalten wird die mittlere zur Mitte. Bei zwei wird die erste
+  zur Mitte und die zweite zur rechten Seite. Bei vier teilen sich die beiden mittleren die
+  Mitte. Eine einzelne Spalte wird zur Mitte ohne Seiten. Die Breite der Mitte folgt den alten
+  Anteilen und wird gerastert.

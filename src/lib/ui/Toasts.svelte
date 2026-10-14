@@ -3,13 +3,14 @@
 	import { fly } from 'svelte/transition';
 	import { t } from '$lib/i18n/index.svelte';
 	import { toasts } from '$lib/state/toasts.svelte';
+	import { ui } from '$lib/state/ui.svelte';
 	import Icon from './Icon.svelte';
 
 	const reducedMotion =
 		typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 </script>
 
-<div class="toasts" role="status" aria-live="polite">
+<div class="toasts" class:above-bar={ui.editing} role="status" aria-live="polite">
 	{#each toasts.items as toast (toast.id)}
 		<div
 			class="toast glass"
@@ -44,6 +45,11 @@
 		justify-items: center;
 		gap: var(--space-2);
 		pointer-events: none;
+
+		/* Im Edit-Modus liegt unten die Bearbeiten-Leiste */
+		&.above-bar {
+			bottom: calc(var(--space-5) + 72px);
+		}
 	}
 
 	.toast {

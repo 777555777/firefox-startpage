@@ -23,19 +23,22 @@ export const de = {
 	'edit.enter': 'Bearbeiten',
 	'edit.done': 'Fertig',
 	'edit.toolbar': 'Bearbeiten-Leiste',
-	'edit.columns': 'Spalten',
+	'edit.sides': 'Seitenspalten',
 	'edit.columnGap': 'Abstand zwischen Spalten',
 	'edit.panelGap': 'Abstand zwischen Widgets',
-	'edit.resizeColumns': 'Breite von Spalte {left} und {right}',
+	'edit.resizeCenter': 'Breite der Mitte',
 	'edit.resizeRow': 'Breite der Widgets in dieser Zeile',
 	'edit.resizeHint':
+		'Ziehen oder Pfeiltasten ändern die Breite der Mitte im 24er-Raster, beide Seiten bleiben gleich breit. Doppelklick setzt zurück.',
+	'edit.resizeRowHint':
 		'Ziehen oder Pfeiltasten ändern die Breite im 24er-Raster, mit Umschalt symmetrisch. Doppelklick verteilt gleichmäßig.',
 	'edit.maxWidth': 'Maximale Breite',
 	'edit.fullWidth': 'Voll',
-	'edit.equalWidths': 'Gleich breit',
+	'edit.resetWidths': 'Standardbreite',
+	'edit.sideMerged': 'Widgets der Seitenspalte stehen jetzt in der Mitte',
 	'edit.settings': 'Einstellungen',
 	'edit.addWidget': 'Widget hinzufügen',
-	'edit.addWidgetTo': 'Widget zu Spalte {column} hinzufügen',
+	'edit.addWidgetTo': 'Widget hinzufügen: {area}',
 	'edit.move': '{name} verschieben',
 	'edit.widgetSettings': 'Einstellungen von {name}',
 	'edit.remove': '{name} entfernen',
@@ -45,8 +48,12 @@ export const de = {
 
 	'dnd.grabbed':
 		'{name} gegriffen. Pfeiltasten verschieben, Umschalt mit Pfeil hoch oder runter setzt es neben die Zeile darüber oder darunter. Leertaste legt ab, Escape bricht ab.',
-	'dnd.position': 'Spalte {column}, Zeile {row}',
-	'dnd.positionShared': 'Spalte {column}, Zeile {row}, Platz {slot} von {count}',
+	'dnd.position': '{area}, Zeile {row}',
+	'dnd.positionShared': '{area}, Zeile {row}, Platz {slot} von {count}',
+
+	'area.center': 'Mitte',
+	'area.left': 'Linke Spalte',
+	'area.right': 'Rechte Spalte',
 	'dnd.dropped': '{name} abgelegt: {position}',
 	'dnd.cancelled': 'Verschieben abgebrochen',
 

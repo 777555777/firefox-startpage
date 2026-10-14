@@ -31,6 +31,50 @@ export const MIGRATIONS: Record<number, Migration> = {
 				panelGap: gap
 			}
 		};
+	},
+
+	/**
+	 * v3: statt 1–4 gleichrangiger Spalten eine Mittelspalte mit zwei Seitenspalten. Bei drei
+	 * Spalten wird die mittlere zur Mitte, bei zwei die erste (die zweite rechts), bei vier
+	 * teilen sich die beiden mittleren die Mitte. Die Breite der Mitte folgt den alten Anteilen.
+	 */
+	2: (raw) => {
+		const { columns: _columns, columnRows, columnWidths, ...layout } = record(raw.layout);
+		const rows = Array.isArray(columnRows) ? columnRows : [];
+		const column = (i: number): unknown[] => (Array.isArray(rows[i]) ? rows[i] : []);
+		const widths = Array.isArray(columnWidths) ? columnWidths : [];
+		const width = (i: number) => {
+			const value = widths[i];
+			return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 1;
+		};
+
+		let center: unknown[] = column(0);
+		let right: unknown[] = [];
+		let left: unknown[] = [];
+		// Anteil der Mitte an Mitte + zwei Seiten
+		let share = 0.5;
+		if (rows.length === 2) {
+			right = column(1);
+			share = width(0) / (width(0) + 2 * width(1));
+		} else if (rows.length === 3) {
+			[left, center, right] = [column(0), column(1), column(2)];
+			share = width(1) / (width(0) + width(1) + width(2));
+		} else if (rows.length >= 4) {
+			left = column(0);
+			center = [...column(1), ...column(2)];
+			right = rows.slice(3).flatMap((_, i) => column(3 + i));
+			const total = rows.reduce<number>((sum, _, i) => sum + width(i), 0);
+			share = (width(1) + width(2)) / total;
+		}
+		return {
+			...raw,
+			layout: {
+				...layout,
+				columnRows: [center, right, left],
+				sides: { left: rows.length >= 3, right: rows.length >= 2 },
+				centerSpan: share * 24
+			}
+		};
 	}
 };
 

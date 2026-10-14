@@ -1,14 +1,18 @@
-import type { ColumnCount, LayoutRow } from '$lib/config/types';
+import type { LayoutArea, LayoutConfig, LayoutRow } from '$lib/config/types';
 
 /**
  * Reine Funktionen auf dem Layout. Sie verändern die Eingabe nie, sondern liefern eine neue
- * Aufteilung. Das Layout besteht aus Spalten, jede Spalte aus Zeilen, jede Zeile aus 1 bis 3
- * Widgets nebeneinander. Alle Breiten folgen einem 24er-Raster.
+ * Aufteilung. Das Layout besteht aus einer Mittelspalte und zwei Seitenspalten, jede Spalte
+ * aus Zeilen, jede Zeile aus 1 bis 3 Widgets nebeneinander. Alle Breiten folgen einem
+ * 24er-Raster.
  */
 
-export const COLUMN_COUNTS: readonly ColumnCount[] = [1, 2, 3, 4];
+/** Bereiche in gespeicherter Reihenfolge, zugleich Lese- und Stapelreihenfolge */
+export const LAYOUT_AREAS: readonly LayoutArea[] = ['center', 'right', 'left'];
+export const CENTER = 0;
+export const RIGHT = 1;
+export const LEFT = 2;
 
-/** Spaltenbreiten im 24er-Raster; 24 ist durch 1–4 teilbar, gleich breite Spalten gehen immer auf */
 export const GRID_UNITS = 24;
 /** Mindestbreite einer Spalte in Raster-Einheiten */
 export const MIN_SPAN = 4;
@@ -27,22 +31,25 @@ export const MAX_WIDTH_MIN = 48;
 export const MAX_WIDTH_MAX = 160;
 export const MAX_WIDTH_STEP = 8;
 
-/** Mindestbreite einer Spalte in rem (im Mittel), bevor Spalten zusammengelegt werden */
-export const MIN_COLUMN_REM = 20;
-/** Mindestbreite der schmalsten Spalte bei unterschiedlichen Breiten */
-export const MIN_NARROW_COLUMN_REM = 14;
+/** Breite der Mitte im Raster; gerade, damit beide Seiten ganze Einheiten bekommen */
+export const DEFAULT_CENTER_SPAN = 12;
+export const CENTER_SPAN_MIN = 8;
+export const CENTER_SPAN_MAX = GRID_UNITS - 2 * MIN_SPAN;
+
+/** Mindestbreite der Mitte in rem, sonst steht alles untereinander */
+export const MIN_CENTER_REM = 20;
+/** Mindestbreite einer Seitenspalte in rem, sonst steht alles untereinander */
+export const MIN_SIDE_REM = 14;
 /** Mindestbreite eines Widgets in einer Zeile, sonst stehen die Widgets untereinander */
 export const MIN_ITEM_REM = 13;
-/** Größte Breite, wenn alle Spalten zu einer zusammengelegt sind */
+/** Größte Breite, wenn alle Spalten untereinander stehen */
 export const SINGLE_COLUMN_MAX_REM = 48;
 
 export type Rows = LayoutRow[][];
+export type Sides = LayoutConfig['sides'];
+export type Side = keyof Sides;
 
 const sum = (values: number[]) => values.reduce((a, b) => a + b, 0);
-
-export function clampColumns(value: number): ColumnCount {
-	return Math.min(4, Math.max(1, Math.round(value))) as ColumnCount;
-}
 
 // --- Breiten -------------------------------------------------------------------------------
 
@@ -85,10 +92,6 @@ export function fitSpans(raw: unknown, count: number, total: number, min: number
 		}
 	}
 	return spans;
-}
-
-export function normalizeColumnWidths(raw: unknown, columns: number): number[] {
-	return fitSpans(raw, columns, GRID_UNITS, MIN_SPAN);
 }
 
 /**
@@ -158,31 +161,71 @@ export function fitRows(columnRows: Rows, columnWidths: number[]): Rows {
 	);
 }
 
-// --- Responsives Zusammenlegen ---------------------------------------------------------------
+// --- Mitte und Seiten ---------------------------------------------------------------------------
+
+export const hasSides = (sides: Sides) => sides.left || sides.right;
+
+/** Breite einer Seitenspalte im Raster */
+export const sideSpan = (centerSpan: number) => (GRID_UNITS - centerSpan) / 2;
+
+/** Auf eine gerade Zahl im erlaubten Bereich bringen */
+export function clampCenterSpan(value: number): number {
+	const even = Math.round(value / 2) * 2;
+	return Math.min(CENTER_SPAN_MAX, Math.max(CENTER_SPAN_MIN, even));
+}
 
 /**
- * Wie viele Spalten bei der verfügbaren Breite tatsächlich nebeneinander passen. Mit
- * `spans` wird zusätzlich geprüft, ob die schmalste Spalte noch breit genug ist.
- * Zusammengelegt wird nur in gleich großen Gruppen (3 → 1, 4 → 2 → 1), sonst stünden auf
- * einer Seite zwei Spalten untereinander und auf der anderen eine.
+ * Breite pro Bereich (Mitte, rechts, links). Ohne Seitenspalten nimmt die Mitte die volle
+ * Breite ein; ausgeschaltete Seiten behalten ihren Platz, damit die Mitte mittig bleibt.
  */
-export function visibleColumnCount(
-	columns: number,
-	availableWidthPx: number,
-	remPx = 16,
-	gapPx = 0,
-	spans?: number[]
-): number {
-	const fit = Math.floor((availableWidthPx + gapPx) / (MIN_COLUMN_REM * remPx + gapPx));
-	let count = Math.max(1, Math.min(columns, fit));
-	if (count === columns && columns > 1 && spans) {
-		const used = spans.slice(0, columns);
-		const content = availableWidthPx - gapPx * (columns - 1);
-		const narrowest = (content * Math.min(...used)) / sum(used);
-		if (narrowest < MIN_NARROW_COLUMN_REM * remPx) count = columns - 1;
-	}
-	while (columns % count !== 0) count--;
-	return count;
+export function areaWidths(centerSpan: number, sides: Sides): number[] {
+	const side = sideSpan(centerSpan);
+	return [hasSides(sides) ? centerSpan : GRID_UNITS, side, side];
+}
+
+/** Eingeschaltete Bereiche in Stapelreihenfolge: Mitte, rechts, links */
+export function enabledAreas(sides: Sides): number[] {
+	return [CENTER, ...(sides.right ? [RIGHT] : []), ...(sides.left ? [LEFT] : [])];
+}
+
+/** Eingeschaltete Bereiche von links nach rechts, wie sie nebeneinander stehen */
+export function visualOrder(sides: Sides): number[] {
+	return [...(sides.left ? [LEFT] : []), CENTER, ...(sides.right ? [RIGHT] : [])];
+}
+
+/** Erlaubte Breiten der Mitte, so dass jede Spalte ihre Zeilen noch fasst */
+export function centerSpanRange(columnRows: Rows, sides: Sides): [min: number, max: number] {
+	const centerMin = Math.max(CENTER_SPAN_MIN, minColumnSpan(columnRows[CENTER] ?? []));
+	const sideMin = Math.max(
+		MIN_SPAN,
+		...(sides.right ? [minColumnSpan(columnRows[RIGHT] ?? [])] : []),
+		...(sides.left ? [minColumnSpan(columnRows[LEFT] ?? [])] : [])
+	);
+	const min = Math.ceil(centerMin / 2) * 2;
+	const max = Math.min(CENTER_SPAN_MAX, GRID_UNITS - 2 * sideMin);
+	return [min, Math.max(min, max)];
+}
+
+/** Nächste erlaubte Breite der Mitte */
+export function fitCenterSpan(centerSpan: number, columnRows: Rows, sides: Sides): number {
+	const [min, max] = centerSpanRange(columnRows, sides);
+	return Math.min(max, Math.max(min, clampCenterSpan(centerSpan)));
+}
+
+/**
+ * Ob Seiten und Mitte bei der verfügbaren Breite nebeneinander passen. Sonst steht alles
+ * untereinander (Mitte, rechts, links); Zwischenstufen gibt es bewusst nicht.
+ */
+export function fitsSideBySide(
+	centerSpan: number,
+	availablePx: number,
+	gapPx: number,
+	remPx = 16
+): boolean {
+	const content = availablePx - 2 * gapPx;
+	const center = (content * centerSpan) / GRID_UNITS;
+	const side = (content * sideSpan(centerSpan)) / GRID_UNITS;
+	return center >= MIN_CENTER_REM * remPx && side >= MIN_SIDE_REM * remPx;
 }
 
 /** Ob die Widgets einer Zeile bei dieser Spaltenbreite nebeneinander passen */
@@ -192,17 +235,37 @@ export function rowFits(spans: number[], columnPx: number, gapPx: number, remPx 
 	return (content * Math.min(...spans)) / sum(spans) >= MIN_ITEM_REM * remPx;
 }
 
-/**
- * Responsives Zusammenlegen nur für die Darstellung: Liefert für jede sichtbare Spalte die
- * Indizes der gespeicherten Spalten, die in ihr untereinander stehen. Benachbarte Spalten
- * werden zusammengefasst, die gespeicherte Zuordnung bleibt unverändert.
- */
-export function collapseColumns(columns: number, visible: number): number[][] {
-	const groups: number[][] = Array.from({ length: Math.max(1, visible) }, () => []);
-	for (let column = 0; column < columns; column++) {
-		groups[Math.floor((column * groups.length) / columns)].push(column);
+/** Hängt die Zeilen ausgeschalteter Seiten an die Mitte an */
+export function foldDisabledSides(columnRows: Rows, sides: Sides, widths: number[]): Rows {
+	const folded = (
+		[
+			[LEFT, sides.left],
+			[RIGHT, sides.right]
+		] as const
+	).filter(([area, on]) => !on && (columnRows[area]?.length ?? 0) > 0);
+	if (folded.length === 0) return columnRows;
+	const next = cloneRows(columnRows);
+	// Erst rechts, dann links: wie beim Untereinanderstellen
+	for (const [area] of folded.reverse()) {
+		next[CENTER].push(...next[area]);
+		next[area] = [];
 	}
-	return groups;
+	return fitRows(next, widths);
+}
+
+/**
+ * Schaltet eine Seitenspalte ein oder aus. Ihre Widgets wandern ans Ende der Mitte. Die Mitte
+ * wird bei Bedarf so breit, dass ihre Zeilen weiter hineinpassen.
+ */
+export function setSide(
+	layout: Pick<LayoutConfig, 'columnRows' | 'sides' | 'centerSpan'>,
+	side: Side,
+	on: boolean
+): Pick<LayoutConfig, 'columnRows' | 'sides' | 'centerSpan'> {
+	const sides = { ...layout.sides, [side]: on };
+	const rows = foldDisabledSides(layout.columnRows, sides, areaWidths(layout.centerSpan, sides));
+	const centerSpan = fitCenterSpan(layout.centerSpan, rows, sides);
+	return { sides, centerSpan, columnRows: fitRows(rows, areaWidths(centerSpan, sides)) };
 }
 
 // --- Widgets in Zeilen -------------------------------------------------------------------------
@@ -327,24 +390,6 @@ export function rowIndexWithout(
 	return alone && from.column === column && from.row < index ? index - 1 : index;
 }
 
-/**
- * Ändert die Spaltenzahl. Neue Spalten sind leer. Fallen Spalten weg, landen ihre Zeilen in
- * Reihenfolge am Ende der letzten verbleibenden Spalte. Die Breiten werden gleichmäßig verteilt.
- */
-export function setColumnCount(
-	columnRows: Rows,
-	count: ColumnCount
-): { columnRows: Rows; columnWidths: number[] } {
-	const next = Array.from({ length: count }, (_, i) =>
-		(columnRows[i] ?? []).map((row) => ({ items: [...row.items], spans: [...row.spans] }))
-	);
-	for (const rows of columnRows.slice(count)) {
-		next[count - 1].push(...rows.map((row) => ({ items: [...row.items], spans: [...row.spans] })));
-	}
-	const columnWidths = equalSpans(count);
-	return { columnRows: fitRows(next, columnWidths), columnWidths };
-}
-
 /** Zeile `row` in Spalte `column`: linkes Widget des Paars `index` auf `left` Einheiten */
 export function resizeRowPair(
 	columnRows: Rows,
@@ -377,7 +422,7 @@ export type Direction = 'up' | 'down' | 'left' | 'right';
 /**
  * Tastatur-Verschiebung. Hoch/runter wechselt die Zeile (ein Widget aus einer geteilten Zeile
  * wird dabei zur eigenen Zeile), links/rechts tauscht innerhalb der Zeile und wechselt am Rand
- * in die Nachbarspalte. Mit `join` legt hoch/runter das Widget neben die Zeile darüber bzw.
+ * in die Nachbarspalte (in der Reihenfolge `order`). Mit `join` legt hoch/runter das Widget neben die Zeile darüber bzw.
  * darunter. Liefert das Ziel oder null, wenn es nicht weitergeht.
  */
 export function stepPlacement(
@@ -385,7 +430,8 @@ export function stepPlacement(
 	id: string,
 	direction: Direction,
 	columnWidths: number[],
-	join = false
+	join = false,
+	order: number[] = columnRows.map((_, i) => i)
 ): Placement | null {
 	const from = findWidget(columnRows, id);
 	if (!from) return null;
@@ -421,8 +467,9 @@ export function stepPlacement(
 					side: direction === 'left' ? 'before' : 'after'
 				};
 			}
-			const column = from.column + step;
-			if (column < 0 || column >= columnRows.length) return null;
+			// Nachbarspalte in der Reihenfolge, in der die Spalten zu sehen sind
+			const column = order[order.indexOf(from.column) + step];
+			if (column === undefined || order.indexOf(from.column) === -1) return null;
 			return { kind: 'row', column, index: Math.min(from.row, columnRows[column].length) };
 		}
 	}
@@ -448,15 +495,16 @@ export function restorePlacement(columnRows: Rows, id: string): Placement | null
 
 /**
  * Normalisiert die Zeilen gegenüber der Liste vorhandener Widgets: unbekannte und doppelte IDs
- * fallen weg, leere Zeilen auch, zu volle Zeilen werden aufgeteilt. Widgets ohne Platz landen
- * als eigene Zeilen in der letzten Spalte. Breiten passen danach zur jeweiligen Spalte.
+ * fallen weg, leere Zeilen auch, zu volle Zeilen werden aufgeteilt. Überzählige Spalten und
+ * Widgets ohne Platz landen als eigene Zeilen in der Mitte. Breiten passen danach zur
+ * jeweiligen Spalte; es gibt so viele Spalten wie `columnWidths` Einträge hat.
  */
 export function normalizeColumnRows(
 	raw: unknown,
-	columns: ColumnCount,
 	widgetIds: string[],
 	columnWidths: number[]
 ): Rows {
+	const columns = columnWidths.length;
 	const known = new Set(widgetIds);
 	const seen = new Set<string>();
 	const parsed: Rows = (Array.isArray(raw) ? raw : []).map((column) => {
@@ -480,9 +528,9 @@ export function normalizeColumnRows(
 	});
 
 	const next: Rows = Array.from({ length: columns }, (_, i) => parsed[i] ?? []);
-	for (const rows of parsed.slice(columns)) next[columns - 1].push(...rows);
+	for (const rows of parsed.slice(columns)) next[CENTER].push(...rows);
 	for (const id of widgetIds) {
-		if (!seen.has(id)) next[columns - 1].push({ items: [id], spans: [] });
+		if (!seen.has(id)) next[CENTER].push({ items: [id], spans: [] });
 	}
 	return fitRows(next, columnWidths);
 }

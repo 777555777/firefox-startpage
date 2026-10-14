@@ -32,6 +32,8 @@ export const ICONS = {
 	download: ['M12 3v12m-5-5 5 5 5-5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2'],
 	more: [circle(5, 12, 1), circle(12, 12, 1), circle(19, 12, 1)],
 	columns: [rect(3, 4, 18, 16, 2), 'M9 4v16M15 4v16'],
+	sideLeft: [rect(3, 4, 18, 16, 2), 'M9 4v16', 'M5.5 8.5h1.5M5.5 12h1.5'],
+	sideRight: [rect(3, 4, 18, 16, 2), 'M15 4v16', 'M17 8.5h1.5M17 12h1.5'],
 	image: [rect(3, 4, 18, 16, 2), circle(9, 10, 1.75), 'm21 16-5-5-9 9'],
 	video: [rect(3, 5, 18, 14, 2), 'm10 9 5 3-5 3Z'],
 	warning: ['M12 4 2.5 20h19Z', 'M12 10v4M12 17h.01'],

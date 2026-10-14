@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createDefaultConfig } from './defaults';
+import { CONFIG_VERSION, createDefaultConfig } from './defaults';
 import { migrate, rawVersion, type Migration } from './migrate';
 
 describe('migrate', () => {
@@ -16,7 +16,7 @@ describe('migrate', () => {
 
 	it('liefert für Nicht-Objekte die Default-Config in der Fallback-Sprache', () => {
 		const config = migrate('kaputt', 'de');
-		expect(config.version).toBe(2);
+		expect(config.version).toBe(CONFIG_VERSION);
 		expect(Object.keys(config.widgets)).toHaveLength(5);
 	});
 
@@ -29,42 +29,79 @@ describe('migrate', () => {
 				const { lang, ...rest } = raw;
 				return { ...rest, language: lang };
 			},
-			// v2 hatte die Spaltenzahl als String
+			// v2 hatte die Breite der Mitte als String
 			2: (raw) => {
 				calls.push(2);
-				const layout = raw.layout as { columns: string };
-				return { ...raw, layout: { ...layout, columns: Number(layout.columns) } };
+				const layout = raw.layout as { centerSpan: string };
+				return { ...raw, layout: { ...layout, centerSpan: Number(layout.centerSpan) } };
 			}
 		};
 		const config = migrate(
-			{ version: 1, lang: 'de', layout: { columns: '2', columnItems: [] } },
+			{ version: 1, lang: 'de', layout: { centerSpan: '10' } },
 			'en',
 			migrations,
 			3
 		);
 		expect(calls).toEqual([1, 2]);
 		expect(config.language).toBe('de');
-		expect(config.layout.columns).toBe(2);
+		expect(config.layout.centerSpan).toBe(10);
 	});
 
-	it('v1 → v2: jedes Widget wird zur eigenen Zeile, Breiten im 24er-Raster', () => {
+	it('v1 → v3: jedes Widget wird zur eigenen Zeile, die erste von zwei Spalten zur Mitte', () => {
 		const config = migrate({
 			version: 1,
 			widgets: { a: { type: 'clock' }, b: { type: 'calendar' }, c: { type: 'search' } },
 			layout: { columns: 2, columnItems: [['a', 'b'], ['c']], columnWidths: [4, 8], gap: 32 }
 		});
-		expect(config.version).toBe(2);
+		expect(config.version).toBe(3);
 		expect(config.layout.columnRows).toEqual([
 			[
 				{ items: ['a'], spans: [8] },
 				{ items: ['b'], spans: [8] }
 			],
-			[{ items: ['c'], spans: [16] }]
+			[{ items: ['c'], spans: [8] }],
+			[]
 		]);
-		expect(config.layout.columnWidths).toEqual([8, 16]);
+		expect(config.layout.sides).toEqual({ left: false, right: true });
+		// Die Mitte war schmaler als die Seite, das kleinste Maß ist 8
+		expect(config.layout.centerSpan).toBe(8);
 		expect(config.layout.columnGap).toBe(32);
 		expect(config.layout.panelGap).toBe(32);
 		expect('columnItems' in config.layout).toBe(false);
+		expect('columns' in config.layout).toBe(false);
+	});
+
+	it('v2 → v3: bei drei Spalten wird die mittlere zur Mitte', () => {
+		const one = (id: string, span: number) => ({ items: [id], spans: [span] });
+		const config = migrate({
+			version: 2,
+			widgets: { a: { type: 'clock' }, b: { type: 'search' }, c: { type: 'calendar' } },
+			layout: {
+				columns: 3,
+				columnRows: [[], [one('a', 14), one('b', 14)], [one('c', 5)]],
+				columnWidths: [5, 14, 5]
+			}
+		});
+		expect(config.layout.columnRows).toEqual([[one('a', 14), one('b', 14)], [one('c', 5)], []]);
+		expect(config.layout.sides).toEqual({ left: true, right: true });
+		expect(config.layout.centerSpan).toBe(14);
+		expect('columnWidths' in config.layout).toBe(false);
+	});
+
+	it('v2 → v3: bei vier Spalten teilen sich die beiden mittleren die Mitte', () => {
+		const one = (id: string) => ({ items: [id], spans: [6] });
+		const config = migrate({
+			version: 2,
+			widgets: Object.fromEntries(['a', 'b', 'c', 'd'].map((id) => [id, { type: 'clock' }])),
+			layout: {
+				columns: 4,
+				columnRows: [[one('a')], [one('b')], [one('c')], [one('d')]],
+				columnWidths: [6, 6, 6, 6]
+			}
+		});
+		const items = config.layout.columnRows.map((rows) => rows.map((row) => row.items[0]));
+		expect(items).toEqual([['b', 'c'], ['d'], ['a']]);
+		expect(config.layout.centerSpan).toBe(12);
 	});
 
 	it('überspringt bereits erreichte Versionen', () => {

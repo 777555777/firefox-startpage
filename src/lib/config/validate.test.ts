@@ -12,7 +12,7 @@ describe('parseConfig', () => {
 	it('liefert für Unbrauchbares die Default-Config', () => {
 		for (const raw of [null, undefined, 42, 'x', []]) {
 			const config = parseConfig(raw);
-			expect(config.layout.columns).toBe(3);
+			expect(config.layout.sides).toEqual({ left: true, right: true });
 			expect(Object.keys(config.widgets)).toHaveLength(5);
 		}
 	});
@@ -27,7 +27,8 @@ describe('parseConfig', () => {
 		expect(config.language).toBe('de');
 		expect(config.widgets).toEqual({});
 		expect(config.layout.columnRows).toEqual([[], [], []]);
-		expect(config.layout.columnWidths).toEqual([8, 8, 8]);
+		expect(config.layout.centerSpan).toBe(12);
+		expect(config.layout.sides).toEqual({ left: true, right: true });
 		expect(config.layout.columnGap).toBe(24);
 		expect(config.appearance.accent).toBe(DEFAULT_ACCENT);
 		expect(config.search.engines.length).toBeGreaterThan(0);
@@ -36,7 +37,13 @@ describe('parseConfig', () => {
 	it('verwirft ungültige Werte, statt zu werfen', () => {
 		const config = parseConfig({
 			language: 'fr',
-			layout: { columns: 7, columnRows: 'kaputt', columnGap: 999, panelGap: 'x' },
+			layout: {
+				columnRows: 'kaputt',
+				sides: 'links',
+				centerSpan: 23,
+				columnGap: 999,
+				panelGap: 'x'
+			},
 			appearance: {
 				accent: 'blau',
 				glass: { frost: 3 },
@@ -45,7 +52,8 @@ describe('parseConfig', () => {
 			}
 		});
 		expect(config.language).toBe('auto');
-		expect(config.layout.columns).toBe(3);
+		expect(config.layout.sides).toEqual({ left: true, right: true });
+		expect(config.layout.centerSpan).toBe(16);
 		expect(config.layout.columnGap).toBe(128);
 		expect(config.layout.panelGap).toBe(24);
 		expect(config.appearance.accent).toBe(DEFAULT_ACCENT);
@@ -72,13 +80,12 @@ describe('parseConfig', () => {
 				c: 'kaputt'
 			},
 			layout: {
-				columns: 2,
 				columnRows: [[{ items: ['a', 'b'], spans: [6, 6] }], [{ items: ['c', 'x'] }]]
 			}
 		});
 		expect(Object.keys(config.widgets)).toEqual(['a']);
 		expect(config.widgets.a).toMatchObject({ id: 'a', type: 'clock' });
-		expect(rows(config.layout)).toEqual([['a'], []]);
+		expect(rows(config.layout)).toEqual([['a'], [], []]);
 		expect(config.layout.columnRows[0][0].spans).toEqual([12]);
 	});
 
@@ -98,30 +105,30 @@ describe('parseConfig', () => {
 		expect(config.widgets.b.settings).toMatchObject({ region: 'none', weekStart: 'sunday' });
 	});
 
-	it('platziert Widgets ohne Layout-Eintrag in der letzten Spalte und entfernt Duplikate', () => {
+	it('platziert Widgets ohne Layout-Eintrag in der Mitte und entfernt Duplikate', () => {
 		const config = parseConfig({
 			widgets: {
 				a: { type: 'clock' },
 				b: { type: 'search' },
 				c: { type: 'calendar' }
 			},
-			layout: { columns: 2, columnRows: [[{ items: ['a', 'a'] }], single('a')] }
+			layout: { columnRows: [[], [{ items: ['a', 'a'] }], single('a')] }
 		});
-		expect(rows(config.layout)).toEqual([['a'], ['b', 'c']]);
+		expect(rows(config.layout)).toEqual([['b', 'c'], ['a'], []]);
 	});
 
-	it('legt bei weniger gespeicherten Spalten leere an und führt überzählige zusammen', () => {
+	it('legt fehlende Bereiche leer an, Widgets ausgeschalteter Seiten stehen in der Mitte', () => {
 		const widgets = { a: { type: 'clock' }, b: { type: 'search' }, c: { type: 'calendar' } };
-		const four = parseConfig({
+		const short = parseConfig({ widgets, layout: { columnRows: [single('a', 'b', 'c')] } });
+		expect(rows(short.layout)).toEqual([['a', 'b', 'c'], [], []]);
+		const folded = parseConfig({
 			widgets,
-			layout: { columns: 4, columnRows: [single('a', 'b', 'c')] }
+			layout: {
+				columnRows: [single('a'), single('b'), single('c'), single('d')],
+				sides: { left: false, right: true }
+			}
 		});
-		expect(rows(four.layout)).toEqual([['a', 'b', 'c'], [], [], []]);
-		const one = parseConfig({
-			widgets,
-			layout: { columns: 1, columnRows: [single('a'), single('b'), single('c')] }
-		});
-		expect(rows(one.layout)).toEqual([['a', 'b', 'c']]);
+		expect(rows(folded.layout)).toEqual([['a', 'c'], ['b'], []]);
 	});
 
 	it('validiert Link-Boards: ungültige Links raus, mindestens ein Tab, aktiver Tab gültig', () => {
