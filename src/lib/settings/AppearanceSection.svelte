@@ -53,6 +53,7 @@
 			<span>{t('settings.frostClear')}</span>
 			<span>{t('settings.frostMilky')}</span>
 		</div>
+		<p class="field-hint">{t('settings.frostHint')}</p>
 	</div>
 </div>
 

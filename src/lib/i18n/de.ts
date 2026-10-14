@@ -82,7 +82,9 @@ export const de = {
 	'accent.violet': 'Violett',
 	'settings.frost': 'Glas-Frost',
 	'settings.frostClear': 'Klar',
-	'settings.frostMilky': 'Milchig',
+	'settings.frostMilky': 'Matt',
+	'settings.frostHint':
+		'Klares Glas zeigt den Hintergrund scharf. Auf unruhigen Bildern ist Text mit etwas Frost besser lesbar.',
 
 	'background.main': 'Haupt-Hintergrund',
 	'background.mainHint':

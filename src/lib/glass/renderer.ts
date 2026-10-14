@@ -323,6 +323,8 @@ export class GlassRenderer {
 			gl.uniform1f(p.u('uMinLuminance'), params.minLuminance);
 			gl.uniform1f(p.u('uMaxLuminance'), params.maxLuminance);
 			gl.uniform1f(p.u('uAdaptive'), params.adaptive);
+			gl.uniform1f(p.u('uLiftLimit'), params.liftLimit);
+			gl.uniform1f(p.u('uDimLimit'), params.dimLimit);
 			gl.uniform1f(p.u('uFresnel'), params.fresnel);
 			gl.uniform1f(p.u('uSpecular'), params.specular);
 			gl.uniform1f(p.u('uSpecularPower'), params.specularPower);

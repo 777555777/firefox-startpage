@@ -17,12 +17,18 @@ export const GLASS_DEFAULTS = {
 	saturation: 1.2,
 	/** Anteil der Glasfarbe (Tönung) */
 	tint: 0.16,
-	/** Helle UI: Mindesthelligkeit unter der Fläche, damit dunkle Schrift Kontrast hat */
-	minLuminance: 0.66,
-	/** Dunkle UI: Höchsthelligkeit unter der Fläche, damit helle Schrift Kontrast hat */
-	maxLuminance: 0.22,
-	/** Wie stark die adaptive Aufhellung bzw. Abdunklung greift (1 = Grenzwert wird sicher erreicht) */
+	/**
+	 * Helle UI: großflächige Mindesthelligkeit unter der Fläche, damit dunkle Schrift Kontrast
+	 * hat. Dunkle UI: entsprechend die Höchsthelligkeit. Siehe `contrast.test.ts`.
+	 */
+	minLuminance: 0.64,
+	maxLuminance: 0.27,
+	/** Wie stark die adaptive Aufhellung bzw. Abdunklung greift (1 = Grenzwert wird erreicht) */
 	adaptive: 1,
+	/** Stärkste Anhebung wie bei einer Belichtung (Gamma); was dann fehlt, kommt von der Glasfarbe */
+	liftLimit: 0.45,
+	/** Stärkste Abdunklung wie bei getöntem Glas (Faktor); Rest wie oben */
+	dimLimit: 0.35,
 	/** Schimmer entlang des Randes (Fresnel) */
 	fresnel: 0.2,
 	/** Glanzlicht an der Kante zur Lichtquelle */
@@ -61,6 +67,8 @@ export const GLASS_RANGES: Record<keyof GlassParams, [min: number, max: number, 
 	minLuminance: [0, 1, 0.01],
 	maxLuminance: [0, 1, 0.01],
 	adaptive: [0, 1, 0.05],
+	liftLimit: [0.2, 1, 0.05],
+	dimLimit: [0.1, 1, 0.05],
 	fresnel: [0, 1, 0.01],
 	specular: [0, 2, 0.05],
 	specularPower: [1, 32, 1],

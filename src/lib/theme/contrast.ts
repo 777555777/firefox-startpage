@@ -11,11 +11,11 @@ export type TextColor = { rgb: Rgb; alpha: number };
 export const TEXT_COLORS: Record<Tone, { primary: TextColor; secondary: TextColor }> = {
 	light: {
 		primary: { rgb: [12, 31, 51], alpha: 1 },
-		secondary: { rgb: [12, 31, 51], alpha: 0.78 }
+		secondary: { rgb: [12, 31, 51], alpha: 0.86 }
 	},
 	dark: {
 		primary: { rgb: [238, 244, 255], alpha: 1 },
-		secondary: { rgb: [238, 244, 255], alpha: 0.74 }
+		secondary: { rgb: [238, 244, 255], alpha: 0.8 }
 	}
 };
 

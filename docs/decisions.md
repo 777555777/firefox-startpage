@@ -260,3 +260,22 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   statt immer wieder neu aufzubauen. Das Debug-Panel kann einen Verlust auslösen.
 - **Reduced Motion:** Zusätzlich zu Video, Himmel und Federn scrollt auch `scrollIntoView` ohne
   Animation. Eine Änderung der Systemeinstellung wirkt sofort.
+
+## Nach M6 – Glas ohne Milchschleier
+
+- **Adaptive Tönung großflächig statt pro Pixel** (präzisiert §7.2 Punkt 5): Bisher wurde jedes
+  Pixel einzeln auf die Mindesthelligkeit gehoben. Dunkle Stellen wurden dadurch flach weißgrau,
+  helle Details blieben stehen. Das Glas wirkte milchig und der Hintergrund „komprimiert“, auch
+  bei Frost 0. Jetzt bestimmt die stark weichgezeichnete Szene unter der Fläche, wie weit
+  angepasst wird, und alle Pixel werden gleich behandelt. Details bleiben so erhalten.
+- **Anheben wie eine Belichtung, Abdunkeln wie getöntes Glas:** Unter heller UI wird zuerst per
+  Gamma aufgehellt (`liftLimit`), sodass Farben satt bleiben. Erst was dann noch fehlt, kommt aus
+  der Glasfarbe. Unter dunkler UI wird multiplikativ abgedunkelt (`dimLimit`).
+- **Grenzwerte und Textfarben:** Die Mindesthelligkeit liegt bei 0,64 (vorher 0,66), die
+  Höchsthelligkeit unter dunkler UI bei 0,27 (vorher 0,22). Damit sekundärer Text trotzdem AA
+  erreicht, hat er 86 % (hell) bzw. 80 % (dunkel) Deckkraft.
+- **Frost entscheidet über die Lesbarkeit auf unruhigen Bildern:** Weil nicht mehr pro Pixel
+  geklemmt wird, liegt der schlechteste Messpunkt bei Frost 0 auf einem sehr unruhigen Bild
+  (Gras mit Tautropfen) bei etwa 3:1. Ab Frost ~0,5 erreichen alle Tageszeiten AA. Das ist der
+  bewusste Tausch für klares Glas. Die Einstellung erklärt es, und die Skala heißt jetzt
+  „Klar … Matt“ statt „Klar … Milchig“, weil Frost nur noch weichzeichnet und nicht aufhellt.

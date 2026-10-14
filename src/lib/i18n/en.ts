@@ -81,7 +81,9 @@ export const en: Dictionary = {
 	'accent.violet': 'Violet',
 	'settings.frost': 'Glass frost',
 	'settings.frostClear': 'Clear',
-	'settings.frostMilky': 'Milky',
+	'settings.frostMilky': 'Frosted',
+	'settings.frostHint':
+		'Clear glass shows the background sharply. On busy images, a little frost keeps text easier to read.',
 
 	'background.main': 'Main background',
 	'background.mainHint':

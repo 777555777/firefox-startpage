@@ -34,7 +34,7 @@
 	/* Text auf Glas; die dunkle Variante gilt nachts (`data-tone='dark'`, siehe unten) */
 	--text: #0c1f33;
 	/* 78 % Deckkraft: auf der hellsten erlaubten Glasfläche noch AA (siehe contrast.test.ts) */
-	--text-secondary: rgb(12 31 51 / 0.78);
+	--text-secondary: rgb(12 31 51 / 0.86);
 	--text-tertiary: rgb(12 31 51 / 0.5);
 	--danger: #c3253b;
 	--holiday: #b4182f;
@@ -133,7 +133,7 @@
 /* Nacht: helle Schrift auf dunklem Glas. Ersetzt einen klassischen Dark Mode. */
 :root[data-tone='dark'] {
 	--text: #eef4ff;
-	--text-secondary: rgb(238 244 255 / 0.74);
+	--text-secondary: rgb(238 244 255 / 0.8);
 	--text-tertiary: rgb(238 244 255 / 0.54);
 	--danger: #ff8593;
 	--holiday: #ff8fa0;
@@ -170,7 +170,7 @@
 @property --text-secondary {
 	syntax: '<color>';
 	inherits: true;
-	initial-value: rgb(12 31 51 / 0.78);
+	initial-value: rgb(12 31 51 / 0.86);
 }
 
 :root {

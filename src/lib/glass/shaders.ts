@@ -251,6 +251,8 @@ uniform float uTintAmount;
 uniform float uMinLuminance;
 uniform float uMaxLuminance;
 uniform float uAdaptive;
+uniform float uLiftLimit;
+uniform float uDimLimit;
 uniform float uFresnel;
 uniform float uSpecular;
 uniform float uSpecularPower;
@@ -335,13 +337,27 @@ void main() {
 	color = mix(vec3(luma(color)), color, uSaturation);
 	color = mix(color, uTint, uTintAmount);
 
-	// Adaptiv: unter heller UI aufhellen, unter dunkler abdunkeln, damit Text Kontrast hat
-	// Anteil der Glasfarbe, mit dem der Grenzwert genau erreicht wird
-	float l = luma(color);
+	// Adaptiv, damit Text Kontrast hat: gemessen wird die großflächige Helligkeit unter der
+	// Fläche (stark weichgezeichnet), nicht jedes Pixel einzeln. Pro Pixel geklemmt würden
+	// dunkle Stellen flach und milchig, helle Details blieben stehen (wirkt „komprimiert“).
+	float ambient = luma(texture(uBlurStrong, clamp(toUv(vPos), vec2(0.0), vec2(1.0))).rgb);
+	ambient = mix(ambient, luma(uTint), uTintAmount);
 	float lt = luma(uTint);
-	float lighten = clamp((uMinLuminance - l) / max(lt - l, 1e-3), 0.0, 1.0);
-	float darken = clamp((l - uMaxLuminance) / max(l - lt, 1e-3), 0.0, 1.0);
-	color = mix(color, uTint, mix(lighten, darken, uTone) * uAdaptive);
+	// Helle UI: erst wie eine Belichtung anheben (Farben bleiben satt), den Rest mit Glasfarbe
+	float lift = clamp(log(uMinLuminance) / log(clamp(ambient, 1e-3, 0.999)), uLiftLimit, 1.0);
+	lift = ambient < uMinLuminance ? mix(1.0, lift, uAdaptive) : 1.0;
+	float lifted = pow(ambient, lift);
+	float lighten = clamp((uMinLuminance - lifted) / max(lt - lifted, 1e-3), 0.0, 1.0) * uAdaptive;
+	vec3 light = mix(pow(max(color, vec3(0.0)), vec3(lift)), uTint, lighten);
+	// Dunkle UI: wie getöntes Glas abdunkeln, den Rest mit Glasfarbe
+	float dim = ambient > uMaxLuminance ? max(uMaxLuminance / ambient, uDimLimit) : 1.0;
+	dim = mix(1.0, dim, uAdaptive);
+	float dimmed = ambient * dim;
+	float darken = clamp((dimmed - uMaxLuminance) / max(dimmed - lt, 1e-3), 0.0, 1.0) * uAdaptive;
+	vec3 dark = mix(color * dim, uTint, darken);
+	color = mix(light, dark, uTone);
+	// Nach dem Anheben wieder etwas Sättigung, sonst wirkt es ausgewaschen
+	color = mix(vec3(luma(color)), color, mix(1.0 + 0.3 * (1.0 - lift), 1.0, uTone));
 
 	// Licht: Glanz an der Kante zur Lichtquelle, schwächer gegenüber, Fresnel rundum
 	float lit = dot(n, uLight);
