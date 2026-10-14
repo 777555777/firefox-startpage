@@ -11,6 +11,7 @@
 	import Dialog from '$lib/ui/Dialog.svelte';
 	import { definitionOf } from '$lib/widgets/registry';
 	import AddWidget from './AddWidget.svelte';
+	import { arrange, areaPx } from './arrangement';
 	import {
 		areaWidths,
 		canJoin,
@@ -25,20 +26,15 @@
 		fitRows,
 		fitsSideBySide,
 		GRID_UNITS,
-		hasSides,
 		LAYOUT_AREAS,
-		LEFT,
 		placeWidget,
 		removeWidget,
 		resizeRowPair,
 		restorePlacement,
-		RIGHT,
 		rowFits,
 		rowIndexWithout,
 		sideSpan,
-		SINGLE_COLUMN_MAX_REM,
 		stepPlacement,
-		visualOrder,
 		type Placement,
 		type Rows,
 		type Side
@@ -56,51 +52,15 @@
 		typeof document === 'undefined'
 			? 16
 			: parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-	const limit = $derived(layout.maxWidth ? layout.maxWidth * remPx : Infinity);
-	const anySide = $derived(hasSides(layout.sides));
-	/** Mitte und Seiten nebeneinander; sonst steht alles untereinander (Mitte, rechts, links) */
-	const sideBySide = $derived(
-		anySide &&
-			fitsSideBySide(layout.centerSpan, Math.min(available, limit), layout.columnGap, remPx)
-	);
-	/** Untereinander gestellt: schmaler und mittig, sonst würden die Panels riesig */
-	const collapsed = $derived(anySide && !sideBySide);
-	const width = $derived(
-		Math.min(available, limit, collapsed ? SINGLE_COLUMN_MAX_REM * remPx : Infinity)
-	);
+	const arrangement = $derived(arrange(layout, available, remPx));
+	const { sideBySide, width, columns, template, order } = $derived(arrangement);
 	const widths = $derived(areaWidths(layout.centerSpan, layout.sides));
 	const side = $derived(sideSpan(layout.centerSpan));
-
-	/**
-	 * Gerenderte Spalten mit ihren Bereichen und der Spur im Grid (1 links, 3 Mitte, 5 rechts).
-	 * Im DOM steht die Mitte zuerst, dann rechts, dann links: so stimmen Lese- und
-	 * Tab-Reihenfolge mit dem Untereinanderstellen überein.
-	 */
-	const columns = $derived(
-		sideBySide
-			? [
-					{ areas: [CENTER], track: 3 },
-					...(layout.sides.right ? [{ areas: [RIGHT], track: 5 }] : []),
-					...(layout.sides.left ? [{ areas: [LEFT], track: 1 }] : [])
-				]
-			: [{ areas: enabledAreas(layout.sides), track: 1 }]
-	);
-	const template = $derived(
-		sideBySide
-			? [side, layout.centerSpan, side]
-					.map((span) => `minmax(0, ${span}fr)`)
-					.join(` ${layout.columnGap}px `)
-			: 'minmax(0, 1fr)'
-	);
-	/** Reihenfolge für Pfeiltasten links/rechts: so, wie die Spalten zu sehen sind */
-	const order = $derived(sideBySide ? visualOrder(layout.sides) : enabledAreas(layout.sides));
 	const used = $derived(new Set(Object.values(config.widgets).map((w) => w.type)));
 
 	/** Breite eines Bereichs in px, für das Untereinanderstellen von Zeilen */
-	function columnPx(area: number, areaSpans = widths): number {
-		if (!sideBySide) return width;
-		return ((width - 2 * layout.columnGap) * areaSpans[area]) / GRID_UNITS;
-	}
+	const columnPx = (area: number, areaSpans = widths) =>
+		areaPx(arrangement, areaSpans, area, layout.columnGap);
 
 	const liveWidths = () => {
 		const live = app.config.value.layout;

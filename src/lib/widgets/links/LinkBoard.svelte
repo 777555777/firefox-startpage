@@ -516,7 +516,7 @@
 
 	.links.tiles {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
 		gap: var(--space-1);
 	}
 
@@ -566,7 +566,8 @@
 		gap: var(--space-2);
 		height: 100%;
 		min-height: 88px;
-		padding: var(--space-3) var(--space-1) var(--space-2);
+		/* Seitlich genug Luft, damit lange Namen nicht bis an den Rand der Hover-Fläche reichen */
+		padding: var(--space-3) var(--space-2) var(--space-2);
 		border-radius: var(--radius-lg);
 		background: transparent;
 		text-align: center;

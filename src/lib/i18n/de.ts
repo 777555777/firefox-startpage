@@ -10,11 +10,7 @@ export const de = {
 	'common.close': 'Schließen',
 	'common.delete': 'Löschen',
 	'common.edit': 'Bearbeiten',
-	'common.add': 'Hinzufügen',
 	'common.undo': 'Rückgängig',
-	'common.ok': 'OK',
-	'common.on': 'An',
-	'common.off': 'Aus',
 
 	'storage.saveFailed': 'Speichern fehlgeschlagen. Änderungen gelten nur bis zum Neuladen.',
 	'storage.loadFailed':
@@ -99,11 +95,9 @@ export const de = {
 	'background.slots': 'Pro Tageszeit',
 	'background.slotsHint':
 		'Optional. Tageszeiten ohne eigene Datei verwenden den Haupt-Hintergrund.',
-	'background.slotLabel': 'Hintergrund für {phase}',
 	'background.choose': 'Datei wählen…',
 	'background.replace': 'Ersetzen…',
 	'background.remove': 'Entfernen',
-	'background.drop': 'Bild oder Video hierher ziehen oder Datei wählen',
 	'background.formats': 'JPG, PNG, WebP, AVIF, MP4 oder WebM',
 	'background.sky': 'Himmelsverlauf',
 	'background.useMain': 'Wie Haupt-Hintergrund',
@@ -161,7 +155,6 @@ export const de = {
 	'debug.time': 'Uhrzeit',
 	'debug.realTime': 'Echte Zeit',
 	'debug.reset': 'Zurücksetzen',
-	'debug.close': 'Debug-Panel schließen',
 	'debug.frameTime': 'Frame-Zeit',
 	'debug.contrast': 'Kontrast prüfen',
 	'debug.contrastText': 'Text',
@@ -286,7 +279,6 @@ export const de = {
 	'search.suggestLinks': 'Passende Links vorschlagen',
 	'search.noEngines': 'Keine Suchmaschine eingerichtet.',
 
-	'links.label': 'Links',
 	'links.tabs': 'Link-Gruppen',
 	'links.untitledTab': 'Ohne Titel',
 	'links.empty': 'Noch keine Links in dieser Gruppe.',

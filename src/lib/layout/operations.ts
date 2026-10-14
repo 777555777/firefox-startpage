@@ -142,10 +142,6 @@ export function mirrorSpans(spans: number[], index: number, min = MIN_SPAN): num
 	return next;
 }
 
-export function equalWidths(widths: number[]): boolean {
-	return widths.every((width) => Math.abs(width - widths[0]) <= 1);
-}
-
 /** Kleinste Breite, die eine Spalte mit diesen Zeilen haben darf */
 export function minColumnSpan(rows: LayoutRow[]): number {
 	return Math.max(MIN_SPAN, ...rows.map((row) => row.items.length * MIN_ITEM_SPAN));

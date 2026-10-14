@@ -34,10 +34,6 @@ export function layoutRect(element: HTMLElement): DOMRect {
 	return new DOMRect(rect.x - offset.x, rect.y - offset.y, rect.width, rect.height);
 }
 
-export function isAnimating(): boolean {
-	return motions.size > 0;
-}
-
 /** Meldet Beginn und Ende von Animationen, z. B. für die Rect-Synchronisation des Glas-Layers */
 export function onAnimatingChange(listener: (animating: boolean) => void): () => void {
 	listeners.add(listener);

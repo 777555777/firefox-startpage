@@ -79,6 +79,8 @@
 			<span class="detail">{emptyLabel}</span>
 		{:else if status === 'missing'}
 			<span class="detail warning">{t('background.missing')}</span>
+		{:else if status === 'loading'}
+			<span class="detail">{t('background.loading')}</span>
 		{:else}
 			<span class="detail" title={ref.name}>
 				{t(ref.kind === 'video' ? 'background.video' : 'background.image')} · {ref.name}

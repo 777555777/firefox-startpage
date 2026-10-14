@@ -21,8 +21,6 @@ export const widgetSettings: { [K in WidgetType]: SettingsSchema<WidgetSettingsM
 	links: { defaultSettings: defaultLinksSettings, parseSettings: parseLinksSettings }
 };
 
-export const WIDGET_TYPES = Object.keys(widgetSettings) as WidgetType[];
-
 export function isWidgetType(value: unknown): value is WidgetType {
 	return typeof value === 'string' && value in widgetSettings;
 }
