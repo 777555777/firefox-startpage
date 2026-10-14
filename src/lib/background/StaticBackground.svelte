@@ -21,14 +21,19 @@
 	type Layer = { key: string; kind: MediaRef['kind'] | 'sky'; url: string | null };
 	const SKY: Layer = { key: 'sky', kind: 'sky', url: null };
 
-	let shown = $state<Layer>(SKY);
+	/** null, solange beim Start noch ein eigenes Medium lädt: dann bleibt das Standbild stehen */
+	let shown = $state<Layer | null>(null);
+	/** Himmel als Untergrund; beim Start mit Medium erst nach dessen Einblenden */
+	let skyBase = $state(false);
 	let fadeMs = $state(250);
 	const mountedAt = performance.now();
 
 	/** Beim Öffnen der Seite nur kurz einblenden, beim Phasenwechsel weich (~2 s) überblenden */
 	function show(layer: Layer) {
-		if (layer.key === untrack(() => shown.key)) return;
+		if (layer.key === untrack(() => shown?.key)) return;
 		fadeMs = performance.now() - mountedAt < 1500 ? 250 : 2000;
+		if (layer.kind === 'sky') skyBase = true;
+		else if (!untrack(() => skyBase)) setTimeout(() => (skyBase = true), fadeMs);
 		shown = layer;
 	}
 
@@ -90,10 +95,12 @@
 </script>
 
 <div class="background" aria-hidden="true">
-	<div class="sky" style:background={skyStyle}></div>
-	{#key shown.key}
+	{#if skyBase}
+		<div class="sky" style:background={skyStyle}></div>
+	{/if}
+	{#key shown?.key}
 		<div class="layer" transition:fade={{ duration: fadeMs }}>
-			{#if shown.kind === 'image' && shown.url}
+			{#if shown?.kind === 'image' && shown.url}
 				<img
 					class="media"
 					src={shown.url}
@@ -102,7 +109,7 @@
 					style:object-position={position}
 					style:filter
 				/>
-			{:else if shown.kind === 'video' && shown.url}
+			{:else if shown?.kind === 'video' && shown.url}
 				<video
 					class="media"
 					src={shown.url}
@@ -115,7 +122,7 @@
 					{@attach poster}
 				></video>
 			{/if}
-			{#if shown.kind !== 'sky' && grade.amount > 0}
+			{#if shown && shown.kind !== 'sky' && grade.amount > 0}
 				<div
 					class="tint"
 					style:background="rgb({rgbCss(grade.tint)})"

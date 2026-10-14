@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { mediaLibrary } from '$lib/background/media-library.svelte';
 	import { activeRef } from '$lib/background/media-utils';
+	import { capturePoster } from '$lib/background/poster';
 	import { getApp } from '$lib/state/context';
 	import { ui } from '$lib/state/ui.svelte';
 	import { GlassController } from './controller';
@@ -164,6 +166,14 @@
 				return;
 			}
 			current.setSource(source ?? SKY_SOURCE, fadeMs());
+			// Standbild für den ersten Paint des nächsten Tabs (Bild bzw. erster Video-Frame)
+			if (source && source.kind !== 'sky') {
+				capturePoster(source.element, source.width, source.height, {
+					grade: untrack(() => timeOfDay.grade),
+					fit: untrack(() => appearance.background.fit),
+					focus: untrack(() => appearance.background.focus)
+				});
+			}
 		});
 		return () => (cancelled = true);
 	});
@@ -185,8 +195,9 @@
 		width: 100vw;
 		height: 100vh;
 		pointer-events: none;
-		/* Bis der erste Frame steht, bleibt die Static-Darstellung sichtbar */
+		/* Bis der erste Frame steht, bleibt die Static-Darstellung bzw. das Standbild sichtbar */
 		opacity: 0;
+		transition: opacity 250ms ease;
 
 		&.visible {
 			opacity: 1;

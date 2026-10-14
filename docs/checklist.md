@@ -59,6 +59,8 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
       nachts hell auf dunklem Glas
 - [ ] Import einer Config mit fehlendem Medium: Slot ist markiert, Himmelsverlauf erscheint
 - [ ] Static-Stufe mit hellem und dunklem Testbild lesbar
+- [ ] Neuer Tab mit Video als Hintergrund: kein Aufblitzen des Verlaufs, das Standbild geht
+      weich ins Video über
 
 ## Ab M5
 

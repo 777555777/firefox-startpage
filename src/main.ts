@@ -1,5 +1,6 @@
 import { mount } from 'svelte';
 import App from './App.svelte';
+import { applyPoster } from '$lib/background/poster';
 import { createAppState } from '$lib/state/app.svelte';
 import './app.css';
 
@@ -16,6 +17,8 @@ try {
 } catch {
 	// egal, dann eben die Standardfarbe
 }
+// Mit eigenem Hintergrund sein Standbild, bis das Medium geladen ist
+applyPoster();
 
 const target = document.getElementById('app');
 if (!target) throw new Error('#app fehlt');

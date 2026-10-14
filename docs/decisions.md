@@ -305,3 +305,14 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   zur Mitte und die zweite zur rechten Seite. Bei vier teilen sich die beiden mittleren die
   Mitte. Eine einzelne Spalte wird zur Mitte ohne Seiten. Die Breite der Mitte folgt den alten
   Anteilen und wird gerastert.
+
+## Nach M6 – Kein Aufblitzen des Verlaufs beim Öffnen
+
+- **Standbild für den ersten Paint:** Mit eigenem Hintergrund legt das Glas-Canvas beim Laden
+  ein kleines JPEG-Standbild an (640 px breit, Bild bzw. erster Video-Frame, mit dem aktuellen
+  Grading) und merkt es in `localStorage` (`startpage:poster`, ~15–40 KB). `main.ts` setzt es
+  vor dem Mounten als Hintergrund von `<html>`. Ohne eigenen Hintergrund wird es gelöscht.
+- **Kein Verlauf beim Laden:** Die Static-Darstellung zeigt beim Start nichts, solange das
+  Medium noch lädt, damit das Standbild stehen bleibt. Das Canvas meldet sich erst bereit,
+  wenn es seine erste Quelle hat, zeigt diese ohne Überblendung und blendet dann selbst in
+  250 ms ein. Die Static-Darstellung liegt darunter und verschwindet erst danach.

@@ -58,6 +58,7 @@ export class GlassController {
 	#lastFrame = 0;
 	#scrim = 0;
 	#ready = false;
+	#hasSource = false;
 	#video: HTMLVideoElement | null = null;
 	#videoCallback = 0;
 	#frames: number[] = [];
@@ -133,8 +134,14 @@ export class GlassController {
 		this.requestFrame();
 	}
 
+	/**
+	 * Neue Szene. Die allererste Quelle erscheint ohne Überblendung: Bis dahin ist das Canvas
+	 * unsichtbar (`onready` kommt erst danach), sonst blitzte kurz der Himmelsverlauf auf.
+	 */
 	setSource(source: SceneSource, fadeMs: number) {
-		this.renderer.setSource(source, fadeMs, performance.now());
+		const first = !this.#hasSource;
+		this.#hasSource = true;
+		this.renderer.setSource(source, first ? 0 : fadeMs, performance.now());
 		this.#watchVideo(source.kind === 'video' ? (source.element as HTMLVideoElement) : null);
 		this.markScene();
 	}
@@ -257,7 +264,7 @@ export class GlassController {
 			});
 			this.#compositeDirty = false;
 			this.#countFrame(now);
-			if (!this.#ready) {
+			if (!this.#ready && this.#hasSource) {
 				this.#ready = true;
 				this.#callbacks.onready();
 			}

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { activeRef } from '$lib/background/media-utils';
+	import { clearPoster } from '$lib/background/poster';
 	import StaticBackground from '$lib/background/StaticBackground.svelte';
 	import GlassCanvas from '$lib/glass/GlassCanvas.svelte';
 	import type { RenderLevel } from '$lib/glass/params.svelte';
@@ -75,6 +77,17 @@
 		document.documentElement.dataset.renderer = renderState.mode;
 	});
 
+	/** Die Static-Darstellung bleibt, bis das Canvas eingeblendet ist (250 ms, siehe GlassCanvas) */
+	let staticVisible = $state(true);
+	$effect(() => {
+		if (renderState.mode === 'static') {
+			staticVisible = true;
+			return;
+		}
+		const timer = setTimeout(() => (staticVisible = false), 300);
+		return () => clearTimeout(timer);
+	});
+
 	// Farbe für den allerersten Paint des nächsten Tabs merken (siehe main.ts)
 	$effect(() => {
 		try {
@@ -85,6 +98,11 @@
 		} catch {
 			// ohne localStorage startet die Seite eben mit der Standardfarbe
 		}
+	});
+
+	// Ohne eigenen Hintergrund kein Standbild für den ersten Paint (das legt GlassCanvas an)
+	$effect(() => {
+		if (!activeRef(config.appearance.background, app.timeOfDay.phase)) clearPoster();
 	});
 
 	function onkeydown(event: KeyboardEvent) {
@@ -115,11 +133,12 @@
 
 <svelte:window {onkeydown} />
 
+<!-- Static zuerst: Das Canvas liegt darüber und blendet über ihr ein -->
+{#if staticVisible}
+	<StaticBackground />
+{/if}
 {#if level && renderState.failure !== 'unavailable' && renderState.failure !== 'unstable'}
 	<GlassCanvas {level} {auto} />
-{/if}
-{#if renderState.mode === 'static'}
-	<StaticBackground />
 {/if}
 
 <main class="page" aria-label={t('app.main')}>
