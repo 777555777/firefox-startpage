@@ -4,7 +4,8 @@ import { rgbCss, type Grade } from '$lib/theme/palette';
 /**
  * Kleines Standbild des eigenen Hintergrunds für den allerersten Paint des nächsten Tabs.
  * Bis das Medium aus IndexedDB gelesen und dekodiert ist, steht es als Hintergrund des
- * `<html>`-Elements da, statt dass kurz der Himmelsverlauf aufblitzt.
+ * `<html>`-Elements da, statt dass kurz der Himmelsverlauf aufblitzt. Gelesen wird es von
+ * `public/boot.js`, noch bevor die App lädt.
  */
 
 const POSTER_KEY = 'startpage:poster';
@@ -59,16 +60,6 @@ export function capturePoster(
 	}
 }
 
-export function readPoster(): Poster | null {
-	try {
-		const poster = JSON.parse(localStorage.getItem(POSTER_KEY) ?? 'null') as Poster | null;
-		if (!poster || !poster.url.startsWith('data:image/')) return null;
-		return poster;
-	} catch {
-		return null;
-	}
-}
-
 /** Ohne eigenen Hintergrund gibt es kein Standbild, sonst stünde es beim nächsten Tab falsch da */
 export function clearPoster(root: HTMLElement = document.documentElement): void {
 	try {
@@ -77,14 +68,4 @@ export function clearPoster(root: HTMLElement = document.documentElement): void 
 		// nichts zu tun
 	}
 	root.style.removeProperty('background-image');
-}
-
-/** Setzt das Standbild als Hintergrund des Wurzelelements (vor dem Mounten der App) */
-export function applyPoster(root: HTMLElement = document.documentElement): void {
-	const poster = readPoster();
-	if (!poster) return;
-	root.style.backgroundImage = `url("${poster.url}")`;
-	root.style.backgroundSize = poster.size;
-	root.style.backgroundPosition = poster.position;
-	root.style.backgroundRepeat = 'no-repeat';
 }

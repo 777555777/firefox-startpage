@@ -77,18 +77,10 @@
 		document.documentElement.dataset.renderer = renderState.mode;
 	});
 
-	/** Die Static-Darstellung bleibt, bis das Canvas eingeblendet ist (250 ms, siehe GlassCanvas) */
-	let staticVisible = $state(true);
-	$effect(() => {
-		if (renderState.mode === 'static') {
-			staticVisible = true;
-			return;
-		}
-		const timer = setTimeout(() => (staticVisible = false), 300);
-		return () => clearTimeout(timer);
-	});
+	/** Die Static-Darstellung bleibt, bis das Canvas vollständig eingeblendet ist */
+	const staticVisible = $derived(renderState.mode === 'static' || !renderState.canvasShown);
 
-	// Farbe für den allerersten Paint des nächsten Tabs merken (siehe main.ts)
+	// Farbe für den allerersten Paint des nächsten Tabs merken (siehe public/boot.js)
 	$effect(() => {
 		try {
 			localStorage.setItem(

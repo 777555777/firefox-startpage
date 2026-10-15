@@ -2,11 +2,11 @@ import type { Config } from '$lib/config/types';
 import { widgetOrder } from '$lib/layout/operations';
 import type { Link, LinksSettings } from './settings';
 
-/** Favicon direkt von der Seite selbst (kein Drittanbieter); nur für http(s)-Links */
-export function faviconUrl(url: string): string | null {
+/** Origin eines http(s)-Links, sonst null (App-Schemata haben kein Favicon) */
+export function webOrigin(url: string): string | null {
 	try {
 		const { protocol, origin } = new URL(url);
-		return protocol === 'http:' || protocol === 'https:' ? `${origin}/favicon.ico` : null;
+		return protocol === 'http:' || protocol === 'https:' ? origin : null;
 	} catch {
 		return null;
 	}

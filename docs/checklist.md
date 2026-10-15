@@ -48,6 +48,9 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
 - [ ] Uhr tickt auf die Sekunde, Kalender blättert, Feiertage mit Tooltip
 - [ ] Suche: Bangs, Engine-Umschalter, Link-Vorschläge, `/` fokussiert
 - [ ] Link-Board: Tabs, Ansichten, Kontextmenü, DnD, `1…9`, `Alt+1…9`
+- [ ] Kacheln: Icons auf einer Höhe, Namen brechen zwischen Wörtern um, „+ Link“ nur im
+      Edit-Modus bzw. in leerer Gruppe, Kontextmenü bietet „Link hinzufügen“
+- [ ] Favicons: beim zweiten Öffnen kein Flackern, im Netzwerk-Tab keine 404-Versuche mehr
 
 ## Ab M4
 

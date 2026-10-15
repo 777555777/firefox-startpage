@@ -81,8 +81,9 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   wenn sie gültig sind (URL mit `%s`, Bang eindeutig). So entstehen keine halb gültigen Engines,
   die beim Speichern verworfen würden. Eigene Engine-Icons (Data-URL) sind im Schema vorgesehen,
   in der Oberfläche aber noch nicht hochladbar. Es wird immer das Favicon genutzt.
-- **Link-Board:** „+ Link“ ist immer sichtbar (dezent), nicht nur im Edit-Modus, damit Links ohne
-  Umweg hinzugefügt werden können. Tabs bearbeitet man per Doppelklick oder Kontextmenü. Löschen von
+- **Link-Board:** „+ Link“ erscheint nur im Edit-Modus oder in einer leeren Gruppe (geändert nach
+  M6: in der Kachel-Ansicht erzeugte es sonst eine eigene, fast leere Reihe). Ohne Edit-Modus
+  geht Hinzufügen über das Kontextmenü eines Links oder Tabs. Tabs bearbeitet man per Doppelklick oder Kontextmenü. Löschen von
   Links und Tabs geht ohne Bestätigungsdialog, dafür mit Rückgängig-Toast (wie bei Widgets). Der
   letzte Tab eines Boards kann nicht gelöscht werden.
 - **Links zwischen Boards verschieben** (nice-to-have) ist noch nicht umgesetzt.
@@ -316,3 +317,25 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   Medium noch lädt, damit das Standbild stehen bleibt. Das Canvas meldet sich erst bereit,
   wenn es seine erste Quelle hat, zeigt diese ohne Überblendung und blendet dann selbst in
   250 ms ein. Die Static-Darstellung liegt darunter und verschwindet erst danach.
+
+## Nach M6 – Favicons, Kacheln und erster Paint
+
+- **Favicons mit Gedächtnis** (präzisiert §3 und §6): Weiter ohne Drittanbieter und ohne
+  Host-Rechte, aber nicht mehr nur `/favicon.ico`. Pro Origin werden einmal
+  `/apple-touch-icon.png`, `/favicon.svg` und `/favicon.ico` probiert. Genommen wird das erste
+  mit mindestens 32 px, sonst das größte. Das Ergebnis (URL und Größe oder „keins“) steht in
+  `localStorage` (`startpage:favicons`, 30 Tage bzw. 1 Tag für „keins“). Danach lädt jeder Tab
+  nur die bekannte URL, meist aus dem HTTP-Cache, ohne Fehlversuche und ohne Flackern beim
+  Tab-Wechsel. Mit eigenem Icon wird gar nicht gesucht. Kleine Favicons (16 px) werden nicht auf
+  volle Größe aufgeblasen, sondern höchstens auf ihre eigene, mindestens 60 % der Fläche.
+- **Grenze ohne Host-Rechte:** Icons, die eine Seite nur über das HTML ausweist (z. B. YouTube),
+  oder die per `Cross-Origin-Resource-Policy` gesperrt sind, sind so nicht erreichbar. Dann gibt
+  es das kleine `favicon.ico` oder den Anfangsbuchstaben.
+- **Kacheln:** Icon in einer festen Fläche (56 px) oben, darunter Platz für zwei Zeilen Namen.
+  So stehen alle Icons auf einer Höhe. Umbrochen wird zwischen Wörtern mit ausgeglichenen
+  Zeilen, ohne Silbentrennung; nur zu lange Einzelwörter werden geteilt. Kacheln sind
+  mindestens 104 px breit.
+- **Erster Paint in `public/boot.js`:** Grundfarbe und Standbild setzt ein kleines, blockierendes
+  Skript im `<head>` (kein Inline-Skript, CSP-konform). Als Modul lief das erst nach dem ersten
+  Paint. Die Static-Darstellung legt den Himmel erst unter ein Medium, wenn dieses seinen ersten
+  Frame hat, und verschwindet erst, wenn das Canvas fertig eingeblendet ist (`transitionend`).

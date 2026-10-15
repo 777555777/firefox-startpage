@@ -25,7 +25,7 @@
 	import TabDialog from './TabDialog.svelte';
 	import type { Link, LinksSettings, LinkTab } from './settings';
 
-	let { id, settings, update }: WidgetProps<LinksSettings> = $props();
+	let { id, settings, editing, update }: WidgetProps<LinksSettings> = $props();
 
 	const app = getApp();
 	const uid = $props.id();
@@ -266,6 +266,7 @@
 			{ label: t('links.openNewTab'), icon: 'external', onselect: () => open(link, true) },
 			{ label: t('links.copyUrl'), icon: 'copy', onselect: () => void copyUrl(link) },
 			'separator',
+			{ label: t('links.addLink'), icon: 'plus', onselect: addLink },
 			{ label: t('common.edit'), icon: 'pencil', onselect: () => editLink(link) },
 			{ label: t('common.delete'), icon: 'trash', danger: true, onselect: () => deleteLink(link) }
 		];
@@ -276,6 +277,7 @@
 		if (!tab) return [];
 		return [
 			{ label: t('links.editTab'), icon: 'pencil', onselect: () => editTab(tab) },
+			{ label: t('links.addLink'), icon: 'plus', onselect: addLink },
 			{ label: t('links.addTab'), icon: 'plus', onselect: addTab },
 			'separator',
 			{
@@ -373,12 +375,13 @@
 						onkeydown={(event) => onLinkKeydown(event, index, link)}
 						{@attach linkSort.item({ id: link.id, list: activeTab.id })}
 					>
-						<LinkIcon
-							url={link.url}
-							label={title}
-							icon={link.icon}
-							size={activeTab.view === 'tiles' ? 32 : 20}
-						/>
+						{#if activeTab.view === 'tiles'}
+							<span class="tile-icon">
+								<LinkIcon url={link.url} label={title} icon={link.icon} size={36} />
+							</span>
+						{:else}
+							<LinkIcon url={link.url} label={title} icon={link.icon} size={20} />
+						{/if}
 						<span class="label">{title}</span>
 						{#if activeTab.view === 'list'}
 							<span class="host">{displayHost(link.url)}</span>
@@ -395,12 +398,19 @@
 					</a>
 				</li>
 			{/each}
-			<li class="item add-item">
-				<button type="button" class="add {activeTab.view}" onclick={addLink}>
-					<Icon name="plus" size={activeTab.view === 'tiles' ? 22 : 16} />
-					<span class="label">{t('links.addLink')}</span>
-				</button>
-			</li>
+			<!-- Hinzufügen nur im Edit-Modus (sonst über das Kontextmenü), außer die Gruppe ist leer -->
+			{#if editing || activeTab.links.length === 0}
+				<li class="item add-item">
+					<button type="button" class="add {activeTab.view}" onclick={addLink}>
+						{#if activeTab.view === 'tiles'}
+							<span class="tile-icon"><Icon name="plus" size={22} /></span>
+						{:else}
+							<Icon name="plus" size={16} />
+						{/if}
+						<span class="label">{t('links.addLink')}</span>
+					</button>
+				</li>
+			{/if}
 		</ul>
 	</div>
 </div>
@@ -516,7 +526,7 @@
 
 	.links.tiles {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
 		gap: var(--space-1);
 	}
 
@@ -559,15 +569,19 @@
 		}
 	}
 
+	/*
+	 * Kachel: Icon in einer festen Fläche oben, darunter der Name mit Platz für zwei Zeilen.
+	 * So stehen alle Icons auf einer Höhe, egal wie lang der Name ist.
+	 */
 	.link.tiles,
 	.add.tiles {
 		flex-direction: column;
-		justify-content: center;
+		justify-content: flex-start;
 		gap: var(--space-2);
 		height: 100%;
-		min-height: 88px;
-		/* Seitlich genug Luft, damit lange Namen nicht bis an den Rand der Hover-Fläche reichen */
-		padding: var(--space-3) var(--space-2) var(--space-2);
+		/* Seitlich etwas Luft, damit lange Namen nicht bis an den Rand der Hover-Fläche reichen;
+		   bei 104 px passen auch Namen wie „OpenStreetMap“ in eine Zeile */
+		padding: var(--space-3) 6px var(--space-2);
 		border-radius: var(--radius-lg);
 		background: transparent;
 		text-align: center;
@@ -578,17 +592,35 @@
 			-webkit-line-clamp: 2;
 			line-clamp: 2;
 			overflow: hidden;
+			width: 100%;
+			min-height: calc(2lh);
 			font-size: var(--text-xs);
 			font-weight: 600;
-			line-height: 1.25;
-			hyphens: auto;
-			overflow-wrap: break-word;
+			line-height: 1.3;
+			/* Zwischen Wörtern umbrechen und Zeilen ausgleichen („YouTube / Music“), ohne
+			   Silbentrennung; nur zu lange Einzelwörter werden notfalls geteilt */
+			hyphens: manual;
+			text-wrap: balance;
+			overflow-wrap: anywhere;
 		}
 
 		&:hover {
 			background: var(--fill-hover);
 			box-shadow: inset 0 1px 0 var(--highlight);
 		}
+	}
+
+	.tile-icon {
+		flex: none;
+		display: grid;
+		place-items: center;
+		width: 56px;
+		height: 56px;
+		border-radius: 16px;
+		background: var(--fill);
+		box-shadow:
+			inset 0 1px 0 var(--highlight),
+			inset 0 0 0 1px var(--line);
 	}
 
 	.link.capsules,
@@ -677,7 +709,8 @@
 			box-shadow: inset 0 0 0 1.5px var(--line);
 		}
 
-		&.tiles {
+		&.tiles .tile-icon {
+			background: transparent;
 			box-shadow: inset 0 0 0 1.5px var(--line);
 		}
 	}

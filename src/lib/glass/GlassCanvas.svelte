@@ -62,7 +62,24 @@
 			controller = null;
 			if (import.meta.env.DEV) glassDebug.controller = null;
 			renderState.mode = 'static';
+			renderState.canvasShown = false;
 			renderState.fps = 0;
+		};
+	});
+
+	/** Nach dem Einblenden (CSS-Übergang, notfalls nach einer Frist) gilt das Canvas als sichtbar */
+	const FADE_FALLBACK_MS = 400;
+	$effect(() => {
+		if (renderState.mode !== 'webgl') {
+			renderState.canvasShown = false;
+			return;
+		}
+		const done = () => (renderState.canvasShown = true);
+		const timer = setTimeout(done, FADE_FALLBACK_MS);
+		canvas.addEventListener('transitionend', done, { once: true });
+		return () => {
+			clearTimeout(timer);
+			canvas.removeEventListener('transitionend', done);
 		};
 	});
 

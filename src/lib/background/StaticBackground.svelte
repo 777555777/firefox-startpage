@@ -23,7 +23,11 @@
 
 	/** null, solange beim Start noch ein eigenes Medium lädt: dann bleibt das Standbild stehen */
 	let shown = $state<Layer | null>(null);
-	/** Himmel als Untergrund; beim Start mit Medium erst nach dessen Einblenden */
+	/**
+	 * Himmel als Untergrund. Beim Start mit eigenem Medium erst, wenn dieses wirklich gezeichnet
+	 * und eingeblendet ist; ein großes Video braucht für den ersten Frame oft länger als das
+	 * Einblenden, und darunter soll so lange das Standbild stehen, nicht der Verlauf.
+	 */
 	let skyBase = $state(false);
 	let fadeMs = $state(250);
 	const mountedAt = performance.now();
@@ -33,8 +37,14 @@
 		if (layer.key === untrack(() => shown?.key)) return;
 		fadeMs = performance.now() - mountedAt < 1500 ? 250 : 2000;
 		if (layer.kind === 'sky') skyBase = true;
-		else if (!untrack(() => skyBase)) setTimeout(() => (skyBase = true), fadeMs);
 		shown = layer;
+	}
+
+	/** Das Medium hat seinen ersten Frame: nach dem Einblenden darf der Himmel darunter */
+	function painted() {
+		if (untrack(() => skyBase)) return;
+		const delay = fadeMs;
+		setTimeout(() => (skyBase = true), delay);
 	}
 
 	$effect(() => {
@@ -108,6 +118,7 @@
 					style:object-fit={background.fit}
 					style:object-position={position}
 					style:filter
+					onload={painted}
 				/>
 			{:else if shown?.kind === 'video' && shown.url}
 				<video
@@ -119,6 +130,7 @@
 					style:object-fit={background.fit}
 					style:object-position={position}
 					style:filter
+					onloadeddata={painted}
 					{@attach poster}
 				></video>
 			{/if}

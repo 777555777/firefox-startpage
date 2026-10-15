@@ -17,6 +17,8 @@ function loadAutoLevel(): AutoLevel | null {
 class RenderState {
 	/** `webgl` erst, wenn der erste Frame gezeichnet ist; bis dahin bleibt die Static-Darstellung */
 	mode = $state<'webgl' | 'static'>('static');
+	/** Das Canvas ist fertig eingeblendet; erst dann verschwindet die Static-Darstellung darunter */
+	canvasShown = $state(false);
 	/**
 	 * Warum trotz gewünschtem WebGL statisch gezeichnet wird: kein WebGL2, Kontext gerade
 	 * verloren, oder so oft verloren, dass es in dieser Sitzung bei Static bleibt

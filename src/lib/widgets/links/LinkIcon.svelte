@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { faviconUrl, initialOf } from './link-utils';
+	import { favicons } from './favicons.svelte';
+	import { initialOf } from './link-utils';
 
 	let {
 		url,
@@ -8,11 +9,26 @@
 		size = 20
 	}: { url: string; label: string; icon?: string | null; size?: number } = $props();
 
-	const favicon = $derived(faviconUrl(url));
-	let failed = $state<string | null>(null);
-	const src = $derived(
-		icon && failed !== icon ? icon : favicon && failed !== favicon ? favicon : null
+	/** Fehlgeschlagenes eigenes Bild; dann gilt das Favicon */
+	let customFailed = $state(false);
+	const custom = $derived(icon && !customFailed ? icon : null);
+	// Mit eigenem Bild wird gar nicht erst nach einem Favicon gesucht
+	const favicon = $derived(custom ? null : favicons.get(url));
+	const src = $derived(custom ?? favicon?.src ?? null);
+	/**
+	 * Kleine Favicons (16 px) nicht auf die volle Größe aufblasen, sonst wirken sie verpixelt:
+	 * höchstens auf ihre eigene Größe, aber mindestens 60 % der Fläche.
+	 */
+	const shown = $derived(
+		custom || !favicon || favicon.size >= size
+			? size
+			: Math.max(Math.round(size * 0.6), Math.min(size, favicon.size))
 	);
+
+	function onerror() {
+		if (custom) customFailed = true;
+		else favicons.failed(url);
+	}
 </script>
 
 <span class="link-icon" style:--size="{size}px" aria-hidden="true">
@@ -20,15 +36,15 @@
 		<img
 			{src}
 			alt=""
-			width={size}
-			height={size}
-			loading="lazy"
-			decoding="async"
+			width={shown}
+			height={shown}
+			style:width="{shown}px"
+			style:height="{shown}px"
 			referrerpolicy="no-referrer"
 			draggable="false"
-			onerror={() => (failed = src)}
+			{onerror}
 		/>
-	{:else}
+	{:else if favicon === null}
 		<span class="initial">{initialOf(label)}</span>
 	{/if}
 </span>
@@ -43,8 +59,6 @@
 	}
 
 	img {
-		width: 100%;
-		height: 100%;
 		object-fit: contain;
 		border-radius: calc(var(--size) * 0.2);
 	}
