@@ -85,12 +85,14 @@ describe('RSS-Einstellungen', () => {
 	});
 
 	it('liest die alte Liste ohne Kategorien als einen Tab ohne Namen', () => {
+		// Die frühere Überschrift fällt dabei weg
 		const settings = parseRssSettings({ feeds: [{ url: A }], title: 'Alt' });
 		expect(settings.tabs).toHaveLength(1);
 		expect(settings.tabs[0]).toMatchObject({ label: '', icon: '' });
 		expect(settings.tabs[0].feeds.map((feed) => feed.url)).toEqual([A]);
 		expect(settings.activeTabId).toBe(settings.tabs[0].id);
 		expect(settings).not.toHaveProperty('feeds');
+		expect(settings).not.toHaveProperty('title');
 	});
 
 	it('liest Kategorien, begrenzt sie und prüft den aktiven Tab', () => {

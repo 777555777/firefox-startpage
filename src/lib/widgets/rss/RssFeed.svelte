@@ -394,9 +394,6 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="rss" onkeydown={onRootKeydown}>
-	{#if settings.title}
-		<h2 class="title">{settings.title}</h2>
-	{/if}
 	<div class="head">
 		<div
 			class="tablist"
@@ -501,7 +498,7 @@
 				class="list"
 				class:fade-top={area.fadeTop}
 				class:fade-bottom={area.fadeBottom}
-				aria-label={settings.title || t('rss.entries')}
+				aria-label={t('rss.entries')}
 				aria-describedby={hintId}
 				onkeydown={onListKeydown}
 				{@attach area.attach}
@@ -640,18 +637,9 @@
 		margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0 0;
 	}
 
-	/* Mit Höchsthöhe würde der Flex-Container sonst die Überschrift zusammendrücken */
-	.title,
+	/* Mit Höchsthöhe würde der Flex-Container sonst den Kopf zusammendrücken */
 	.head {
 		flex: none;
-	}
-
-	.title {
-		overflow: hidden;
-		font-size: var(--text-md);
-		font-weight: 700;
-		text-overflow: ellipsis;
-		white-space: nowrap;
 	}
 
 	.spacer {

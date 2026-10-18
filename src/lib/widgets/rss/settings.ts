@@ -23,8 +23,6 @@ export const INTERVALS = [15, 30, 60, 180, 360] as const;
 export type IntervalMinutes = (typeof INTERVALS)[number];
 
 export type RssSettings = {
-	/** Überschrift im Widget; leer = keine */
-	title: string;
 	/** Mindestens ein Tab */
 	tabs: RssTab[];
 	activeTabId: string;
@@ -42,7 +40,6 @@ export const MAX_FEEDS = 20;
 export const MAX_TABS = 10;
 /** 50 ist die Obergrenze des Caches pro Feed */
 export const MAX_ITEMS = { min: 5, max: 50, default: 20 } as const;
-export const TITLE_MAX = 100;
 export const NAME_MAX = 100;
 export const TAB_LABEL_MAX = 60;
 
@@ -53,7 +50,6 @@ export function createRssTab(label = ''): RssTab {
 export const defaultRssSettings = (): RssSettings => {
 	const tab = createRssTab();
 	return {
-		title: '',
 		tabs: [tab],
 		activeTabId: tab.id,
 		maxItems: MAX_ITEMS.default,
@@ -107,7 +103,6 @@ export function parseRssSettings(raw: unknown): RssSettings {
 		? (r.activeTabId as string)
 		: tabs[0].id;
 	return {
-		title: str(r.title, d.title, TITLE_MAX).trim(),
 		tabs,
 		activeTabId,
 		maxItems: int(r.maxItems, d.maxItems, MAX_ITEMS.min, MAX_ITEMS.max),

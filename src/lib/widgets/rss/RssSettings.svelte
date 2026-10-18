@@ -21,7 +21,6 @@
 		MAX_FEEDS,
 		MAX_ITEMS,
 		NAME_MAX,
-		TITLE_MAX,
 		type RssFeed,
 		type RssSettings,
 		type RssTab
@@ -242,23 +241,6 @@
 </script>
 
 <div class="form">
-	<div class="field">
-		<label class="field-label" for="{id}-title">{t('rss.settingsTitle')}</label>
-		<input
-			id="{id}-title"
-			class="input"
-			type="text"
-			maxlength={TITLE_MAX}
-			value={settings.title}
-			aria-describedby="{id}-title-hint"
-			onchange={(event) => {
-				const value = event.currentTarget.value.trim();
-				update((s) => (s.title = value));
-			}}
-		/>
-		<p class="field-hint" id="{id}-title-hint">{t('rss.settingsTitleHint')}</p>
-	</div>
-
 	<section class="feeds" aria-labelledby="{id}-feeds">
 		<h3 class="field-label" id="{id}-feeds">{t('rss.feeds')}</h3>
 

@@ -721,6 +721,7 @@ zusammengefasst und dann gelöscht).
   Auswahlfeld in eine andere Kategorie verschieben (steht er dort schon, fällt er nur weg).
   Neue Feeds kommen in die gewählte Kategorie, Standard ist die im Widget aktive.
 - **Nebenbei behoben:** Der Tab-Dialog setzt den Fokus ins Namensfeld (bisher auf
-  „Schließen“, auch im Link-Board), damit man gleich tippen kann. Die Überschrift des
-  RSS-Widgets schrumpfte mit Höchsthöhe auf wenige Pixel, weil sie als Flex-Kind mit
-  `overflow: hidden` keine Mindesthöhe hatte; Überschrift und Kopf schrumpfen jetzt nicht mehr.
+  „Schließen“, auch im Link-Board), damit man gleich tippen kann.
+- **Keine Überschrift mehr:** Die frei wählbare Überschrift des Widgets (`RssSettings.title`)
+  entfällt, weil die benannten Tabs schon sagen, worum es geht. Ein gespeicherter Titel wird beim
+  Einlesen einfach verworfen; die Liste heißt für Screenreader weiter „Einträge“.

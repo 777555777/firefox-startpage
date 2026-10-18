@@ -114,8 +114,6 @@ export const de = {
 	'rss.error.tooLarge': 'Der Feed ist zu groß',
 	'rss.error.timeout': 'Keine Antwort (Zeitüberschreitung)',
 	'rss.error.parse': 'Kein gültiger Feed',
-	'rss.settingsTitle': 'Überschrift',
-	'rss.settingsTitleHint': 'Leer lassen für keine Überschrift',
 	'rss.feeds': 'Feeds',
 	'rss.feedUrl': 'Adresse eines Feeds oder einer Website',
 	'rss.add': 'Hinzufügen',

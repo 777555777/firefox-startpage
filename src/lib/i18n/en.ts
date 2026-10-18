@@ -113,8 +113,6 @@ export const en: Dictionary = {
 	'rss.error.tooLarge': 'The feed is too large',
 	'rss.error.timeout': 'No response (timed out)',
 	'rss.error.parse': 'Not a valid feed',
-	'rss.settingsTitle': 'Heading',
-	'rss.settingsTitleHint': 'Leave empty for no heading',
 	'rss.feeds': 'Feeds',
 	'rss.feedUrl': 'Address of a feed or website',
 	'rss.add': 'Add',
