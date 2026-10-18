@@ -580,6 +580,8 @@
 		flex-direction: column;
 		justify-content: flex-start;
 		gap: var(--space-2);
+		/* Volle Spalte: Ein <button> wäre sonst nur so breit wie sein Inhalt und stünde versetzt */
+		width: 100%;
 		height: 100%;
 		/* Seitlich etwas Luft, damit lange Namen nicht bis an den Rand der Hover-Fläche reichen;
 		   die Spalte ist 48 px breiter als die Icon-Fläche, so passt „OpenStreetMap“ in eine Zeile */
