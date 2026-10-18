@@ -413,7 +413,7 @@ einem Commit.
    (`pnpm ext:dev`) wird von Hand geprüft: Abfrage im Klick, Abruf ohne CORS, http wird gehoben,
    Opaque-Redirect, Bilder ohne Recht, Entziehen in `about:addons`, `permissions.onRemoved`. Die
    Datenkategorien-Frage wird geklärt. Abweichungen kommen in diesen Plan, bevor R1 beginnt.
-3. **R1 – Parser:** `widgets/rss/parse.ts`, `text.ts`, `image.ts` und `discover.ts` mit allen
+3. **R1 – Parser (erledigt):** `widgets/rss/parse.ts`, `text.ts`, `image.ts` und `discover.ts` mit allen
    Fixture-Tests. Noch ohne UI.
 4. **R2 – Settings, Cache, Abruf-Steuerung:** Typ `rss` im Schema, `parseRssSettings`,
    Registry-Eintrag mit einer schlichten Liste als Platzhalter-Komponente. Dazu `feeds` und

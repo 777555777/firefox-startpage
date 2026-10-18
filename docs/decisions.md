@@ -564,3 +564,35 @@ zusammengefasst und dann gelöscht).
   http, `opaqueredirect`, Entziehen in `about:addons`) ist noch nicht von Hand geprüft. Es gibt
   dafür noch keine Oberfläche; die Punkte stehen in `docs/checklist.md` und werden mit R4
   geprüft. Weicht Firefox ab, wird der Abruf vorher angepasst.
+
+## Nach v1 – RSS-Widget: Parser
+
+- **Ein Einstieg für alle Formate:** `parseFeed(body, feedUrl)` in `widgets/rss/parse.ts` erkennt
+  RSS 2.0, RSS 1.0 (RDF), Atom 1.0 (auch 0.3) und JSON Feed 1.x und liefert `feed`, `html`
+  (Webseite, dann hilft die Feed-Suche) oder `invalid`. Namensräume werden geprüft, damit z. B.
+  `atom:link` im RSS-Kanal nicht als Link der Seite gilt und `media:content` nicht als
+  Atom-`content`.
+- **Nur Text im Ergebnis:** Titel, Zusammenfassung und Feed-Titel sind schon beim Parsen reiner
+  Text (`text.ts`). HTML wird in einem inerten Dokument gelesen (`DOMParser`, keine Skripte, kein
+  Laden), Skripte, Styles und eingebettete Objekte fallen weg, nach Blockelementen steht ein
+  Leerzeichen. RSS-Titel werden nur als HTML gelesen, wenn sie Tags oder Entities enthalten,
+  damit „a < b“ erhalten bleibt. Atom-Textkonstrukte folgen ihrem `type`.
+- **Grenzen:** höchstens 50 Einträge pro Feed, Titel 300, Zusammenfassung 280, Feed-Titel 200
+  Zeichen (an Wortgrenzen mit „…“, ohne Emoji zu zerteilen). Doppelte IDs werden verworfen,
+  Einträge ganz ohne Titel, Link und Text auch.
+- **IDs:** guid bzw. Atom-`id`, JSON-`id`, `rdf:about`; sonst der Link, sonst ein Hash aus Titel,
+  Datum und Text. Eine guid gilt nur als Link, wenn sie eine absolute http(s)-Adresse ist.
+- **Adressen:** relativ zur endgültigen Feed-Adresse und allen `xml:base` darüber aufgelöst,
+  nur http(s). Bilder werden auf https gehoben.
+- **Daten:** RFC 822 mit eigenem Parser, weil Feeds Zeitzonen-Namen wie `CEST`/`MESZ`, deutsche
+  Monatsnamen und zweistellige Jahre nutzen, die `Date.parse` nicht kennt; unbekannte Zonen
+  gelten als UTC. ISO 8601 über `Date.parse`.
+- **Titelbilder** wie im Plan (`image.ts`). Bei mehreren Größen gewinnt die kleinste mit
+  mindestens 144 px Breite (72 px bei doppelter Pixeldichte), ohne Größenangaben die erste.
+- **Feed-Suche** (`discover.ts`): `<link rel="alternate">` mit RSS-, Atom- oder JSON-Feed-Typ,
+  relativ zu `<base href>`. Gewöhnliches `application/json` zählt nur mit „feed“ im Titel, sonst
+  kämen z. B. WordPress-API-Links mit. Manche große Seiten (heise.de, golem.de) weisen ihre Feeds
+  gar nicht aus; dort muss man die Feed-Adresse direkt eintragen.
+- **Tests** laufen mit `// @vitest-environment jsdom`, weil Node keinen `DOMParser` hat. Die
+  Fixtures werden per `?raw` importiert. Gegengeprüft auf dem Dev-Server mit echten Feeds (heise,
+  tagesschau, golem, The Verge, Daring Fireball als JSON Feed, hnrss).

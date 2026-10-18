@@ -1,0 +1,24 @@
+{
+	"version": "https://jsonfeed.org/version/1.1",
+	"title": "JSON-Beispiel",
+	"home_page_url": "https://json.example.org/",
+	"language": "fr",
+	"items": [
+		{
+			"id": 42,
+			"title": "Erster JSON-Eintrag",
+			"url": "https://json.example.org/1",
+			"date_published": "2026-10-18T09:00:00Z",
+			"summary": "Kurz und knapp",
+			"image": "http://json.example.org/1.jpg"
+		},
+		{
+			"id": "zwei",
+			"external_url": "https://anderswo.example.org/2",
+			"date_modified": "2026-10-10T09:00:00Z",
+			"content_html": "<p>Nur <strong>HTML</strong></p><img src=\"/2.jpg\">"
+		},
+		"kaputt",
+		{ "id": "leer" }
+	]
+}
