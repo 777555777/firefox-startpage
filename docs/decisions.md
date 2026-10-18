@@ -661,3 +661,27 @@ zusammengefasst und dann gelöscht).
   und zeigt sie nicht erneut. 72 × 48 px, in Panels unter 18 rem 56 × 40 px (Container Query).
   Manche Feeds liefern sehr große Bilder (tagesschau 1920 px); verkleinern lässt sich das ohne
   eigenen Dienst nicht, `loading="lazy"` begrenzt es auf die sichtbaren.
+
+## Nach v1 – RSS-Widget: Einstellungen und Rechte-Ablauf
+
+- **Feed hinzufügen:** Adresse eintragen, `Enter` oder „Hinzufügen“. Im selben Klick wird das
+  Host-Recht angefragt (vor jedem `await`), danach abgerufen und geprüft (`add-feed.ts`). Ist die
+  Adresse eine Webseite, sucht die Prüfung nach ausgewiesenen Feeds: einer wird direkt
+  übernommen, mehrere werden zur Auswahl angeboten (schon vorhandene nicht), keiner ergibt einen
+  Hinweis, die Feed-Adresse selbst einzutragen. Liegt der gefundene Feed auf einer anderen
+  Domain ohne Recht, erscheint „Zugriff auf … erlauben“ für einen zweiten Klick. Gefundene
+  Adressen werden wie Eingaben auf https gebracht. Der Abruf zum Prüfen füllt gleich den Cache,
+  damit das Widget sofort Einträge zeigt. Ungültige und doppelte Adressen werden abgelehnt, ohne
+  Rechte anzufragen; eine `http://`-Eingabe meldet, dass über https abgerufen wird.
+- **Keine Sortierung der Feeds (Abweichung vom Plan):** Die Liste im Widget ist chronologisch
+  gemischt, die Reihenfolge der Feeds hätte keine sichtbare Wirkung.
+- **Umbenennen** direkt im Namensfeld jedes Feeds (Platzhalter: Feed-Titel, sonst Host),
+  übernommen beim Verlassen des Felds. Unter dem Namen stehen Host und gegebenenfalls der
+  aktuelle Fehler.
+- **Entfernen mit Rückgängig im Dialog statt als Toast:** Toasts liegen nicht im Top-Layer und
+  sind unter einem modalen Dialog nicht klickbar. Deshalb steht „„…“ entfernt – Rückgängig“
+  direkt unter der Liste, bis zur nächsten Aktion. Das betrifft bisher nur diesen Dialog; alle
+  anderen Rückgängig-Toasts entstehen außerhalb von Dialogen.
+- **Intervall-Beschriftungen** kommen aus `Intl.NumberFormat` mit Einheit (`15 Min.`, `1 Std.`),
+  nicht aus den Wörterbüchern.
+- **Kontrast** bei Tag und Nacht auf dem Dev-Server geprüft (Text, Punkt, Fuß, Dialog).

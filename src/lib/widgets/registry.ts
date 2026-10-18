@@ -6,6 +6,7 @@ import ClockSettings from './clock/ClockSettings.svelte';
 import LinkBoard from './links/LinkBoard.svelte';
 import LinkBoardSettings from './links/LinkBoardSettings.svelte';
 import RssFeed from './rss/RssFeed.svelte';
+import RssSettings from './rss/RssSettings.svelte';
 import Search from './search/Search.svelte';
 import SearchSettings from './search/SearchSettings.svelte';
 import { widgetSettings } from './settings';
@@ -54,6 +55,7 @@ export const registry: { [K in WidgetType]: WidgetDefinition<WidgetSettingsMap[K
 		icon: 'rss',
 		...widgetSettings.rss,
 		component: RssFeed,
+		settingsComponent: RssSettings,
 		// Kopf bleibt stehen, nur die Liste scrollt
 		scrollsSelf: true
 	}

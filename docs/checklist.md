@@ -156,3 +156,13 @@ Noch ohne Oberfläche; prüfbar, sobald „Feed hinzufügen“ existiert (R4).
 - [ ] Mit Höchsthöhe der Zeile scrollt nur die Liste, Kopf und Fuß bleiben stehen
 - [ ] Offline-Hinweis mit Stand; Fehler-Fuß mit Gründen, „Erneut versuchen“
 - [ ] Tag und Nacht: Text, Punkt und Fuß gut lesbar (WebGL und Static)
+
+## RSS – Einstellungen (R4)
+
+- [ ] Feed-Adresse eintragen: Firefox fragt nach Zugriff, danach erscheint der Feed sofort im Widget
+- [ ] Website mit einem Feed (z. B. theverge.com) wird direkt übernommen, mit mehreren (blog.mozilla.org) gibt es eine Auswahl
+- [ ] Website ohne ausgewiesenen Feed (heise.de) meldet das verständlich
+- [ ] Feed auf anderer Domain: zweiter Klick „Zugriff auf … erlauben“
+- [ ] Zugriff ablehnen: nichts wird angelegt, Hinweis erscheint
+- [ ] Umbenennen, Entfernen und „Rückgängig“ im Dialog
+- [ ] Intervall, Anzahl, Zusammenfassung, Titelbilder, Gelesene ausblenden wirken sofort

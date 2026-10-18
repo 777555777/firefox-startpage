@@ -422,7 +422,7 @@ einem Commit.
 5. **R3 – Widget-Oberfläche (erledigt):** Gemischte Liste mit eigenem Scrollbereich, Zeilen-Design,
    Titelbilder, Gelesen/Ungelesen, Kopf und Fuß, leere und Fehler-Zustände, Kontextmenü, Tastatur,
    Announcer, Reduced Motion, i18n und Komponententests.
-6. **R4 – Einstellungen und Rechte-Ablauf:** Einstellungs-Komponente, Dialog „Feed hinzufügen“ mit
+6. **R4 – Einstellungen und Rechte-Ablauf (erledigt, Prüfung in Firefox steht aus):** Einstellungs-Komponente, Dialog „Feed hinzufügen“ mit
    Rechte-Abfrage und Feed-Suche, sortieren, umbenennen, entfernen mit Rückgängig, „Zugriff
    erlauben“ im Widget, Kontrastprüfung bei Tag und Nacht.
 7. **R5 – Abschluss:** Entscheidungen nach `docs/decisions.md`, Checkliste, README-Abschnitt,
