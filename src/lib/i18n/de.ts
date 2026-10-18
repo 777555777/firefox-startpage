@@ -366,6 +366,11 @@ export const de = {
 	'links.copied': 'URL kopiert',
 	'links.copyFailed': 'Kopieren nicht möglich',
 	'links.showStats': 'Klickzahlen anzeigen',
+	'links.tileSize': 'Kachelgröße',
+	'links.tileSizeReset': 'Standard',
+	'links.tileSmall': 'Klein',
+	'links.tileLarge': 'Groß',
+	'links.tileSizeHint': 'Gilt für alle Gruppen dieses Boards in der Kachel-Ansicht.',
 	'links.openCount': {
 		one: 'Einmal geöffnet',
 		other: '{count}× geöffnet'

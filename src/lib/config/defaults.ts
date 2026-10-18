@@ -2,7 +2,13 @@ import { translate } from '$lib/i18n/translate';
 import { defaultAgenda } from '$lib/widgets/calendar/agenda';
 import { defaultCalendarSettings } from '$lib/widgets/calendar/settings';
 import { defaultClockSettings } from '$lib/widgets/clock/settings';
-import type { Link, LinksSettings, LinkTab, LinkView } from '$lib/widgets/links/settings';
+import {
+	TILE_SIZE,
+	type Link,
+	type LinksSettings,
+	type LinkTab,
+	type LinkView
+} from '$lib/widgets/links/settings';
 import { defaultSearchSettings } from '$lib/widgets/search/settings';
 import { createId } from './parse';
 import type {
@@ -80,7 +86,7 @@ function tab(label: string, view: LinkView, links: Link[]): LinkTab {
 }
 
 function board(tabs: LinkTab[]): LinksSettings {
-	return { tabs, activeTabId: tabs[0].id, showStats: false };
+	return { tabs, activeTabId: tabs[0].id, showStats: false, tileSize: TILE_SIZE.default };
 }
 
 /** Zeile mit einem Widget über die ganze Breite seines Bereichs */

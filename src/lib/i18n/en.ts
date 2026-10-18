@@ -361,6 +361,11 @@ export const en: Dictionary = {
 	'links.copied': 'URL copied',
 	'links.copyFailed': 'Could not copy',
 	'links.showStats': 'Show click counts',
+	'links.tileSize': 'Tile size',
+	'links.tileSizeReset': 'Default',
+	'links.tileSmall': 'Small',
+	'links.tileLarge': 'Large',
+	'links.tileSizeHint': 'Applies to all groups of this board in the tiles view.',
 	'links.openCount': {
 		one: 'Opened once',
 		other: 'Opened {count}×'

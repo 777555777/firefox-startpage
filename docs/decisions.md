@@ -87,6 +87,13 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   praktischer ist. Zusätzlich bietet das Kontextmenü eines Links oder Tabs „Link hinzufügen“. Tabs bearbeitet man per Doppelklick oder Kontextmenü. Löschen von
   Links und Tabs geht ohne Bestätigungsdialog, dafür mit Rückgängig-Toast (wie bei Widgets). Der
   letzte Tab eines Boards kann nicht gelöscht werden.
+- **Kachelgröße** (Erweiterung von §6.4): Pro Board einstellbar (`tileSize`, Kantenlänge der
+  Icon-Fläche) zwischen 40 und 96 px in 4er-Schritten, Standard 56 px wie bisher. 40 px ist die
+  kleinste Fläche, auf der Favicons noch klar erkennbar sind; ab 96 px passen auf schmalen Panels
+  kaum noch zwei Kacheln nebeneinander. Icon (64 %), Eckenradius und Spaltenbreite (Fläche +
+  48 px) wachsen mit, die Schrift der Namen bleibt gleich. Pro Board statt pro Gruppe, damit
+  Gruppen beim Wechseln nicht springen. Kein Schema-Sprung: `parseLinksSettings` ergänzt den
+  Standard und begrenzt bzw. rastet ungültige Werte ein.
 - **Links zwischen Boards verschieben** (nice-to-have) ist noch nicht umgesetzt.
 - **Kontextmenü** nutzt `popover="manual"` mit eigenem Schließen bei Klick außerhalb. Das
   automatische Light-Dismiss würde ein per Rechtsklick geöffnetes Menü beim Loslassen der Maustaste

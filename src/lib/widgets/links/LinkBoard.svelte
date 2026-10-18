@@ -23,9 +23,11 @@
 		removeTab
 	} from './operations';
 	import TabDialog from './TabDialog.svelte';
-	import type { Link, LinksSettings, LinkTab } from './settings';
+	import { tileMetrics, type Link, type LinksSettings, type LinkTab } from './settings';
 
 	let { id, settings, update }: WidgetProps<LinksSettings> = $props();
+
+	const tile = $derived(tileMetrics(settings.tileSize));
 
 	const app = getApp();
 	const uid = $props.id();
@@ -348,6 +350,9 @@
 		<ul
 			bind:this={list}
 			class="links {activeTab.view}"
+			style:--tile="{settings.tileSize}px"
+			style:--tile-radius="{tile.radius}px"
+			style:--tile-column="{tile.column}px"
 			{@attach linkSort.list({
 				id: activeTab.id,
 				axis: activeTab.view === 'list' ? 'vertical' : 'grid'
@@ -377,7 +382,7 @@
 					>
 						{#if activeTab.view === 'tiles'}
 							<span class="tile-icon">
-								<LinkIcon url={link.url} label={title} icon={link.icon} size={36} />
+								<LinkIcon url={link.url} label={title} icon={link.icon} size={tile.icon} />
 							</span>
 						{:else}
 							<LinkIcon url={link.url} label={title} icon={link.icon} size={20} />
@@ -401,7 +406,7 @@
 			<li class="item add-item">
 				<button type="button" class="add {activeTab.view}" onclick={addLink}>
 					{#if activeTab.view === 'tiles'}
-						<span class="tile-icon"><Icon name="plus" size={22} /></span>
+						<span class="tile-icon"><Icon name="plus" size={tile.plus} /></span>
 					{:else}
 						<Icon name="plus" size={16} />
 					{/if}
@@ -523,7 +528,7 @@
 
 	.links.tiles {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(var(--tile-column), 1fr));
 		gap: var(--space-1);
 	}
 
@@ -577,7 +582,7 @@
 		gap: var(--space-2);
 		height: 100%;
 		/* Seitlich etwas Luft, damit lange Namen nicht bis an den Rand der Hover-Fläche reichen;
-		   bei 104 px passen auch Namen wie „OpenStreetMap“ in eine Zeile */
+		   die Spalte ist 48 px breiter als die Icon-Fläche, so passt „OpenStreetMap“ in eine Zeile */
 		padding: var(--space-3) 6px var(--space-2);
 		border-radius: var(--radius-lg);
 		background: transparent;
@@ -611,9 +616,9 @@
 		flex: none;
 		display: grid;
 		place-items: center;
-		width: 56px;
-		height: 56px;
-		border-radius: 16px;
+		width: var(--tile);
+		height: var(--tile);
+		border-radius: var(--tile-radius);
 		background: var(--fill);
 		box-shadow:
 			inset 0 1px 0 var(--highlight),

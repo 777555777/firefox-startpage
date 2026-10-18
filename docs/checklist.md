@@ -52,6 +52,8 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
 - [ ] Link-Board: Tabs, Ansichten, Kontextmenü, DnD, `1…9`, `Alt+1…9`
 - [ ] Kacheln: Icons auf einer Höhe, Namen brechen zwischen Wörtern um, „+ Link“ immer am
       Ende der Gruppe (auch ohne Edit-Modus), Kontextmenü bietet „Link hinzufügen“
+- [ ] Board-Einstellungen → Kachelgröße: Regler (auch per Pfeiltasten) ändert die Kacheln sofort,
+      „Standard“ setzt auf 56 px zurück, Icons bleiben auch groß scharf
 - [ ] Favicons: beim zweiten Öffnen kein Flackern, im Netzwerk-Tab keine 404-Versuche mehr
 
 ## Termine und freie Tage (Schema v4)

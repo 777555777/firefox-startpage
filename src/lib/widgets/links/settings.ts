@@ -3,6 +3,7 @@ import {
 	bool,
 	createId,
 	imageDataUrl,
+	int,
 	nonEmpty,
 	oneOf,
 	record,
@@ -37,9 +38,30 @@ export type LinksSettings = {
 	activeTabId: string;
 	/** Klickzahl als Badge anzeigen */
 	showStats: boolean;
+	/** Kantenlänge der Icon-Fläche in der Kachel-Ansicht in px */
+	tileSize: number;
 };
 
 export const LINK_VIEWS: readonly LinkView[] = ['capsules', 'tiles', 'list'];
+
+/**
+ * Kachelgröße: 40 px ist die kleinste Fläche, auf der ein Favicon noch klar erkennbar ist, ab
+ * 96 px passen auf einem schmalen Panel kaum noch zwei Kacheln nebeneinander.
+ */
+export const TILE_SIZE = { min: 40, max: 96, step: 4, default: 56 } as const;
+
+/** Maße einer Kachel, abgeleitet aus der Icon-Fläche; beim Standard wie bisher fest gebaut */
+export function tileMetrics(size: number) {
+	return {
+		/** Icon in der Fläche */
+		icon: Math.round(size * 0.64),
+		/** „+“ in der Fläche zum Hinzufügen */
+		plus: Math.round(size * 0.4),
+		radius: Math.round(size * 0.29),
+		/** Mindestbreite einer Spalte: Fläche plus Platz für Namen wie „OpenStreetMap“ */
+		column: size + 48
+	};
+}
 
 export function createTab(label = '', view: LinkView = 'tiles'): LinkTab {
 	return { id: createId(), label, icon: '', view, links: [] };
@@ -47,7 +69,7 @@ export function createTab(label = '', view: LinkView = 'tiles'): LinkTab {
 
 export const defaultLinksSettings = (): LinksSettings => {
 	const tab = createTab();
-	return { tabs: [tab], activeTabId: tab.id, showStats: false };
+	return { tabs: [tab], activeTabId: tab.id, showStats: false, tileSize: TILE_SIZE.default };
 };
 
 /** Prüft eine URL; `javascript:` und `data:` sind als Link-Ziel nicht erlaubt */
@@ -102,6 +124,14 @@ export function parseLinksSettings(raw: unknown): LinksSettings {
 	return {
 		tabs,
 		activeTabId: tabs.some((tab) => tab.id === activeTabId) ? activeTabId : tabs[0].id,
-		showStats: bool(r.showStats, false)
+		showStats: bool(r.showStats, false),
+		tileSize: snapTileSize(int(r.tileSize, TILE_SIZE.default))
 	};
+}
+
+/** Begrenzt auf den erlaubten Bereich und rastet auf die Schrittweite ein */
+export function snapTileSize(value: number): number {
+	const { min, max, step } = TILE_SIZE;
+	const clamped = Math.min(max, Math.max(min, value));
+	return min + Math.round((clamped - min) / step) * step;
 }
