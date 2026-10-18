@@ -473,6 +473,11 @@
 
 	.list {
 		--fade: 12px;
+		/*
+		 * Bezugsrahmen für absolut positionierte Kinder (z. B. „Ungelesen:“ für Screenreader),
+		 * sonst ragen sie aus weggescrollten Einträgen heraus und verlängern die Page
+		 */
+		position: relative;
 		display: grid;
 		flex: 1 1 auto;
 		align-content: start;

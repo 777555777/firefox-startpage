@@ -279,8 +279,15 @@ img {
 	background: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
+/*
+ * Nur für Screenreader. Oben links verankert: An ihrer normalen Stelle (z. B. unter der
+ * vollen Fensterhöhe oder in weggescrollten Listen) würden die 1-px-Elemente die Page sonst
+ * minimal scrollbar machen.
+ */
 .visually-hidden {
 	position: absolute !important;
+	top: 0;
+	left: 0;
 	width: 1px;
 	height: 1px;
 	overflow: hidden;

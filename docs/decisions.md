@@ -685,3 +685,14 @@ zusammengefasst und dann gelöscht).
 - **Intervall-Beschriftungen** kommen aus `Intl.NumberFormat` mit Einheit (`15 Min.`, `1 Std.`),
   nicht aus den Wörterbüchern.
 - **Kontrast** bei Tag und Nacht auf dem Dev-Server geprüft (Text, Punkt, Fuß, Dialog).
+
+## Nach v1 – Page minimal scrollbar
+
+- **Ursache:** Unsichtbare Texte für Screenreader (`.visually-hidden`, 1 × 1 px, absolut
+  positioniert) blieben an ihrer normalen Stelle. Die Ansage-Region am Ende der Page lag damit
+  genau unter der vollen Fensterhöhe, und in scrollenden Listen (RSS) ragten die Texte aus
+  weggescrollten Einträgen heraus. Beides machte die Page um 1 px (bzw. mehr) scrollbar.
+- **Lösung:** `.visually-hidden` sitzt jetzt oben links in seinem Bezugsrahmen (`top: 0; left: 0`).
+  Das ist unbedenklich, weil keines dieser Elemente fokussierbar ist. Zusätzlich sind die
+  scrollenden Bereiche (Inhalt eines Panels mit Höchsthöhe, RSS-Liste) `position: relative`,
+  damit absolut positionierte Kinder in ihnen bleiben.

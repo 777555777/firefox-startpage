@@ -226,6 +226,8 @@
 
 	.content.scrolling {
 		--fade: 12px;
+		/* Absolut positionierte Kinder bleiben im Scrollbereich, statt die Page zu verlängern */
+		position: relative;
 		overflow-y: auto;
 		/* Platz für Fokusringe, die sonst am Rand des Scroll-Containers abgeschnitten würden */
 		margin: -4px;
