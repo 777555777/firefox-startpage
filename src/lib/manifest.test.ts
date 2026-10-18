@@ -15,9 +15,17 @@ describe('createManifest', () => {
 		expect(manifest.chrome_settings_overrides.homepage).toBe('newtab.html');
 	});
 
-	it('fordert keine Host-Permissions an', () => {
+	it('fordert Host-Rechte nur optional an', () => {
 		const manifest = createManifest('1.0.0');
 		expect(manifest.permissions).toEqual(['storage', 'unlimitedStorage']);
 		expect(manifest).not.toHaveProperty('host_permissions');
+		expect(manifest.optional_host_permissions).toEqual(['https://*/*']);
+	});
+
+	it('erklärt, dass keine Daten gesammelt werden', () => {
+		const manifest = createManifest('1.0.0');
+		expect(manifest.browser_specific_settings.gecko.data_collection_permissions).toEqual({
+			required: ['none']
+		});
 	});
 });

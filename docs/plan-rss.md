@@ -406,7 +406,7 @@ einem Commit.
    Scrollen im Panel mit weichen Kanten, Registry-Feld `scrollsSelf`, Griff an der Unterkante mit
    Maus, Tastatur und Ansagen, i18n, Tests (A4). Eintrag in `docs/decisions.md`. Danach ist die
    Höhe für alle bestehenden Widgets nutzbar.
-2. **R0 – Rechte und Abruf (Spike):** Manifest um `optional_host_permissions` ergänzen und den Test
+2. **R0 – Rechte und Abruf (Spike), erledigt bis auf die Prüfung in Firefox (mit R4):** Manifest um `optional_host_permissions` ergänzen und den Test
    anpassen. Dazu `lib/permissions.ts` (`originPattern`, `contains`, `request`, `remove`,
    Dev-Fallback) und `lib/net/fetch-feed.ts` (Zeitlimit, Größenlimit, Zeichensatz, bedingte
    Anfrage, Erkennung von Umleitungen). Außerdem die Dev-Proxy-Middleware. In Firefox

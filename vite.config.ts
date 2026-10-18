@@ -39,8 +39,51 @@ function devIndex(): Plugin {
 	};
 }
 
+/**
+ * Dev-Server: Weiterleitung für Feed-Abrufe (`/__dev/feed?url=…`). Außerhalb der Extension gibt
+ * es keine Host-Rechte, ohne sie blockiert CORS fast jeden Feed. Nur https, im Build fehlt sie.
+ */
+function devFeedProxy(): Plugin {
+	return {
+		name: 'startpage-dev-feed',
+		apply: 'serve',
+		configureServer(server) {
+			server.middlewares.use('/__dev/feed', async (req, res) => {
+				const target = new URL(req.url ?? '', 'http://localhost').searchParams.get('url');
+				if (!target?.startsWith('https://')) {
+					res.statusCode = 400;
+					res.end();
+					return;
+				}
+				try {
+					const headers: Record<string, string> = {};
+					for (const name of ['accept', 'if-none-match', 'if-modified-since']) {
+						const value = req.headers[name];
+						if (typeof value === 'string') headers[name] = value;
+					}
+					const response = await fetch(target, {
+						headers,
+						signal: AbortSignal.timeout(20_000)
+					});
+					res.statusCode = response.status;
+					for (const name of ['content-type', 'etag', 'last-modified', 'retry-after']) {
+						const value = response.headers.get(name);
+						if (value) res.setHeader(name, value);
+					}
+					// Endgültige Adresse nach Umleitungen, wie `Response.url` in der Extension
+					res.setHeader('x-feed-url', response.url);
+					res.end(Buffer.from(await response.arrayBuffer()));
+				} catch {
+					res.statusCode = 502;
+					res.end();
+				}
+			});
+		}
+	};
+}
+
 export default defineConfig({
-	plugins: [svelte(), manifest(), devIndex()],
+	plugins: [svelte(), manifest(), devIndex(), devFeedProxy()],
 	resolve: {
 		alias: { $lib: fileURLToPath(new URL('./src/lib', import.meta.url)) }
 	},

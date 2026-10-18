@@ -18,6 +18,9 @@ export function createManifest(version: string) {
 			96: 'icons/icon.svg'
 		},
 		permissions: ['storage', 'unlimitedStorage'],
+		// Host-Rechte nur zur Laufzeit pro Feed-Origin (RSS); nur https, weil die Standard-CSP
+		// von MV3 http-Anfragen ohnehin auf https hebt
+		optional_host_permissions: ['https://*/*'],
 		chrome_url_overrides: {
 			newtab: 'newtab.html'
 		},

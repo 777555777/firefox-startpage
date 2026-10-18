@@ -530,3 +530,37 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
 - **Kein Schema-Sprung:** Das Feld ist additiv. Die Validierung rastet ein, begrenzt und
   verwirft Ungültiges; beim Teilen zu voller Zeilen behalten beide Teile die Höhe.
   `CONFIG_VERSION` bleibt 4.
+
+## Nach v1 – RSS-Widget: Rechte und Abruf
+
+Grundlage ist der freigegebene Plan in `docs/plan-rss.md` (wird mit Abschluss des RSS-Widgets hier
+zusammengefasst und dann gelöscht).
+
+- **Manifest:** `optional_host_permissions: ['https://*/*']`, sonst unverändert. Weder Installation
+  noch Update fragen damit etwas ab. Nur https, weil die Standard-CSP von MV3 für Extension-Pages
+  `upgrade-insecure-requests` enthält und http-Abrufe ohnehin auf https hebt; eingegebene
+  `http://`-Adressen werden umgeschrieben.
+- **`data_collection_permissions` bleibt `none`.** Mozillas Richtlinie definiert Übertragung breit
+  („outside of the add-on or the local browser“), die Datenkategorien beschreiben aber persönliche
+  Daten (Browserverlauf, Seiteninhalte, Standort …). Ein Feed-Abruf überträgt keine davon: Er geht
+  an eine Adresse, die die Person selbst eingetragen hat, ohne Cookies (`credentials: 'omit'`) und
+  ohne Referrer, und nichts geht an Entwickler oder Dritte. Fordert AMO bei der Signierung etwas
+  anderes, wird das hier nachgetragen.
+- **Ort im Code:** Die Netzwerk-Teile liegen gesammelt in `src/lib/net/` (`permissions.ts`,
+  `feed-url.ts`, `fetch-feed.ts`, `charset.ts`) statt `lib/permissions.ts` und
+  `lib/net/fetch-feed.ts` wie im Plan.
+- **Rechte-Muster pro Domain samt Subdomains** (`https://*.heise.de/*`, führendes `www.` entfällt);
+  IP-Adressen und Namen ohne Punkt (z. B. `localhost`) bekommen das genaue Muster.
+  `requestAccess` ruft die API synchron auf, damit die Nutzeraktion in Firefox noch gilt.
+  Außerhalb der Extension gilt alles als erlaubt.
+- **Abruf:** Zeitlimit 20 s, höchstens 5 MB (auch ohne `Content-Length`, beim Lesen gezählt),
+  bedingte Anfragen über `ETag`/`Last-Modified`, `Retry-After` als Sekunden oder Datum. Der
+  Zeichensatz kommt aus BOM, `Content-Type` oder der Angabe im Dokument, weil `Response.text()`
+  immer UTF-8 annimmt. Ein Netzwerkfehler wird einmal ohne Folgen der Umleitung wiederholt; eine
+  `opaqueredirect`-Antwort heißt dann „Umleitung auf eine Origin ohne Recht“.
+- **Dev-Server:** Vite leitet `/__dev/feed?url=…` (nur https) weiter und meldet die endgültige
+  Adresse im Header `x-feed-url`. Im Build gibt es die Weiterleitung nicht.
+- **Noch offen:** Das Verhalten in echtem Firefox (Abfrage im Klick, Abruf ohne CORS, Upgrade von
+  http, `opaqueredirect`, Entziehen in `about:addons`) ist noch nicht von Hand geprüft. Es gibt
+  dafür noch keine Oberfläche; die Punkte stehen in `docs/checklist.md` und werden mit R4
+  geprüft. Weicht Firefox ab, wird der Abruf vorher angepasst.

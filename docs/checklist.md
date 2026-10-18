@@ -123,3 +123,24 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
 - [ ] `about:addons` zeigt die richtige Version
 - [ ] Neue Version über die alte installieren: Einstellungen, Links und Hintergründe bleiben
 - [ ] Installation auf beiden Rechnern (Privat, MacBook M4 Pro)
+
+## Höchsthöhe pro Zeile
+
+- [ ] Griff unter einer Zeile ziehen: Zeile folgt in 2-rem-Schritten, Etikett zeigt den Wert
+- [ ] Danach scrollt höherer Inhalt im Panel, weiche Kanten oben/unten, Mausrad gibt am Ende an die Page weiter
+- [ ] Doppelklick bzw. `Entf` setzt auf „Automatisch“, Pfeiltasten ändern um 2 rem
+- [ ] Zeile mit zwei Widgets: beide gleich hoch, nur das überlaufende scrollt; Suchvorschläge werden nicht abgeschnitten
+- [ ] Widget allein verschieben: Höhe wandert mit; Entfernen + Rückgängig stellt sie wieder her
+- [ ] WebGL- und Static-Stufe: Glas folgt der neuen Höhe, schmales Fenster (untereinander)
+
+## RSS – Rechte und Abruf (R0)
+
+Noch ohne Oberfläche; prüfbar, sobald „Feed hinzufügen“ existiert (R4).
+
+- [ ] Installation und Update der `.xpi` fragen keine Rechte ab, `about:addons` → Berechtigungen zeigt den optionalen Zugriff
+- [ ] `permissions.request` im Klick zeigt die Firefox-Abfrage für `*.domain`, Ablehnen legt nichts an
+- [ ] Abruf eines Feeds mit Recht klappt ohne CORS-Fehler, ohne Recht nicht
+- [ ] `http://`-Feed wird über https abgerufen (Upgrade der Standard-CSP)
+- [ ] Umleitung auf eine fremde Origin ergibt den Fehler „Umleitung“ (`opaqueredirect`)
+- [ ] Recht in `about:addons` entziehen: Page bemerkt es (`permissions.onRemoved`) ohne Neuladen
+- [ ] Titelbilder laden als `<img>` ohne Host-Recht
