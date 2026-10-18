@@ -61,6 +61,10 @@ export const en: Dictionary = {
 	'widget.calendar': 'Calendar',
 	'widget.search': 'Search',
 	'widget.links': 'Links',
+	'widget.rss': 'RSS feeds',
+	'rss.noFeeds': 'No feeds yet',
+	'rss.noItems': 'No entries yet',
+	'rss.untitled': 'Untitled',
 	'widget.crashed': 'This widget could not be displayed.',
 	'widget.reset': 'Reset widget',
 

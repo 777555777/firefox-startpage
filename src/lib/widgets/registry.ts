@@ -5,13 +5,14 @@ import Clock from './clock/Clock.svelte';
 import ClockSettings from './clock/ClockSettings.svelte';
 import LinkBoard from './links/LinkBoard.svelte';
 import LinkBoardSettings from './links/LinkBoardSettings.svelte';
+import RssFeed from './rss/RssFeed.svelte';
 import Search from './search/Search.svelte';
 import SearchSettings from './search/SearchSettings.svelte';
 import { widgetSettings } from './settings';
 import type { WidgetDefinition } from './types';
 
 /**
- * Registry aller Widget-Typen. Neue Typen (RSS, Notizen, Termine) werden hier und in
+ * Registry aller Widget-Typen. Neue Typen (z. B. Notizen) werden hier und in
  * `widgets/settings.ts` ergänzt, das restliche System bleibt unverändert.
  */
 export const registry: { [K in WidgetType]: WidgetDefinition<WidgetSettingsMap[K]> } = {
@@ -46,6 +47,15 @@ export const registry: { [K in WidgetType]: WidgetDefinition<WidgetSettingsMap[K
 		...widgetSettings.links,
 		component: LinkBoard,
 		settingsComponent: LinkBoardSettings
+	},
+	rss: {
+		type: 'rss',
+		name: 'widget.rss',
+		icon: 'rss',
+		...widgetSettings.rss,
+		component: RssFeed,
+		// Kopf bleibt stehen, nur die Liste scrollt
+		scrollsSelf: true
 	}
 };
 

@@ -596,3 +596,33 @@ zusammengefasst und dann gelöscht).
 - **Tests** laufen mit `// @vitest-environment jsdom`, weil Node keinen `DOMParser` hat. Die
   Fixtures werden per `?raw` importiert. Gegengeprüft auf dem Dev-Server mit echten Feeds (heise,
   tagesschau, golem, The Verge, Daring Fireball als JSON Feed, hnrss).
+
+## Nach v1 – RSS-Widget: Settings, Cache und Abruf
+
+- **Neuer Widget-Typ `rss`** (Schema bleibt v4, siehe Plan). `RssSettings` wie geplant; Feeds
+  werden beim Validieren normalisiert (`http` → `https`, andere Schemata und doppelte Adressen
+  fallen weg), höchstens 20 pro Widget, `maxItems` 5–50 (Standard 20), das Intervall rastet auf
+  15/30/60/180/360 Minuten ein. Das Widget setzt `scrollsSelf`: Mit Höchsthöhe der Zeile bleibt
+  der Kopf stehen und nur die Liste scrollt.
+- **Vorläufige Liste:** Bis R3 zeigt das Widget nur eine schlichte Liste, und bis R4 gibt es
+  keine Oberfläche zum Hinzufügen von Feeds. Das „+ Widget“-Menü bietet RSS trotzdem schon an;
+  ausgeliefert wird erst, wenn beides fertig ist.
+- **Cache und Gelesen-Status** liegen unter `feeds` und `feedReads` in `storage.local`, laufen
+  wie Config und Statistik über `SyncedValue` (Tab-Sync, validiert beim Lesen) und reisen nicht
+  in Export und Backups. Ein unlesbarer Cache zeigt keinen Hinweis, er füllt sich beim nächsten
+  Abruf neu. „Alles zurücksetzen“ leert beide. Im Cache stehen pro Feed höchstens 50 Einträge mit
+  `firstSeen` (erster Abruf, in dem sie auftauchten) als Ersatz für ein fehlendes Datum.
+- **Abruf-Dienst** (`app.rss`, `FeedService`): ein Timer für alle Feeds, gestellt auf den nächsten
+  fälligen. Abgerufen wird nur bei sichtbarer Page, beim Zurückkehren in den Tab, wenn die
+  Verbindung wiederkommt und wenn sich die Feeds ändern; höchstens vier gleichzeitig. Die
+  Tab-Sperre (`lockUntil`, 60 s) wird vor dem Abruf sofort gespeichert. Offline ist kein Fehler
+  des Feeds und löst keinen Backoff aus. Eine Webseite oder Unlesbares statt eines Feeds ergibt
+  den Fehler `parse`. „Aktualisieren“ übergeht Intervall und Backoff, aber weder `Retry-After`
+  noch die Sperre eines anderen Tabs.
+- **Rechte im Dienst:** Fehlende Host-Rechte (`missing`) werden beim Start, bei geänderten Feeds
+  und bei `permissions.onAdded/onRemoved` geprüft; solche Feeds werden nicht abgerufen. Nicht
+  mehr gebrauchte Rechte gibt der Dienst nur beim Laden der Page ab. Cache und Gelesen-Status
+  werden beim Laden und bei geänderten Feeds aufgeräumt. War die Config nicht lesbar, wird nichts
+  aufgeräumt und nichts abgegeben.
+- **Gelesen** gilt pro Feed-URL und Eintrags-ID. IDs von Einträgen, die aus dem Feed
+  verschwunden sind, fallen nach dem nächsten Abruf weg.

@@ -62,6 +62,10 @@ export const de = {
 	'widget.calendar': 'Kalender',
 	'widget.search': 'Suche',
 	'widget.links': 'Links',
+	'widget.rss': 'RSS-Feeds',
+	'rss.noFeeds': 'Noch keine Feeds',
+	'rss.noItems': 'Noch keine Einträge',
+	'rss.untitled': 'Ohne Titel',
 	'widget.crashed': 'Dieses Widget konnte nicht angezeigt werden.',
 	'widget.reset': 'Widget zurücksetzen',
 

@@ -415,7 +415,7 @@ einem Commit.
    Datenkategorien-Frage wird geklärt. Abweichungen kommen in diesen Plan, bevor R1 beginnt.
 3. **R1 – Parser (erledigt):** `widgets/rss/parse.ts`, `text.ts`, `image.ts` und `discover.ts` mit allen
    Fixture-Tests. Noch ohne UI.
-4. **R2 – Settings, Cache, Abruf-Steuerung:** Typ `rss` im Schema, `parseRssSettings`,
+4. **R2 – Settings, Cache, Abruf-Steuerung (erledigt):** Typ `rss` im Schema, `parseRssSettings`,
    Registry-Eintrag mit einer schlichten Liste als Platzhalter-Komponente. Dazu `feeds` und
    `feedReads` über `SyncedValue`, Scheduler (rein) und Abruf-Dienst (Sichtbarkeit, online/offline,
    Sperre, Backoff), Aufräumen von Cache und Rechten sowie „Alles zurücksetzen“.

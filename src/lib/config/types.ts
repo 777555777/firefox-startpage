@@ -2,6 +2,7 @@ import type { AgendaConfig } from '$lib/widgets/calendar/agenda';
 import type { CalendarSettings } from '$lib/widgets/calendar/settings';
 import type { ClockSettings } from '$lib/widgets/clock/settings';
 import type { LinksSettings } from '$lib/widgets/links/settings';
+import type { RssSettings } from '$lib/widgets/rss/settings';
 import type { SearchSettings } from '$lib/widgets/search/settings';
 
 export type Language = 'de' | 'en';
@@ -16,6 +17,7 @@ export type WidgetSettingsMap = {
 	calendar: CalendarSettings;
 	search: SearchSettings;
 	links: LinksSettings;
+	rss: RssSettings;
 };
 
 export type WidgetType = keyof WidgetSettingsMap;

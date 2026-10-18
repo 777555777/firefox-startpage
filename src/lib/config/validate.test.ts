@@ -76,7 +76,7 @@ describe('parseConfig', () => {
 		const config = parseConfig({
 			widgets: {
 				a: { type: 'clock', settings: { showSeconds: true } },
-				b: { type: 'rss', settings: {} },
+				b: { type: 'notes', settings: {} },
 				c: 'kaputt'
 			},
 			layout: {

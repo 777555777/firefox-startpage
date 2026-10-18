@@ -17,12 +17,23 @@ import { detectLanguage, i18n, t } from '$lib/i18n/index.svelte';
 import { createKeyValueStore, createMemoryStore, type KeyValueStore } from '$lib/storage/kv';
 import { deleteMedia, hasMedia, listMediaIds, putMedia } from '$lib/storage/media';
 import { TimeOfDay } from '$lib/theme/time-of-day.svelte';
+import {
+	parseFeedCache,
+	parseFeedReads,
+	type FeedCache,
+	type FeedReads
+} from '$lib/widgets/rss/cache';
+import { FeedService } from '$lib/widgets/rss/service.svelte';
+import type { RssSettings } from '$lib/widgets/rss/settings';
 import { SyncedValue } from './synced.svelte';
 import { toasts } from './toasts.svelte';
 
 export const CONFIG_KEY = 'config';
 export const STATS_KEY = 'stats';
 export const BACKUPS_KEY = 'backups';
+/** Cache und Gelesen-Status der RSS-Feeds; nicht in Export und Backups */
+export const FEEDS_KEY = 'feeds';
+export const FEED_READS_KEY = 'feedReads';
 
 /**
  * Zentraler Zustand der Page: Config und Statistik (beide gespeichert und zwischen Tabs
@@ -32,6 +43,9 @@ export class AppState {
 	readonly kv: KeyValueStore;
 	readonly config: SyncedValue<Config>;
 	readonly stats: SyncedValue<LinkStats>;
+	readonly feeds: SyncedValue<FeedCache>;
+	readonly feedReads: SyncedValue<FeedReads>;
+	readonly rss: FeedService;
 	readonly timeOfDay: TimeOfDay;
 	ready = $state(false);
 
@@ -51,6 +65,25 @@ export class AppState {
 			{},
 			{ key: STATS_KEY, parse: parseStats, onSaveResult }
 		);
+		this.feeds = new SyncedValue<FeedCache>(
+			kv,
+			{},
+			{ key: FEEDS_KEY, parse: parseFeedCache, onSaveResult }
+		);
+		this.feedReads = new SyncedValue<FeedReads>(
+			kv,
+			{},
+			{ key: FEED_READS_KEY, parse: parseFeedReads, onSaveResult }
+		);
+		this.rss = new FeedService({
+			widgets: () =>
+				Object.values(this.config.value.widgets).flatMap((widget) =>
+					widget.type === 'rss' ? [widget.settings as RssSettings] : []
+				),
+			cache: this.feeds,
+			reads: this.feedReads,
+			canPrune: () => !this.config.readonly
+		});
 		this.timeOfDay = new TimeOfDay(() => this.config.value.appearance.timeOfDay);
 	}
 
@@ -58,18 +91,28 @@ export class AppState {
 	async init(): Promise<() => void> {
 		const [configOk, statsOk] = await Promise.all([this.config.load(), this.stats.load()]);
 		if (!configOk || !statsOk) toasts.show(t('storage.loadFailed'), { tone: 'error' });
+		// Ein unlesbarer Feed-Cache ist kein Datenverlust: er füllt sich beim nächsten Abruf neu
+		await Promise.all([this.feeds.load(), this.feedReads.load()]);
 		const stopConfig = this.config.start();
 		const stopStats = this.stats.start();
+		const stopFeeds = this.feeds.start();
+		const stopReads = this.feedReads.start();
+		const stopRss = this.rss.start();
 		const flush = () => {
 			void this.config.save();
 			void this.stats.save();
+			void this.feeds.save();
+			void this.feedReads.save();
 		};
 		window.addEventListener('pagehide', flush);
 		this.ready = true;
 		return () => {
 			window.removeEventListener('pagehide', flush);
+			stopRss();
 			stopConfig();
 			stopStats();
+			stopFeeds();
+			stopReads();
 		};
 	}
 
@@ -113,11 +156,16 @@ export class AppState {
 		return true;
 	}
 
-	/** Setzt Config und Statistik zurück (vorher Backup). Medien bleiben erhalten. */
+	/**
+	 * Setzt Config, Statistik und Feed-Cache samt Gelesen-Status zurück (vorher Backup der
+	 * Config). Medien bleiben erhalten.
+	 */
 	async resetAll(): Promise<void> {
 		await this.backup('reset');
 		await this.config.replace(createDefaultConfig(i18n.detected));
 		await this.stats.replace({});
+		await this.feeds.replace({});
+		await this.feedReads.replace({});
 	}
 
 	/**
