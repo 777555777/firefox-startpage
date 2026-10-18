@@ -1,5 +1,5 @@
 import type { FeedReads, FeedState } from './cache';
-import type { RssSettings } from './settings';
+import { allFeeds, type RssSettings } from './settings';
 
 /**
  * Wann ein Feed abgerufen wird, als reine Funktionen mit übergebener Zeit. Abgerufen wird nur
@@ -15,7 +15,7 @@ export function feedIntervals(widgets: RssSettings[]): Map<string, number> {
 	const intervals = new Map<string, number>();
 	for (const settings of widgets) {
 		const ms = settings.intervalMinutes * MINUTE;
-		for (const feed of settings.feeds) {
+		for (const feed of allFeeds(settings)) {
 			const current = intervals.get(feed.url);
 			if (current === undefined || ms < current) intervals.set(feed.url, ms);
 		}

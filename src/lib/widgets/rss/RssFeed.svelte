@@ -10,6 +10,7 @@
 </script>
 
 <script lang="ts">
+	import { Sortable } from '$lib/dnd/sortable.svelte';
 	import { i18n, t } from '$lib/i18n/index.svelte';
 	import { patternsFor, requestAccess } from '$lib/net/permissions';
 	import { getApp } from '$lib/state/context';
@@ -18,10 +19,13 @@
 	import Icon from '$lib/ui/Icon.svelte';
 	import Menu, { type MenuAnchor, type MenuItem } from '$lib/ui/Menu.svelte';
 	import { ScrollArea } from '$lib/ui/scroll-area.svelte';
-	import { isModKey, isTypingTarget } from '$lib/utils/keyboard';
+	import { isModKey, isOverlayOpen, isTypingTarget } from '$lib/utils/keyboard';
 	import { everyMinute } from '$lib/utils/now.svelte';
 	import LinkIcon from '../links/LinkIcon.svelte';
 	import { openUrl } from '../links/link-utils';
+	import { digitOf } from '../links/nav';
+	import { insertTab, moveTab, removeTab } from '../links/operations';
+	import TabDialog from '../links/TabDialog.svelte';
 	import type { WidgetProps } from '../types';
 	import type { FeedState } from './cache';
 	import {
@@ -33,18 +37,28 @@
 		type FeedProblem
 	} from './format';
 	import { listItems, type ListedItem } from './schedule';
-	import type { RssFeed, RssSettings } from './settings';
+	import {
+		activeTabOf,
+		createRssTab,
+		MAX_TABS,
+		type RssFeed,
+		type RssSettings,
+		type RssTab
+	} from './settings';
 	import { truncate } from './text';
 
-	let { id, settings, opensettings }: WidgetProps<RssSettings> = $props();
+	let { id, settings, update, opensettings }: WidgetProps<RssSettings> = $props();
 
 	const app = getApp();
 	const rss = app.rss;
 	const hintId = $derived(`rss-hint-${id}`);
 
 	const cache = $derived(app.feeds.value);
-	const urls = $derived(settings.feeds.map((feed) => feed.url));
-	const feedOf = $derived(Object.fromEntries(settings.feeds.map((feed) => [feed.url, feed])));
+	/** Die Liste zeigt nur die Feeds des aktiven Tabs (einer Kategorie) */
+	const activeTab = $derived(activeTabOf(settings));
+	const tabFeeds = $derived(activeTab.feeds);
+	const urls = $derived(tabFeeds.map((feed) => feed.url));
+	const feedOf = $derived(Object.fromEntries(tabFeeds.map((feed) => [feed.url, feed])));
 	const items = $derived(listItems(urls, cache, app.feedReads.value, settings));
 	/** Gibt es überhaupt Einträge (auch gelesene, die gerade ausgeblendet sind)? */
 	const hasEntries = $derived(urls.some((url) => (cache[url]?.items.length ?? 0) > 0));
@@ -54,8 +68,8 @@
 
 	const now = $derived(everyMinute.current.getTime());
 	const loading = $derived(urls.some((url) => rss.loading.includes(url)));
-	const fetched = $derived(lastFetched(settings.feeds, cache));
-	const problems = $derived(feedProblems(settings.feeds, cache, rss.missing));
+	const fetched = $derived(lastFetched(tabFeeds, cache));
+	const problems = $derived(feedProblems(tabFeeds, cache, rss.missing));
 	const missingPatterns = $derived(
 		patternsFor(problems.filter((p) => p.code === 'permission').map((p) => p.feed.url))
 	);
@@ -114,7 +128,7 @@
 
 	async function refresh() {
 		await rss.refresh(urls);
-		const count = feedProblems(settings.feeds, app.feeds.value, rss.missing).length;
+		const count = feedProblems(tabFeeds, app.feeds.value, rss.missing).length;
 		announcer.say(count > 0 ? t('rss.problems', { count }) : t('rss.refreshed'));
 	}
 
@@ -245,15 +259,201 @@
 	}
 
 	const area = new ScrollArea();
+
+	// --- Kategorien (Tabs), bedient wie im Link-Board --------------------------------------------
+
+	const uid = $props.id();
+	const tabName = (tab: RssTab) => tab.label || t('rss.untitledTab');
+
+	/** Ungelesene Einträge eines Tabs, über alle Einträge im Cache, nicht nur die sichtbaren */
+	function unreadOf(tab: RssTab): number {
+		let count = 0;
+		for (const feed of tab.feeds) {
+			for (const item of cache[feed.url]?.items ?? []) {
+				if (!rss.isRead(feed.url, item.id)) count++;
+			}
+		}
+		return count;
+	}
+
+	const tabLabel = (tab: RssTab, unread: number) =>
+		unread > 0 ? t('rss.tabUnread', { name: tabName(tab), count: unread }) : tabName(tab);
+
+	function selectTab(tabId: string, focus = false) {
+		update((s) => (s.activeTabId = tabId));
+		activeKey = null;
+		if (focus) document.getElementById(`${uid}-tab-${tabId}`)?.focus();
+	}
+
+	function onTabKeydown(event: KeyboardEvent, index: number) {
+		const count = settings.tabs.length;
+		const targets: Record<string, number> = {
+			ArrowRight: (index + 1) % count,
+			ArrowLeft: (index - 1 + count) % count,
+			Home: 0,
+			End: count - 1
+		};
+		if (!(event.key in targets)) return;
+		event.preventDefault();
+		selectTab(settings.tabs[targets[event.key]].id, true);
+	}
+
+	/** Solange das Widget den Fokus hat, wechselt Alt+1…9 die Kategorie */
+	function onRootKeydown(event: KeyboardEvent) {
+		if (event.defaultPrevented || !event.altKey || isTypingTarget(event.target)) return;
+		if (event.ctrlKey || event.metaKey || event.shiftKey || isOverlayOpen()) return;
+		const digit = digitOf(event);
+		const tab = digit ? settings.tabs[digit - 1] : undefined;
+		if (!tab) return;
+		event.preventDefault();
+		selectTab(tab.id, true);
+	}
+
+	// svelte-ignore state_referenced_locally
+	const tabSort = new Sortable({
+		group: `rss-tabs:${id}`,
+		threshold: 5,
+		longPress: 450,
+		onmove: (tabId, _list, index) => update((s) => moveTab(s, tabId, index))
+	});
+
+	let tabDialog = $state(false);
+	let editingTab = $state<RssTab | null>(null);
+	let tabMenuAnchor = $state<MenuAnchor | null>(null);
+	let tabMenuTab = $state<RssTab | null>(null);
+
+	function addTab() {
+		editingTab = null;
+		tabDialog = true;
+	}
+
+	function editTab(tab: RssTab) {
+		editingTab = tab;
+		tabDialog = true;
+	}
+
+	function saveTab(data: { label: string; icon: string }) {
+		const editing = editingTab;
+		if (editing) {
+			update((s) => {
+				const tab = s.tabs.find((tab) => tab.id === editing.id);
+				if (tab) Object.assign(tab, { label: data.label, icon: data.icon });
+			});
+			return;
+		}
+		if (settings.tabs.length >= MAX_TABS) return;
+		const tab: RssTab = { ...createRssTab(data.label), icon: data.icon };
+		update((s) => {
+			insertTab(s, tab);
+			s.activeTabId = tab.id;
+		});
+	}
+
+	function deleteTab(tab: RssTab) {
+		let removed: ReturnType<typeof removeTab<RssTab>> = null;
+		update((s) => (removed = removeTab(s, tab.id)));
+		const restore = removed as ReturnType<typeof removeTab<RssTab>>;
+		if (!restore) {
+			toasts.show(t('rss.lastTab'), { tone: 'error' });
+			return;
+		}
+		toasts.show(t('rss.tabDeleted', { name: tabName(tab) }), {
+			action: {
+				label: t('common.undo'),
+				run: () =>
+					update((s) => {
+						insertTab(s, restore.tab, restore.index);
+						s.activeTabId = restore.tab.id;
+					})
+			}
+		});
+	}
+
+	const tabMenuItems = $derived.by((): MenuItem[] => {
+		const tab = tabMenuTab;
+		if (!tab) return [];
+		return [
+			{ label: t('rss.editTab'), icon: 'pencil', onselect: () => editTab(tab) },
+			{
+				label: t('rss.addTab'),
+				icon: 'plus',
+				disabled: settings.tabs.length >= MAX_TABS,
+				onselect: addTab
+			},
+			'separator',
+			{
+				label: t('rss.deleteTab'),
+				icon: 'trash',
+				danger: true,
+				disabled: settings.tabs.length <= 1,
+				onselect: () => deleteTab(tab)
+			}
+		];
+	});
 </script>
 
-<div class="rss">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="rss" onkeydown={onRootKeydown}>
+	{#if settings.title}
+		<h2 class="title">{settings.title}</h2>
+	{/if}
 	<div class="head">
-		{#if settings.title}
-			<h2 class="title">{settings.title}</h2>
-		{:else}
-			<span class="spacer"></span>
-		{/if}
+		<div
+			class="tablist"
+			role="tablist"
+			aria-label={t('rss.tabs')}
+			{@attach tabSort.list({ id: 'tabs', axis: 'horizontal' })}
+		>
+			{#each settings.tabs as tab, index (tab.id)}
+				{@const unread = unreadOf(tab)}
+				{@const troubled = feedProblems(tab.feeds, cache, rss.missing).length > 0}
+				<button
+					type="button"
+					role="tab"
+					id="{uid}-tab-{tab.id}"
+					class="tab"
+					class:dragging={tabSort.isDragging(tab.id)}
+					aria-selected={tab.id === activeTab.id}
+					aria-controls="{uid}-panel"
+					aria-label={tabLabel(tab, unread)}
+					tabindex={tab.id === activeTab.id ? 0 : -1}
+					onclick={() => selectTab(tab.id)}
+					ondblclick={() => editTab(tab)}
+					oncontextmenu={(event) => {
+						event.preventDefault();
+						tabMenuTab = tab;
+						tabMenuAnchor =
+							event.clientX || event.clientY
+								? { x: event.clientX, y: event.clientY }
+								: event.currentTarget;
+					}}
+					onkeydown={(event) => onTabKeydown(event, index)}
+					{@attach tabSort.item({ id: tab.id, list: 'tabs' })}
+				>
+					{#if tab.icon}<span class="tab-icon" aria-hidden="true">{tab.icon}</span>{/if}
+					<span aria-hidden="true">{tabName(tab)}</span>
+					{#if troubled}
+						<span class="tab-warning" title={t('rss.tabProblem')} aria-hidden="true">
+							<Icon name="warning" size={12} />
+						</span>
+					{/if}
+					{#if unread > 0}
+						<span class="count" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>
+					{/if}
+				</button>
+			{/each}
+		</div>
+		<button
+			type="button"
+			class="icon-btn add-tab"
+			aria-label={t('rss.addTab')}
+			title={t('rss.addTab')}
+			disabled={settings.tabs.length >= MAX_TABS}
+			onclick={addTab}
+		>
+			<Icon name="plus" size={16} />
+		</button>
+		<span class="spacer"></span>
 		<button
 			type="button"
 			class="icon-btn"
@@ -279,136 +479,148 @@
 		<span id="{id}-status" class="visually-hidden">{statusText}</span>
 	</div>
 
-	{#if settings.feeds.length === 0}
-		<div class="empty">
-			<p>{t('rss.noFeeds')}</p>
-			{#if opensettings}
-				<button type="button" class="btn" onclick={opensettings}>
-					<Icon name="plus" size={16} />
-					{t('rss.addFeed')}
-				</button>
-			{/if}
-		</div>
-	{:else if items.length === 0}
-		<div class="empty">
-			<p>{hasEntries ? t('rss.allRead') : loading ? '' : t('rss.noItems')}</p>
-		</div>
-	{:else}
-		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-		<ul
-			bind:this={list}
-			class="list"
-			class:fade-top={area.fadeTop}
-			class:fade-bottom={area.fadeBottom}
-			aria-label={settings.title || t('rss.entries')}
-			aria-describedby={hintId}
-			onkeydown={onListKeydown}
-			{@attach area.attach}
-		>
-			{#each items as entry, i (keyOf(entry))}
-				{@const state = cache[entry.feedUrl]}
-				{@const name = source(entry.feedUrl, state)}
-				{@const image =
-					settings.showImages && entry.item.image && !failedImages.has(entry.item.image)
-						? entry.item.image
-						: null}
-				<li class="entry" class:unread={!entry.read}>
-					<a
-						class="item"
-						href={entry.item.url ?? undefined}
-						aria-disabled={entry.item.url ? undefined : 'true'}
-						rel="noopener noreferrer"
-						referrerpolicy="no-referrer"
-						lang={state?.language ?? undefined}
-						data-index={i}
-						tabindex={keyOf(entry) === focusKey ? 0 : -1}
-						draggable="false"
-						onclick={(event) => onItemClick(event, entry)}
-						onauxclick={(event) => event.button === 1 && entry.item.url && setRead(entry, true)}
-						onfocus={() => (activeKey = keyOf(entry))}
-						oncontextmenu={(event) => openMenu(event, entry)}
-					>
-						<span class="icon">
-							<LinkIcon url={state?.siteUrl ?? entry.feedUrl} label={name} size={16} />
-						</span>
-						<span class="body">
-							<span class="headline">
-								{#if !entry.read}
-									<span class="dot" aria-hidden="true"></span>
-									<span class="visually-hidden">{t('rss.unread')}:</span>
+	<div class="tabpanel" role="tabpanel" id="{uid}-panel" aria-labelledby="{uid}-tab-{activeTab.id}">
+		{#if tabFeeds.length === 0}
+			<div class="empty">
+				<p>{t('rss.noFeeds')}</p>
+				{#if opensettings}
+					<button type="button" class="btn" onclick={opensettings}>
+						<Icon name="plus" size={16} />
+						{t('rss.addFeed')}
+					</button>
+				{/if}
+			</div>
+		{:else if items.length === 0}
+			<div class="empty">
+				<p>{hasEntries ? t('rss.allRead') : loading ? '' : t('rss.noItems')}</p>
+			</div>
+		{:else}
+			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+			<ul
+				bind:this={list}
+				class="list"
+				class:fade-top={area.fadeTop}
+				class:fade-bottom={area.fadeBottom}
+				aria-label={settings.title || t('rss.entries')}
+				aria-describedby={hintId}
+				onkeydown={onListKeydown}
+				{@attach area.attach}
+			>
+				{#each items as entry, i (keyOf(entry))}
+					{@const state = cache[entry.feedUrl]}
+					{@const name = source(entry.feedUrl, state)}
+					{@const image =
+						settings.showImages && entry.item.image && !failedImages.has(entry.item.image)
+							? entry.item.image
+							: null}
+					<li class="entry" class:unread={!entry.read}>
+						<a
+							class="item"
+							href={entry.item.url ?? undefined}
+							aria-disabled={entry.item.url ? undefined : 'true'}
+							rel="noopener noreferrer"
+							referrerpolicy="no-referrer"
+							lang={state?.language ?? undefined}
+							data-index={i}
+							tabindex={keyOf(entry) === focusKey ? 0 : -1}
+							draggable="false"
+							onclick={(event) => onItemClick(event, entry)}
+							onauxclick={(event) => event.button === 1 && entry.item.url && setRead(entry, true)}
+							onfocus={() => (activeKey = keyOf(entry))}
+							oncontextmenu={(event) => openMenu(event, entry)}
+						>
+							<span class="icon">
+								<LinkIcon url={state?.siteUrl ?? entry.feedUrl} label={name} size={16} />
+							</span>
+							<span class="body">
+								<span class="headline">
+									{#if !entry.read}
+										<span class="dot" aria-hidden="true"></span>
+										<span class="visually-hidden">{t('rss.unread')}:</span>
+									{/if}
+									<span class="text">{headline(entry)}</span>
+								</span>
+								{#if settings.showSummary && entry.item.title && entry.item.summary}
+									<span class="summary">{entry.item.summary}</span>
 								{/if}
-								<span class="text">{headline(entry)}</span>
+								<span class="meta">
+									<span class="source">{name}</span>
+									<span aria-hidden="true">·</span>
+									<time
+										datetime={new Date(entry.date).toISOString()}
+										title={fullDate(entry.date, i18n.lang)}
+									>
+										{relativeTime(entry.date, now, i18n.lang)}
+									</time>
+								</span>
 							</span>
-							{#if settings.showSummary && entry.item.title && entry.item.summary}
-								<span class="summary">{entry.item.summary}</span>
+							{#if image}
+								<img
+									class="thumb"
+									src={image}
+									alt=""
+									loading="lazy"
+									decoding="async"
+									referrerpolicy="no-referrer"
+									draggable="false"
+									onload={(event) => onImageLoad(event, image)}
+									onerror={() => failedImages.add(image)}
+								/>
 							{/if}
-							<span class="meta">
-								<span class="source">{name}</span>
-								<span aria-hidden="true">·</span>
-								<time
-									datetime={new Date(entry.date).toISOString()}
-									title={fullDate(entry.date, i18n.lang)}
-								>
-									{relativeTime(entry.date, now, i18n.lang)}
-								</time>
-							</span>
-						</span>
-						{#if image}
-							<img
-								class="thumb"
-								src={image}
-								alt=""
-								loading="lazy"
-								decoding="async"
-								referrerpolicy="no-referrer"
-								draggable="false"
-								onload={(event) => onImageLoad(event, image)}
-								onerror={() => failedImages.add(image)}
-							/>
-						{/if}
-					</a>
-				</li>
-			{/each}
-		</ul>
-		<p id={hintId} class="visually-hidden">{t('rss.listHint')}</p>
-	{/if}
+						</a>
+					</li>
+				{/each}
+			</ul>
+			<p id={hintId} class="visually-hidden">{t('rss.listHint')}</p>
+		{/if}
 
-	{#if !online || problems.length > 0}
-		<div class="foot">
-			{#if !online}
-				<p class="note"><Icon name="warning" size={14} /> {statusText}</p>
-			{/if}
-			{#if problems.length > 0}
-				<details class="problems">
-					<summary>
-						<Icon name="warning" size={14} />
-						{t('rss.problems', { count: problems.length })}
-					</summary>
-					<ul>
-						{#each problems as problem (problem.feed.id)}
-							<li>
-								<strong>{source(problem.feed.url, cache[problem.feed.url])}</strong>:
-								{errorText(problem)}
-							</li>
-						{/each}
-					</ul>
-				</details>
-				<div class="actions">
-					{#if missingPatterns.length > 0}
-						<button type="button" class="btn" onclick={allowAccess}>
-							{t('rss.allowAccess')}
-						</button>
-					{/if}
-					{#if problems.some((p) => p.code !== 'permission')}
-						<button type="button" class="btn" onclick={retry}>{t('rss.retry')}</button>
-					{/if}
-				</div>
-			{/if}
-		</div>
-	{/if}
+		{#if !online || problems.length > 0}
+			<div class="foot">
+				{#if !online}
+					<p class="note"><Icon name="warning" size={14} /> {statusText}</p>
+				{/if}
+				{#if problems.length > 0}
+					<details class="problems">
+						<summary>
+							<Icon name="warning" size={14} />
+							{t('rss.problems', { count: problems.length })}
+						</summary>
+						<ul>
+							{#each problems as problem (problem.feed.id)}
+								<li>
+									<strong>{source(problem.feed.url, cache[problem.feed.url])}</strong>:
+									{errorText(problem)}
+								</li>
+							{/each}
+						</ul>
+					</details>
+					<div class="actions">
+						{#if missingPatterns.length > 0}
+							<button type="button" class="btn" onclick={allowAccess}>
+								{t('rss.allowAccess')}
+							</button>
+						{/if}
+						{#if problems.some((p) => p.code !== 'permission')}
+							<button type="button" class="btn" onclick={retry}>{t('rss.retry')}</button>
+						{/if}
+					</div>
+				{/if}
+			</div>
+		{/if}
+	</div>
 </div>
 
 <Menu bind:anchor={menuAnchor} label={t('rss.entries')} items={menuItems} />
+<Menu bind:anchor={tabMenuAnchor} label={t('rss.tabs')} items={tabMenuItems} />
+<TabDialog
+	bind:open={tabDialog}
+	tab={editingTab}
+	canDelete={settings.tabs.length > 1}
+	showView={false}
+	labels={{ edit: t('rss.editTab'), create: t('rss.newTab'), remove: t('rss.deleteTab') }}
+	onsave={saveTab}
+	ondelete={() => editingTab && deleteTab(editingTab)}
+/>
 
 <style>
 	.rss {
@@ -428,9 +640,13 @@
 		margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0 0;
 	}
 
+	/* Mit Höchsthöhe würde der Flex-Container sonst die Überschrift zusammendrücken */
+	.title,
+	.head {
+		flex: none;
+	}
+
 	.title {
-		flex: 1;
-		min-width: 0;
 		overflow: hidden;
 		font-size: var(--text-md);
 		font-weight: 700;
@@ -440,6 +656,99 @@
 
 	.spacer {
 		flex: 1;
+	}
+
+	/* Der Inhalt eines Tabs füllt den Rest; mit Höchsthöhe scrollt darin nur die Liste */
+	.tabpanel {
+		display: flex;
+		flex: 1 1 auto;
+		flex-direction: column;
+		gap: var(--space-2);
+		min-height: 0;
+	}
+
+	/* --- Kategorien, gestaltet wie die Tabs des Link-Boards --- */
+
+	.tablist {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-1);
+		min-width: 0;
+	}
+
+	.tab {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+		height: 30px;
+		padding: 0 var(--space-3);
+		border: none;
+		border-radius: var(--radius-full);
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
+		font-weight: 650;
+		white-space: nowrap;
+		transition:
+			background-color var(--duration-fast) ease,
+			color var(--duration-fast) ease,
+			box-shadow var(--duration-fast) ease;
+
+		&:hover {
+			background: var(--fill);
+			color: var(--text);
+		}
+
+		&[aria-selected='true'] {
+			background: var(--raised);
+			color: var(--text);
+			box-shadow:
+				0 1px 3px rgb(var(--shade) / 0.16),
+				inset 0 1px 0 var(--highlight);
+		}
+
+		&:focus-visible {
+			box-shadow: var(--focus-ring);
+		}
+
+		&.dragging {
+			opacity: 0.35;
+		}
+	}
+
+	.tab-icon {
+		font-size: 1.05em;
+	}
+
+	.tab-warning {
+		display: inline-grid;
+		color: var(--danger);
+	}
+
+	/* Ungelesene: kleine Pille in Akzentfarbe */
+	.count {
+		display: inline-grid;
+		place-items: center;
+		min-width: 18px;
+		height: 18px;
+		padding: 0 5px;
+		border-radius: var(--radius-full);
+		background: var(--accent);
+		color: var(--on-accent);
+		font-size: 10px;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.add-tab {
+		width: 28px;
+		height: 28px;
+		opacity: 0.6;
+
+		&:hover,
+		&:focus-visible {
+			opacity: 1;
+		}
 	}
 
 	.spinning :global(svg) {

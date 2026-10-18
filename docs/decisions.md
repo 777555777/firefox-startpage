@@ -696,3 +696,31 @@ zusammengefasst und dann gelöscht).
   Das ist unbedenklich, weil keines dieser Elemente fokussierbar ist. Zusätzlich sind die
   scrollenden Bereiche (Inhalt eines Panels mit Höchsthöhe, RSS-Liste) `position: relative`,
   damit absolut positionierte Kinder in ihnen bleiben.
+
+## Nach v1 – RSS-Widget: Kategorien als Tabs
+
+- **Ersetzt „nur eine gemischte Liste“:** Nach dem ersten Test im Alltag hat jedes RSS-Widget
+  Kategorien als Tabs (z. B. „Webdev“, „Nachrichten“, „Gaming“), jede mit eigenen Feeds;
+  innerhalb eines Tabs bleibt die Liste chronologisch gemischt. Einen „Alle“-Tab gibt es nicht.
+- **Schema:** `RssSettings.tabs` (höchstens 10, jeweils `label`, `icon`, höchstens 20 `feeds`)
+  und `activeTabId` statt `feeds`. Kein Schema-Sprung: `parseRssSettings` liest ein altes
+  `feeds` als einen Tab ohne Namen (angezeigt als „Feeds“). Derselbe Feed darf in mehreren
+  Kategorien stehen; Cache, Gelesen-Status und Abruf gelten weiter pro Adresse. Abgerufen
+  werden die Feeds aller Tabs, damit die Zähler stimmen.
+- **Tab-Leiste wie im Link-Board:** Reiter mit optionalem Emoji, „+“ für eine neue Kategorie,
+  Doppelklick bzw. Kontextmenü zum Bearbeiten und Löschen (mit Rückgängig-Toast, die letzte
+  Kategorie bleibt), Ziehen zum Sortieren, Pfeiltasten in der Leiste, `Alt+1…9`, solange das
+  Widget den Fokus hat. Die Tab-Operationen (`moveTab`, `removeTab`, `insertTab`) und der
+  Tab-Dialog des Link-Boards sind dafür allgemein geworden; der Dialog kann die Auswahl der
+  Ansicht weglassen und eigene Titel tragen („Kategorie“ statt „Gruppe“).
+- **Zähler:** ungelesene Einträge aller gecachten Einträge des Tabs als kleine Pille in
+  Akzentfarbe (ab 100 „99+“), für Screenreader im Namen des Reiters („Webdev, 3 ungelesen“).
+  Hat ein Feed der Kategorie ein Problem, zeigt der Reiter ein kleines Warnzeichen. „Alle als
+  gelesen“, „Aktualisieren“ und der Problem-Fuß beziehen sich auf den aktiven Tab.
+- **Einstellungen:** Die Feeds stehen nach Kategorien gruppiert; jeder Feed lässt sich per
+  Auswahlfeld in eine andere Kategorie verschieben (steht er dort schon, fällt er nur weg).
+  Neue Feeds kommen in die gewählte Kategorie, Standard ist die im Widget aktive.
+- **Nebenbei behoben:** Der Tab-Dialog setzt den Fokus ins Namensfeld (bisher auf
+  „Schließen“, auch im Link-Board), damit man gleich tippen kann. Die Überschrift des
+  RSS-Widgets schrumpfte mit Höchsthöhe auf wenige Pixel, weil sie als Flex-Kind mit
+  `overflow: hidden` keine Mindesthöhe hatte; Überschrift und Kopf schrumpfen jetzt nicht mehr.

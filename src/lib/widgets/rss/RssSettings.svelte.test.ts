@@ -36,10 +36,10 @@ function stubBrowser(granted: boolean) {
 	return { permissions, calls };
 }
 
-async function setup(feeds: string[] = []) {
+async function setup(feeds: string[] = [], raw: Record<string, unknown> = {}) {
 	const app = createMemoryAppState();
 	await Promise.all([app.config.load(), app.feeds.load(), app.feedReads.load()]);
-	const settings = $state(parseRssSettings({ feeds: feeds.map((url) => ({ url })) }));
+	const settings = $state(parseRssSettings({ feeds: feeds.map((url) => ({ url })), ...raw }));
 	render(Harness, {
 		props: {
 			app,
@@ -65,10 +65,13 @@ describe('Einstellungen des RSS-Widgets', () => {
 		const { permissions, calls } = stubBrowser(true);
 		const { app, settings, user } = await setup();
 		await addFeed(user, 'http://www.example.org/feed');
-		await vi.waitFor(() => expect(settings.feeds).toHaveLength(1));
+		await vi.waitFor(() => expect(settings.tabs[0].feeds).toHaveLength(1));
 		expect(permissions.request).toHaveBeenCalledWith({ origins: ['https://*.example.org/*'] });
 		expect(calls[0]).toBe('request');
-		expect(settings.feeds[0]).toMatchObject({ url: 'https://www.example.org/feed', name: '' });
+		expect(settings.tabs[0].feeds[0]).toMatchObject({
+			url: 'https://www.example.org/feed',
+			name: ''
+		});
 		expect(app.feeds.value['https://www.example.org/feed'].items).toHaveLength(1);
 		expect(screen.getByText(t('rss.add.upgraded'))).toBeInTheDocument();
 		expect(screen.getByLabelText(t('rss.feedUrl'))).toHaveValue('');
@@ -79,7 +82,7 @@ describe('Einstellungen des RSS-Widgets', () => {
 		const { settings, user } = await setup();
 		await addFeed(user, 'example.org/feed');
 		await vi.waitFor(() => expect(screen.getByText(t('rss.add.denied'))).toBeInTheDocument());
-		expect(settings.feeds).toHaveLength(0);
+		expect(settings.tabs[0].feeds).toHaveLength(0);
 		expect(fetch).not.toHaveBeenCalled();
 	});
 
@@ -103,15 +106,15 @@ describe('Einstellungen des RSS-Widgets', () => {
 		await user.click(
 			screen.getByRole('button', { name: t('rss.removeFeed', { name: 'a.example.org' }) })
 		);
-		expect(settings.feeds.map((f) => f.url)).toEqual(['https://b.example.org/feed']);
+		expect(settings.tabs[0].feeds.map((f) => f.url)).toEqual(['https://b.example.org/feed']);
 		await user.click(screen.getByRole('button', { name: t('common.undo') }));
-		expect(settings.feeds.map((f) => f.url)).toEqual([
+		expect(settings.tabs[0].feeds.map((f) => f.url)).toEqual([
 			'https://a.example.org/feed',
 			'https://b.example.org/feed'
 		]);
 		const name = screen.getByLabelText(t('rss.feedName', { host: 'b.example.org' }));
 		await user.type(name, '  Mein Feed  {Tab}');
-		expect(settings.feeds[1].name).toBe('Mein Feed');
+		expect(settings.tabs[0].feeds[1].name).toBe('Mein Feed');
 	});
 
 	it('schaltet Optionen um', async () => {
@@ -126,5 +129,29 @@ describe('Einstellungen des RSS-Widgets', () => {
 		}).format(1);
 		await user.click(screen.getByRole('radio', { name: hour }));
 		expect(settings.intervalMinutes).toBe(60);
+	});
+
+	it('fügt Feeds der gewählten Kategorie hinzu und verschiebt sie', async () => {
+		stubBrowser(true);
+		const { settings, user } = await setup([], {
+			tabs: [
+				{ id: 't1', label: 'Webdev', feeds: [{ id: 'a', url: 'https://a.example.org/feed' }] },
+				{ id: 't2', label: 'News', feeds: [] }
+			],
+			activeTabId: 't2'
+		});
+		expect(screen.getByLabelText(t('rss.addTo'))).toHaveValue('t2');
+		await addFeed(user, 'www.example.org/feed');
+		await vi.waitFor(() => expect(settings.tabs[1].feeds).toHaveLength(1));
+		expect(settings.tabs[0].feeds).toHaveLength(1);
+		await user.selectOptions(
+			screen.getByLabelText(t('rss.feedTab', { name: 'a.example.org' })),
+			't2'
+		);
+		expect(settings.tabs[0].feeds).toHaveLength(0);
+		expect(settings.tabs[1].feeds.map((f) => f.url)).toEqual([
+			'https://www.example.org/feed',
+			'https://a.example.org/feed'
+		]);
 	});
 });

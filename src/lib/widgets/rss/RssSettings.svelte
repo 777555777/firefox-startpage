@@ -15,13 +15,16 @@
 	import type { FeedLink } from './discover';
 	import { feedProblems, sourceName, type FeedProblem } from './format';
 	import {
+		activeTabOf,
+		allFeeds,
 		INTERVALS,
 		MAX_FEEDS,
 		MAX_ITEMS,
 		NAME_MAX,
 		TITLE_MAX,
 		type RssFeed,
-		type RssSettings
+		type RssSettings,
+		type RssTab
 	} from './settings';
 
 	let { settings, update }: WidgetSettingsProps<RssSettings> = $props();
@@ -29,8 +32,16 @@
 	const app = getApp();
 
 	const cache = $derived(app.feeds.value);
-	const problems = $derived(feedProblems(settings.feeds, cache, app.rss.missing));
-	const full = $derived(settings.feeds.length >= MAX_FEEDS);
+	const problems = $derived(feedProblems(allFeeds(settings), cache, app.rss.missing));
+	const tabName = (tab: RssTab) => tab.label || t('rss.untitledTab');
+	const multipleTabs = $derived(settings.tabs.length > 1);
+
+	/** Kategorie, in die ein neuer Feed kommt; Standard ist die im Widget gewählte */
+	let targetTabId = $state<string | null>(null);
+	const targetTab = $derived(
+		settings.tabs.find((tab) => tab.id === targetTabId) ?? activeTabOf(settings)
+	);
+	const full = $derived(targetTab.feeds.length >= MAX_FEEDS);
 
 	const host = (url: string) => {
 		try {
@@ -47,8 +58,9 @@
 			unitDisplay: 'short'
 		}).format(minutes < 60 ? minutes : minutes / 60);
 
+	// Nach Adresse, weil derselbe Feed in mehreren Kategorien stehen darf
 	const problemOf = (feed: RssFeed): FeedProblem | undefined =>
-		problems.find((problem) => problem.feed.id === feed.id);
+		problems.find((problem) => problem.feed.url === feed.url);
 
 	const errorText = (code: string, status?: number) =>
 		code === 'notFound'
@@ -67,7 +79,7 @@
 	/** Die Eingabe war http; der Hinweis bleibt nach dem Hinzufügen stehen */
 	let upgraded = false;
 
-	const isAdded = (url: string) => settings.feeds.some((feed) => feed.url === url);
+	const isAdded = (url: string) => targetTab.feeds.some((feed) => feed.url === url);
 
 	function reset() {
 		removed = null;
@@ -153,8 +165,9 @@
 
 	function add(result: Extract<ProbeResult, { kind: 'feed' }>) {
 		const feed: RssFeed = { id: createId(), url: result.url, name: '' };
+		const tabId = targetTab.id;
 		update((s) => {
-			s.feeds.push(feed);
+			s.tabs.find((tab) => tab.id === tabId)?.feeds.push(feed);
 		});
 		// Der Abruf zum Prüfen füllt gleich den Cache, damit das Widget sofort Einträge zeigt
 		app.feeds.value[result.url] = applyFetched(
@@ -173,8 +186,24 @@
 
 	function rename(feed: RssFeed, value: string) {
 		update((s) => {
-			const target = s.feeds.find((f) => f.id === feed.id);
+			const target = s.tabs.flatMap((tab) => tab.feeds).find((f) => f.id === feed.id);
 			if (target) target.name = value.trim().slice(0, NAME_MAX);
+		});
+	}
+
+	/** Verschiebt einen Feed in eine andere Kategorie; steht er dort schon, fällt er hier weg */
+	function moveToTab(feed: RssFeed, fromId: string, toId: string) {
+		reset();
+		update((s) => {
+			const from = s.tabs.find((tab) => tab.id === fromId);
+			const to = s.tabs.find((tab) => tab.id === toId);
+			if (!from || !to || from === to) return;
+			const index = from.feeds.findIndex((f) => f.id === feed.id);
+			if (index === -1) return;
+			const [moved] = from.feeds.splice(index, 1);
+			if (!to.feeds.some((f) => f.url === moved.url) && to.feeds.length < MAX_FEEDS) {
+				to.feeds.push(moved);
+			}
 		});
 	}
 
@@ -182,18 +211,20 @@
 	 * Zuletzt entfernter Feed. Rückgängig steht im Dialog selbst und nicht als Toast: Toasts
 	 * liegen unter dem modalen Dialog und wären dort nicht klickbar.
 	 */
-	let removed = $state<{ feed: RssFeed; index: number; name: string } | null>(null);
+	let removed = $state<{ feed: RssFeed; tabId: string; index: number; name: string } | null>(null);
 
-	function remove(feed: RssFeed) {
-		const index = settings.feeds.findIndex((f) => f.id === feed.id);
+	function remove(feed: RssFeed, tab: RssTab) {
+		const index = tab.feeds.findIndex((f) => f.id === feed.id);
 		if (index === -1) return;
+		reset();
 		removed = {
 			feed: $state.snapshot(feed) as RssFeed,
+			tabId: tab.id,
 			index,
 			name: sourceName(feed, cache[feed.url])
 		};
 		update((s) => {
-			s.feeds.splice(index, 1);
+			s.tabs.find((t) => t.id === tab.id)?.feeds.splice(index, 1);
 		});
 	}
 
@@ -202,8 +233,10 @@
 		removed = null;
 		if (!last) return;
 		update((s) => {
-			if (s.feeds.some((f) => f.url === last.feed.url) || s.feeds.length >= MAX_FEEDS) return;
-			s.feeds.splice(Math.min(last.index, s.feeds.length), 0, last.feed);
+			// Gibt es die Kategorie nicht mehr, kommt der Feed in die erste
+			const tab = s.tabs.find((t) => t.id === last.tabId) ?? s.tabs[0];
+			if (tab.feeds.some((f) => f.url === last.feed.url) || tab.feeds.length >= MAX_FEEDS) return;
+			tab.feeds.splice(Math.min(last.index, tab.feeds.length), 0, last.feed);
 		});
 	}
 </script>
@@ -229,9 +262,18 @@
 	<section class="feeds" aria-labelledby="{id}-feeds">
 		<h3 class="field-label" id="{id}-feeds">{t('rss.feeds')}</h3>
 
-		{#if settings.feeds.length > 0}
+		{#each settings.tabs as tab (tab.id)}
+			{#if multipleTabs}
+				<h4 class="tab-heading">
+					{#if tab.icon}<span aria-hidden="true">{tab.icon}</span>{/if}
+					{tabName(tab)}
+				</h4>
+			{/if}
+			{#if tab.feeds.length === 0 && multipleTabs}
+				<p class="field-hint">{t('rss.noFeeds')}</p>
+			{/if}
 			<ul class="feed-list">
-				{#each settings.feeds as feed (feed.id)}
+				{#each tab.feeds as feed (feed.id)}
 					{@const state = cache[feed.url]}
 					{@const problem = problemOf(feed)}
 					<li class="feed">
@@ -247,6 +289,18 @@
 								onchange={(event) => rename(feed, event.currentTarget.value)}
 							/>
 							<span class="feed-host" title={feed.url}>{host(feed.url)}</span>
+							{#if multipleTabs}
+								<select
+									class="select tab-select"
+									aria-label={t('rss.feedTab', { name: sourceName(feed, state) })}
+									value={tab.id}
+									onchange={(event) => moveToTab(feed, tab.id, event.currentTarget.value)}
+								>
+									{#each settings.tabs as option (option.id)}
+										<option value={option.id}>{option.icon} {tabName(option)}</option>
+									{/each}
+								</select>
+							{/if}
 							{#if problem}
 								<span class="field-error">{errorText(problem.code, problem.status)}</span>
 							{/if}
@@ -255,14 +309,14 @@
 							type="button"
 							class="icon-btn"
 							aria-label={t('rss.removeFeed', { name: sourceName(feed, state) })}
-							onclick={() => remove(feed)}
+							onclick={() => remove(feed, tab)}
 						>
 							<Icon name="trash" />
 						</button>
 					</li>
 				{/each}
 			</ul>
-		{/if}
+		{/each}
 
 		{#if removed}
 			<div class="removed" role="status">
@@ -273,6 +327,24 @@
 
 		<form class="add" onsubmit={submit}>
 			<label class="field-label" for="{id}-url">{t('rss.feedUrl')}</label>
+			{#if multipleTabs}
+				<div class="target">
+					<label class="field-hint" for="{id}-target">{t('rss.addTo')}</label>
+					<select
+						id="{id}-target"
+						class="select"
+						value={targetTab.id}
+						onchange={(event) => {
+							targetTabId = event.currentTarget.value;
+							reset();
+						}}
+					>
+						{#each settings.tabs as option (option.id)}
+							<option value={option.id}>{option.icon} {tabName(option)}</option>
+						{/each}
+					</select>
+				</div>
+			{/if}
 			<div class="add-row">
 				<input
 					id="{id}-url"
@@ -418,6 +490,37 @@
 		flex: 1;
 		gap: 2px;
 		min-width: 0;
+	}
+
+	.tab-heading {
+		display: flex;
+		gap: var(--space-1);
+		margin-top: var(--space-2);
+		font-size: var(--text-sm);
+		font-weight: 650;
+	}
+
+	.tab-select {
+		/* Im Grid der Zeile nicht auf volle Breite strecken */
+		justify-self: start;
+		width: auto;
+		max-width: 100%;
+		min-height: 30px;
+		margin-top: 2px;
+		font-size: var(--text-xs);
+	}
+
+	.target {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+
+		.select {
+			width: auto;
+			min-width: 0;
+			min-height: 30px;
+			font-size: var(--text-sm);
+		}
 	}
 
 	.feed-host {

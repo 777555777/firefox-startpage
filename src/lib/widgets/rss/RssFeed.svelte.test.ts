@@ -4,11 +4,12 @@ import type { Component } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { t } from '$lib/i18n/index.svelte';
 import { createMemoryAppState } from '$lib/state/app.svelte';
+import { toasts } from '$lib/state/toasts.svelte';
 import Harness from '$lib/test/Harness.svelte';
 import type { WidgetProps } from '../types';
 import { emptyFeedState, type CachedItem, type FeedCache, type FeedReads } from './cache';
 import RssFeed from './RssFeed.svelte';
-import { parseRssSettings, type RssSettings } from './settings';
+import { activeTabOf, parseRssSettings, type RssSettings } from './settings';
 
 const A = 'https://a.example.org/feed';
 const B = 'https://b.example.org/feed';
@@ -45,7 +46,8 @@ const defaultCache = (): FeedCache => ({
 
 async function setup(
 	options: {
-		settings?: Partial<RssSettings>;
+		/** Rohe Settings, wie sie gespeichert wären */
+		settings?: Record<string, unknown>;
 		cache?: FeedCache;
 		reads?: FeedReads;
 		opensettings?: () => void;
@@ -143,6 +145,7 @@ describe('RSS-Widget', () => {
 	it('zeigt ohne Feeds einen Hinweis und den Weg in die Einstellungen', async () => {
 		const opensettings = vi.fn();
 		const { user } = await setup({ settings: { feeds: [] }, opensettings });
+		expect(screen.getByRole('tab', { name: t('rss.untitledTab') })).toBeInTheDocument();
 		expect(screen.getByText(t('rss.noFeeds'))).toBeInTheDocument();
 		await user.click(screen.getByRole('button', { name: t('rss.addFeed') }));
 		expect(opensettings).toHaveBeenCalled();
@@ -185,6 +188,74 @@ describe('RSS-Widget', () => {
 		expect(image).toHaveAttribute('alt', '');
 		await fireEvent.error(image);
 		expect(document.querySelector('.thumb')).toBeNull();
+	});
+});
+
+describe('Kategorien im RSS-Widget', () => {
+	const stopNavigation = (event: Event) => event.preventDefault();
+	beforeEach(() => document.addEventListener('click', stopNavigation));
+	afterEach(() => document.removeEventListener('click', stopNavigation));
+
+	const tabs = {
+		tabs: [
+			{ id: 't1', label: 'Webdev', icon: '💻', feeds: [{ url: A }] },
+			{ id: 't2', label: 'News', feeds: [{ url: B }] }
+		],
+		activeTabId: 't1'
+	};
+	const tab = (name: string, count?: number) =>
+		screen.getByRole('tab', {
+			name: count ? t('rss.tabUnread', { name, count }) : name
+		});
+
+	it('zeigt nur die Einträge des aktiven Tabs und Zähler für Ungelesenes', async () => {
+		await setup({ settings: tabs });
+		expect(titles()).toEqual(['Eintrag a1', 'Eintrag a2']);
+		expect(tab('Webdev', 2)).toHaveAttribute('aria-selected', 'true');
+		expect(tab('News', 1)).toHaveAttribute('aria-selected', 'false');
+	});
+
+	it('wechselt per Klick, Pfeiltasten und Alt+Ziffer', async () => {
+		const { settings, user } = await setup({ settings: tabs });
+		await user.click(tab('News', 1));
+		expect(settings.activeTabId).toBe('t2');
+		expect(titles()).toEqual(['Eintrag b1']);
+		await user.keyboard('{ArrowLeft}');
+		expect(settings.activeTabId).toBe('t1');
+		expect(document.activeElement).toBe(tab('Webdev', 2));
+		items()[0].focus();
+		await user.keyboard('{Alt>}2{/Alt}');
+		expect(settings.activeTabId).toBe('t2');
+	});
+
+	it('markiert nur den aktiven Tab als gelesen', async () => {
+		const { app, user } = await setup({ settings: tabs });
+		await user.click(screen.getByRole('button', { name: t('rss.markAllRead') }));
+		expect(app.feedReads.value).toEqual({ [A]: ['a1', 'a2'] });
+		expect(tab('Webdev')).toBeInTheDocument();
+		expect(tab('News', 1)).toBeInTheDocument();
+	});
+
+	it('legt eine Kategorie an und wählt sie aus', async () => {
+		const { settings, user } = await setup({ settings: tabs });
+		await user.click(screen.getByRole('button', { name: t('rss.addTab') }));
+		const name = screen.getByLabelText(t('links.fieldTabLabel'));
+		await user.type(name, 'Gaming');
+		// Der Speichern-Knopf hängt per `form`-Attribut am Formular; das kennt jsdom nicht
+		await fireEvent.submit(name.closest('form')!);
+		expect(settings.tabs.map((tab) => tab.label)).toEqual(['Webdev', 'News', 'Gaming']);
+		expect(activeTabOf(settings).label).toBe('Gaming');
+		expect(screen.getByText(t('rss.noFeeds'))).toBeInTheDocument();
+	});
+
+	it('löscht eine Kategorie mit Rückgängig, die letzte bleibt', async () => {
+		const { settings, user } = await setup({ settings: tabs });
+		await fireEvent.contextMenu(tab('News', 1));
+		// Das Menü ist ein Popover, das jsdom nicht als geöffnet kennt
+		await user.click(screen.getByRole('menuitem', { name: t('rss.deleteTab'), hidden: true }));
+		expect(settings.tabs.map((tab) => tab.label)).toEqual(['Webdev']);
+		toasts.act(toasts.items.at(-1)!.id);
+		expect(settings.tabs.map((tab) => tab.label)).toEqual(['Webdev', 'News']);
 	});
 });
 

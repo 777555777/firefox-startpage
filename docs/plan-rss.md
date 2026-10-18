@@ -500,9 +500,9 @@ einem Commit.
 6. **R4 – Einstellungen und Rechte-Ablauf (erledigt, Prüfung in Firefox steht aus):** Einstellungs-Komponente, Dialog „Feed hinzufügen“ mit
    Rechte-Abfrage und Feed-Suche, sortieren, umbenennen, entfernen mit Rückgängig, „Zugriff
    erlauben“ im Widget, Kontrastprüfung bei Tag und Nacht.
-7. **R4b – Kategorien als Tabs (Teil C):** Schema mit Tabs samt Lesen alter Settings,
+7. **R4b – Kategorien als Tabs (Teil C, erledigt):** Schema mit Tabs samt Lesen alter Settings,
    Tab-Leiste mit Zählern, Tab-Verwaltung wie im Link-Board, Einstellungen nach Tabs gruppiert,
-   Tests. Startet, sobald der Test in Firefox abgeschlossen ist.
+   Tests.
 8. **R5 – Abschluss:** Entscheidungen nach `docs/decisions.md`, Checkliste, README-Abschnitt,
    diesen Plan löschen. Danach `pnpm version minor` (1.1.0) und `pnpm ext:sign`. Signiert wird erst
    nach Rücksprache mit der nutzenden Person, weil AMO jede Version nur einmal annimmt.

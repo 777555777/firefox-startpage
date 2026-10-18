@@ -166,3 +166,11 @@ Noch ohne Oberfläche; prüfbar, sobald „Feed hinzufügen“ existiert (R4).
 - [ ] Zugriff ablehnen: nichts wird angelegt, Hinweis erscheint
 - [ ] Umbenennen, Entfernen und „Rückgängig“ im Dialog
 - [ ] Intervall, Anzahl, Zusammenfassung, Titelbilder, Gelesene ausblenden wirken sofort
+
+## RSS – Kategorien (R4b)
+
+- [ ] Bestehendes RSS-Widget zeigt seine Feeds nach dem Update im Tab „Feeds“
+- [ ] „+“ legt eine Kategorie an (Fokus im Namensfeld), Doppelklick/Kontextmenü bearbeitet und löscht, Rückgängig
+- [ ] Reiter ziehen, Pfeiltasten in der Leiste, `Alt+1…9` im Widget
+- [ ] Zähler für Ungelesenes pro Reiter, Warnzeichen bei Problemen
+- [ ] Einstellungen: Feeds nach Kategorien, „In Kategorie“ beim Hinzufügen, Feed verschieben

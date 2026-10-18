@@ -22,7 +22,13 @@ import {
 	nextDue,
 	nextWake
 } from './schedule';
-import { defaultRssSettings, parseRssSettings, type RssSettings } from './settings';
+import {
+	activeTabOf,
+	allFeeds,
+	defaultRssSettings,
+	parseRssSettings,
+	type RssSettings
+} from './settings';
 
 const MIN = 60_000;
 const NOW = Date.UTC(2026, 9, 18, 12);
@@ -47,7 +53,11 @@ const widget = (urls: string[], intervalMinutes: RssSettings['intervalMinutes'] 
 
 describe('RSS-Einstellungen', () => {
 	it('ergänzt Fehlendes', () => {
-		expect(parseRssSettings(undefined)).toEqual(defaultRssSettings());
+		const settings = parseRssSettings(undefined);
+		const { tabs: _tabs, activeTabId: _active, ...rest } = defaultRssSettings();
+		expect(settings).toMatchObject(rest);
+		expect(settings.tabs).toHaveLength(1);
+		expect(settings.activeTabId).toBe(settings.tabs[0].id);
 		expect(defaultRssSettings()).toMatchObject({
 			maxItems: 20,
 			intervalMinutes: 30,
@@ -66,17 +76,49 @@ describe('RSS-Einstellungen', () => {
 				{ url: 'example.net/rss' }
 			]
 		});
-		expect(settings.feeds.map((feed) => [feed.url, feed.name])).toEqual([
+		const feeds = settings.tabs[0].feeds;
+		expect(feeds.map((feed) => [feed.url, feed.name])).toEqual([
 			['https://example.org/feed', 'Beispiel'],
 			['https://example.net/rss', '']
 		]);
-		expect(new Set(settings.feeds.map((feed) => feed.id)).size).toBe(2);
+		expect(new Set(feeds.map((feed) => feed.id)).size).toBe(2);
+	});
+
+	it('liest die alte Liste ohne Kategorien als einen Tab ohne Namen', () => {
+		const settings = parseRssSettings({ feeds: [{ url: A }], title: 'Alt' });
+		expect(settings.tabs).toHaveLength(1);
+		expect(settings.tabs[0]).toMatchObject({ label: '', icon: '' });
+		expect(settings.tabs[0].feeds.map((feed) => feed.url)).toEqual([A]);
+		expect(settings.activeTabId).toBe(settings.tabs[0].id);
+		expect(settings).not.toHaveProperty('feeds');
+	});
+
+	it('liest Kategorien, begrenzt sie und prüft den aktiven Tab', () => {
+		const settings = parseRssSettings({
+			tabs: [
+				{ id: 't1', label: ' Webdev ', icon: '💻', feeds: [{ id: 'f', url: A }] },
+				{ id: 't1', label: 'Nachrichten', feeds: [{ id: 'f', url: A }, { url: B }] },
+				'kaputt'
+			],
+			activeTabId: 'gibt-es-nicht'
+		});
+		expect(settings.tabs.map((tab) => tab.label)).toEqual(['Webdev', 'Nachrichten', '']);
+		// IDs von Tabs und Feeds sind über alle Kategorien eindeutig
+		expect(new Set(settings.tabs.map((tab) => tab.id)).size).toBe(3);
+		const feedIds = settings.tabs.flatMap((tab) => tab.feeds.map((feed) => feed.id));
+		expect(new Set(feedIds).size).toBe(feedIds.length);
+		expect(activeTabOf(settings).id).toBe('t1');
+		// Derselbe Feed darf in mehreren Kategorien stehen, gebraucht wird er einmal
+		expect(allFeeds(settings).map((feed) => feed.url)).toEqual([A, B]);
+		expect(parseRssSettings({ tabs: [] }).tabs).toHaveLength(1);
+		const many = Array.from({ length: 15 }, (_, i) => ({ label: `T${i}` }));
+		expect(parseRssSettings({ tabs: many }).tabs).toHaveLength(10);
 	});
 
 	it('begrenzt Feeds, Einträge und rastet das Intervall ein', () => {
 		const many = Array.from({ length: 30 }, (_, i) => ({ url: `https://e${i}.example.org/` }));
 		const settings = parseRssSettings({ feeds: many, maxItems: 500, intervalMinutes: 50 });
-		expect(settings.feeds).toHaveLength(20);
+		expect(settings.tabs[0].feeds).toHaveLength(20);
 		expect(settings.maxItems).toBe(50);
 		expect(settings.intervalMinutes).toBe(60);
 		expect(parseRssSettings({ maxItems: 1, intervalMinutes: 'oft' })).toMatchObject({
@@ -173,6 +215,13 @@ describe('Zeitplan', () => {
 		const intervals = feedIntervals([widget([A, B], 60), widget([A], 15)]);
 		expect(intervals.get(A)).toBe(15 * MIN);
 		expect(intervals.get(B)).toBe(60 * MIN);
+	});
+
+	it('ruft die Feeds aller Kategorien ab, nicht nur die des aktiven Tabs', () => {
+		const settings = parseRssSettings({
+			tabs: [{ feeds: [{ url: A }] }, { feeds: [{ url: B }] }]
+		});
+		expect([...feedIntervals([settings]).keys()]).toEqual([A, B]);
 	});
 
 	it('ruft neue Feeds sofort und sonst nach dem Intervall ab', () => {

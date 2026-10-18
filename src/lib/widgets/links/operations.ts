@@ -1,4 +1,4 @@
-import type { Link, LinksSettings, LinkTab } from './settings';
+import type { Link, LinksSettings } from './settings';
 
 /**
  * Operationen auf einem Link-Board. Sie ändern die übergebenen Settings direkt, damit sie
@@ -36,7 +36,14 @@ export function insertLink(board: LinksSettings, tabId: string, link: Link, inde
 	tab.links.splice(at, 0, link);
 }
 
-export function moveTab(board: LinksSettings, tabId: string, index: number) {
+/** Alles mit Tabs und aktivem Tab; die Tab-Operationen nutzen Link-Board und RSS-Widget */
+type TabbedBoard<T extends { id: string }> = { tabs: T[]; activeTabId: string };
+
+export function moveTab<T extends { id: string }>(
+	board: TabbedBoard<T>,
+	tabId: string,
+	index: number
+) {
 	const from = board.tabs.findIndex((tab) => tab.id === tabId);
 	if (from === -1) return;
 	const [tab] = board.tabs.splice(from, 1);
@@ -44,7 +51,7 @@ export function moveTab(board: LinksSettings, tabId: string, index: number) {
 }
 
 /** Entfernt einen Tab; der letzte Tab bleibt immer erhalten */
-export function removeTab(board: LinksSettings, tabId: string) {
+export function removeTab<T extends { id: string }>(board: TabbedBoard<T>, tabId: string) {
 	if (board.tabs.length <= 1) return null;
 	const index = board.tabs.findIndex((tab) => tab.id === tabId);
 	if (index === -1) return null;
@@ -53,6 +60,10 @@ export function removeTab(board: LinksSettings, tabId: string) {
 	return { index, tab };
 }
 
-export function insertTab(board: LinksSettings, tab: LinkTab, index = board.tabs.length) {
+export function insertTab<T extends { id: string }>(
+	board: TabbedBoard<T>,
+	tab: T,
+	index = board.tabs.length
+) {
 	board.tabs.splice(Math.max(0, Math.min(index, board.tabs.length)), 0, tab);
 }
