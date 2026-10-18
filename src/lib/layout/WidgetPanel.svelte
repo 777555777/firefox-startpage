@@ -5,11 +5,13 @@
 	import { getApp } from '$lib/state/context';
 	import { glass } from '$lib/glass/layer';
 	import Icon from '$lib/ui/Icon.svelte';
+	import { ScrollArea } from '$lib/ui/scroll-area.svelte';
 	import { definitionOf } from '$lib/widgets/registry';
 
 	let {
 		instance,
 		column,
+		maxHeight,
 		editing,
 		sortable,
 		grabbed,
@@ -20,6 +22,8 @@
 	}: {
 		instance: WidgetInstance;
 		column: number;
+		/** Höchsthöhe der Zeile in rem; ohne Wert so hoch wie der Inhalt */
+		maxHeight?: number;
 		editing: boolean;
 		sortable: Sortable;
 		grabbed: boolean;
@@ -33,6 +37,10 @@
 	const definition = $derived(definitionOf(instance.type));
 	const name = $derived(t(definition.name));
 	const dragging = $derived(sortable.isDragging(instance.id));
+	const limited = $derived(maxHeight !== undefined);
+	/** Das Panel scrollt selbst, wenn die Höhe begrenzt ist und das Widget das nicht übernimmt */
+	const scrolls = $derived(limited && !definition.scrollsSelf);
+	const area = new ScrollArea();
 
 	/** Änderungen gehen direkt in die gespeicherte Instanz */
 	function update(mutate: (settings: unknown) => void) {
@@ -51,6 +59,8 @@
 	class:editing
 	class:dragging
 	class:grabbed
+	class:limited
+	style:max-height={limited ? `${maxHeight}rem` : undefined}
 	aria-label={name}
 	data-widget={instance.type}
 	{@attach sortable.item({
@@ -99,7 +109,17 @@
 		</div>
 	{/if}
 
-	<div class="content">
+	<!--
+		Gescrollt wird erst, wenn der Inhalt wirklich überläuft. Sonst würde der Scroll-Container
+		Aufklappendes wie die Suchvorschläge abschneiden.
+	-->
+	<div
+		class="content"
+		class:scrolling={scrolls && area.overflowing}
+		class:fade-top={area.fadeTop}
+		class:fade-bottom={area.fadeBottom}
+		{@attach scrolls ? area.attach : undefined}
+	>
 		<svelte:boundary onerror={(error) => console.error(`Widget ${instance.id} abgestürzt`, error)}>
 			<definition.component id={instance.id} settings={instance.settings} {editing} {update} />
 
@@ -191,6 +211,37 @@
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
+	}
+
+	/* Mit Höchsthöhe darf der Inhalt kleiner werden als er ist; er scrollt oder das Widget selbst */
+	.limited .content {
+		min-height: 0;
+	}
+
+	.content.scrolling {
+		--fade: 12px;
+		overflow-y: auto;
+		/* Platz für Fokusringe, die sonst am Rand des Scroll-Containers abgeschnitten würden */
+		margin: -4px;
+		padding: 4px;
+		scroll-padding-block: var(--space-3);
+
+		&.fade-top {
+			mask-image: linear-gradient(transparent, #000 var(--fade));
+		}
+
+		&.fade-bottom {
+			mask-image: linear-gradient(#000 calc(100% - var(--fade)), transparent);
+		}
+
+		&.fade-top.fade-bottom {
+			mask-image: linear-gradient(
+				transparent,
+				#000 var(--fade),
+				#000 calc(100% - var(--fade)),
+				transparent
+			);
+		}
 	}
 
 	.crashed {

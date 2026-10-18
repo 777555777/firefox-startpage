@@ -5,6 +5,8 @@ import {
 	canJoin,
 	centerSpanRange,
 	clampCenterSpan,
+	clampRowHeight,
+	draggedRowHeight,
 	enabledAreas,
 	equalSpans,
 	findWidget,
@@ -22,7 +24,9 @@ import {
 	restorePlacement,
 	rowFits,
 	rowIndexWithout,
+	setRowHeight,
 	setSide,
+	steppedRowHeight,
 	stepPlacement,
 	visualOrder,
 	widgetOrder,
@@ -319,5 +323,112 @@ describe('Zeilen validieren', () => {
 			[24]
 		);
 		expect(items(rows)).toEqual([['a', 'b', 'c']]);
+	});
+});
+
+describe('Höhe einer Zeile', () => {
+	/** [a (20 rem)] [b c (30 rem)] | [d] | [e] [f] */
+	const tall = (): Rows => {
+		const rows = layout();
+		rows[0][0].maxHeight = 20;
+		rows[0][1].maxHeight = 30;
+		return rows;
+	};
+
+	it('rastet ein, begrenzt und verwirft Unbrauchbares', () => {
+		expect(clampRowHeight(21)).toBe(22);
+		expect(clampRowHeight(20.9)).toBe(20);
+		expect(clampRowHeight(4)).toBe(12);
+		expect(clampRowHeight(500)).toBe(80);
+		expect(clampRowHeight('20')).toBeUndefined();
+		expect(clampRowHeight(Number.NaN)).toBeUndefined();
+		expect(clampRowHeight(Infinity)).toBeUndefined();
+		expect(clampRowHeight(undefined)).toBeUndefined();
+	});
+
+	it('setzt und entfernt die Höhe, ohne die Eingabe zu ändern', () => {
+		const before = layout();
+		const next = setRowHeight(before, 0, 1, 31);
+		expect(next[0][1].maxHeight).toBe(32);
+		expect(before[0][1].maxHeight).toBeUndefined();
+		const auto = setRowHeight(next, 0, 1, undefined);
+		expect(auto[0][1]).not.toHaveProperty('maxHeight');
+		expect(setRowHeight(next, 0, 1, 32)).toBe(next);
+		expect(setRowHeight(next, 5, 0, 20)).toBe(next);
+	});
+
+	it('rechnet Ziehen in Rastern, über die Obergrenze hinaus heißt automatisch', () => {
+		expect(draggedRowHeight(20, 0)).toBe(20);
+		expect(draggedRowHeight(20, 33)).toBe(22);
+		expect(draggedRowHeight(20, -400)).toBe(12);
+		expect(draggedRowHeight(20, (80 - 20) * 16)).toBe(80);
+		expect(draggedRowHeight(20, (82 - 20) * 16)).toBeUndefined();
+		expect(draggedRowHeight(20, 64, 32)).toBe(22);
+	});
+
+	it('rechnet Pfeiltasten von der gezeigten Höhe aus, wenn noch keine gesetzt ist', () => {
+		expect(steppedRowHeight(undefined, 25.3, -1)).toBe(24);
+		expect(steppedRowHeight(undefined, 25.3, 1)).toBe(28);
+		expect(steppedRowHeight(20, 99, 1)).toBe(22);
+		expect(steppedRowHeight(12, 12, -1)).toBe(12);
+		expect(steppedRowHeight(80, 80, 1)).toBeUndefined();
+		expect(steppedRowHeight(undefined, 200, -1)).toBe(78);
+	});
+
+	it('behält die Höhe einer Zeile, wenn Widgets dazukommen oder gehen', () => {
+		const joined = placeWidget(tall(), 'd', { kind: 'beside', target: 'a', side: 'after' }, widths);
+		expect(joined[0][0]).toMatchObject({ items: ['a', 'd'], maxHeight: 20 });
+		const left = removeWidget(tall(), 'b');
+		expect(left[0][1]).toMatchObject({ items: ['c'], maxHeight: 30 });
+	});
+
+	it('nimmt die Höhe mit, wenn ein Widget allein in seiner Zeile verschoben wird', () => {
+		const moved = placeWidget(tall(), 'a', { kind: 'row', column: 0, index: 1 }, widths);
+		expect(items(moved)[0]).toEqual(['b+c', 'a']);
+		expect(moved[0][1].maxHeight).toBe(20);
+		const across = placeWidget(tall(), 'a', { kind: 'row', column: 2, index: 0 }, widths);
+		expect(across[2][0]).toMatchObject({ items: ['a'], maxHeight: 20 });
+	});
+
+	it('startet automatisch, wenn sich ein Widget aus einer geteilten Zeile löst', () => {
+		const next = placeWidget(tall(), 'c', { kind: 'row', column: 0, index: 2 }, widths);
+		expect(items(next)[0]).toEqual(['a', 'b', 'c']);
+		expect(next[0][1].maxHeight).toBe(30);
+		expect(next[0][2]).not.toHaveProperty('maxHeight');
+	});
+
+	it('stellt ein entferntes Widget mit seiner Höhe wieder her', () => {
+		const rows = tall();
+		const placement = restorePlacement(rows, 'a')!;
+		expect(placement).toMatchObject({ kind: 'row', maxHeight: 20 });
+		const restored = placeWidget(removeWidget(rows, 'a'), 'a', placement, widths);
+		expect(restored[0][0]).toMatchObject({ items: ['a'], maxHeight: 20 });
+	});
+
+	it('behält die Höhe beim Ausschalten einer Seite', () => {
+		const rows = tall();
+		rows[2][0].maxHeight = 40;
+		const folded = foldDisabledSides(rows, { left: false, right: true }, widths);
+		expect(folded[0].at(-2)).toMatchObject({ items: ['e'], maxHeight: 40 });
+	});
+
+	it('wird beim Validieren gelesen und eingerastet', () => {
+		const rows = normalizeColumnRows(
+			[
+				[
+					{ items: ['a'], maxHeight: 33 },
+					{ items: ['b'], maxHeight: 'hoch' },
+					{ items: ['c', 'd', 'e', 'x', 'f'], maxHeight: 200 }
+				]
+			],
+			['a', 'b', 'c', 'd', 'e', 'f'],
+			[24]
+		);
+		expect(rows[0][0].maxHeight).toBe(34);
+		expect(rows[0][1]).not.toHaveProperty('maxHeight');
+		// Eine zu volle Zeile wird geteilt, beide Teile behalten die Höhe
+		expect(items(rows)[0]).toEqual(['a', 'b', 'c+d+e', 'f']);
+		expect(rows[0][2].maxHeight).toBe(80);
+		expect(rows[0][3].maxHeight).toBe(80);
 	});
 });

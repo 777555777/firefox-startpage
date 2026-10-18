@@ -30,6 +30,11 @@ export type LayoutRow = {
 	items: string[];
 	/** Breite pro Widget in Raster-Einheiten; Summe = Breite der Spalte */
 	spans: number[];
+	/**
+	 * Höchsthöhe der Zeile in rem; fehlt der Wert, ist sie so hoch wie ihr Inhalt. Ist der Inhalt
+	 * höher, scrollt er im Panel.
+	 */
+	maxHeight?: number;
 };
 
 /** Bereiche des Layouts: eine Mittelspalte und zwei Seitenspalten */

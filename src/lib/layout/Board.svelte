@@ -33,6 +33,7 @@
 		restorePlacement,
 		rowFits,
 		rowIndexWithout,
+		setRowHeight,
 		sideSpan,
 		stepPlacement,
 		type Placement,
@@ -306,7 +307,12 @@
 							next = placeWidget(
 								columnRows,
 								id,
-								{ kind: 'row', column, index: position.row },
+								{
+									kind: 'row',
+									column,
+									index: position.row,
+									maxHeight: placement.kind === 'row' ? placement.maxHeight : undefined
+								},
 								columnWidths
 							);
 						}
@@ -461,6 +467,7 @@
 								editing={ui.editing}
 								onresize={(index, left, mirror) => resizeRow(area, r, index, left, mirror)}
 								onequalize={() => setRows(equalizeRow(layout.columnRows, area, r))}
+								onheight={(value) => setRows(setRowHeight(layout.columnRows, area, r, value))}
 							>
 								{#snippet panel(id)}
 									{@const instance = config.widgets[id]}
@@ -468,6 +475,7 @@
 										<WidgetPanel
 											{instance}
 											column={area}
+											maxHeight={row.maxHeight}
 											{sortable}
 											editing={ui.editing}
 											grabbed={grabbed?.id === id}

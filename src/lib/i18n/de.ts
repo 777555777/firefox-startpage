@@ -28,6 +28,11 @@ export const de = {
 		'Ziehen oder Pfeiltasten ändern die Breite der Mitte im 24er-Raster, beide Seiten bleiben gleich breit. Doppelklick setzt zurück.',
 	'edit.resizeRowHint':
 		'Ziehen oder Pfeiltasten ändern die Breite im 24er-Raster, mit Umschalt symmetrisch. Doppelklick verteilt gleichmäßig.',
+	'edit.rowHeight': 'Höhe dieser Zeile',
+	'edit.rowHeightHint':
+		'Ziehen oder Pfeiltasten setzen eine Höchsthöhe, darüber scrollt der Inhalt im Panel. Doppelklick oder Entf: automatisch.',
+	'edit.rowHeightAuto': 'Automatisch',
+	'edit.rowHeightValue': 'Höchstens {value} rem',
 	'edit.maxWidth': 'Maximale Breite',
 	'edit.fullWidth': 'Voll',
 	'edit.resetWidths': 'Standardbreite',

@@ -494,3 +494,39 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   damit Tag und Nacht trotzdem stimmen. Die Tests laufen in mehreren Zeitzonen grün.
 - **Kein Schema-Sprung:** `showMoon` ergänzt `parseClockSettings` mit Default. Die
   Koordinatenfelder erscheinen, sobald Sonne oder Mond an ist.
+
+## Nach v1 – Höchsthöhe pro Zeile
+
+- **Erweiterung von §5:** Jede Zeile kann eine Höchsthöhe haben (`LayoutRow.maxHeight` in rem,
+  12–80 in 2er-Schritten, fehlt = „Automatisch“). Die Zeile ist so hoch wie ihr höchster Inhalt,
+  aber nicht höher. Darüber scrollt der Inhalt **im Panel**; Kopf und Edit-Leiste des Panels
+  bleiben stehen. So verlängern Widgets mit viel Inhalt (später RSS) die Page nicht. Eine feste
+  Höhe (auch bei wenig Inhalt) wurde verworfen, weil sie leere Glasfläche erzeugt.
+- **Pro Zeile statt pro Widget:** Widgets einer Zeile sind gleich hoch; eine Grenze pro Widget
+  würde ein höherer Nachbar wieder aushebeln. Technisch bekommt jedes Panel der Zeile die Grenze
+  als `max-height`. Stehen die Widgets auf schmalen Fenstern untereinander, gilt sie so für
+  jedes einzeln.
+- **rem statt Anteil der Fensterhöhe**, wie bei der maximalen Breite: auf beiden Rechnern gleich
+  groß, unabhängig von der Fenstergröße.
+- **Gescrollt wird nur bei Überlauf:** Der Inhaltsbereich wird erst zum Scroll-Container, wenn
+  sein Inhalt wirklich höher ist (`ScrollArea` misst per `ResizeObserver` auf Bereich und direkte
+  Kinder). Sonst würde er Aufklappendes wie die Suchvorschläge abschneiden. Weiche Kanten oben
+  und unten zeigen, dass es weitergeht; 4 px Innenabstand halten Fokusringe sichtbar. Das Mausrad
+  gibt am Ende an die Page weiter.
+- **`scrollsSelf`** (neues optionales Registry-Feld): Widgets, die selbst nur einen Teil scrollen
+  wollen (z. B. eine Liste unter festem Kopf), bekommen die verfügbare Höhe statt eines
+  scrollenden Panels. Bisher nutzt es kein Widget, das RSS-Widget wird es tun.
+- **Bedienung:** Im Edit-Modus liegt unter jeder Zeile im Abstand ein waagerechter Griff (nimmt
+  keinen Platz ein). Ziehen rastet in 2 rem ein und zeigt die Zeile dabei genau so hoch wie
+  gezogen, ein Etikett zeigt den Wert. Über 80 rem hinaus gezogen heißt „Automatisch“, ebenso ein
+  Doppelklick. Tastatur: `↑` niedriger, `↓` höher (von „Automatisch“ aus ab der gezeigten
+  Höhe), `Pos1` = 12 rem, `Ende`/`Entf`/`Rücktaste` = „Automatisch“. Der Griff ist ein
+  `separator` mit `aria-valuetext`; eine zusätzliche Ansage gibt es wie bei den
+  Breiten-Trennern nicht.
+- **Verschieben:** Eine Zeile behält ihre Höhe, wenn Widgets dazukommen oder gehen. Steht ein
+  Widget allein in seiner Zeile und wird als eigene Zeile verschoben, nimmt es die Höhe mit; löst
+  es sich aus einer geteilten Zeile, startet die neue Zeile mit „Automatisch“. „Rückgängig“ nach
+  dem Entfernen stellt die Höhe wieder her.
+- **Kein Schema-Sprung:** Das Feld ist additiv. Die Validierung rastet ein, begrenzt und
+  verwirft Ungültiges; beim Teilen zu voller Zeilen behalten beide Teile die Höhe.
+  `CONFIG_VERSION` bleibt 4.

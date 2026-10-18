@@ -32,4 +32,10 @@ export type WidgetDefinition<S> = {
 	permissions?: { origins?: string[]; permissions?: string[] };
 	/** Darf nur einmal auf der Page vorkommen */
 	singleton?: boolean;
+	/**
+	 * Bei begrenzter Zeilenhöhe scrollt das Widget selbst nur einen Teil (z. B. eine Liste unter
+	 * einem festen Kopf), statt dass das ganze Panel scrollt. Es bekommt dann die verfügbare Höhe
+	 * und muss selbst `min-height: 0` setzen.
+	 */
+	scrollsSelf?: boolean;
 };

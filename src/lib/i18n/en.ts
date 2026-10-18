@@ -27,6 +27,11 @@ export const en: Dictionary = {
 		'Drag or use arrow keys to resize the center on a 24-unit grid; both sides stay equally wide. Double-click resets.',
 	'edit.resizeRowHint':
 		'Drag or use arrow keys to resize on a 24-unit grid, hold Shift for symmetry. Double-click spreads evenly.',
+	'edit.rowHeight': 'Height of this row',
+	'edit.rowHeightHint':
+		'Drag or use the arrow keys to set a maximum height; taller content scrolls inside the panel. Double-click or Delete: automatic.',
+	'edit.rowHeightAuto': 'Automatic',
+	'edit.rowHeightValue': 'At most {value} rem',
 	'edit.maxWidth': 'Maximum width',
 	'edit.fullWidth': 'Full',
 	'edit.resetWidths': 'Default width',

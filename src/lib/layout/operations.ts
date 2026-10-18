@@ -36,6 +36,11 @@ export const DEFAULT_CENTER_SPAN = 12;
 export const CENTER_SPAN_MIN = 8;
 export const CENTER_SPAN_MAX = GRID_UNITS - 2 * MIN_SPAN;
 
+/** Grenzen der Höchsthöhe einer Zeile in rem; fehlt der Wert, gilt „Automatisch“ */
+export const ROW_HEIGHT_MIN = 12;
+export const ROW_HEIGHT_MAX = 80;
+export const ROW_HEIGHT_STEP = 2;
+
 /** Mindestbreite der Mitte in rem, sonst steht alles untereinander */
 export const MIN_CENTER_REM = 20;
 /** Mindestbreite einer Seitenspalte in rem, sonst steht alles untereinander */
@@ -274,7 +279,13 @@ export type WidgetPosition = { column: number; row: number; index: number };
  * - `beside`: in die Zeile von `target`, links (`before`) oder rechts (`after`) davon
  */
 export type Placement =
-	| { kind: 'row'; column: number; index: number }
+	| {
+			kind: 'row';
+			column: number;
+			index: number;
+			/** Höchsthöhe der neuen Zeile, z. B. beim Wiederherstellen eines entfernten Widgets */
+			maxHeight?: number;
+	  }
 	| { kind: 'beside'; target: string; side: 'before' | 'after' };
 
 export function findWidget(columnRows: Rows, id: string): WidgetPosition | null {
@@ -294,7 +305,16 @@ export function widgetOrder(columnRows: Rows): string[] {
 }
 
 const cloneRows = (columnRows: Rows): Rows =>
-	columnRows.map((rows) => rows.map((row) => ({ items: [...row.items], spans: [...row.spans] })));
+	columnRows.map((rows) =>
+		rows.map((row) => ({ ...row, items: [...row.items], spans: [...row.spans] }))
+	);
+
+/** Neue Zeile mit einem Widget, auf Wunsch mit Höchsthöhe */
+const singleRow = (id: string, span: number, maxHeight?: number): LayoutRow => ({
+	items: [id],
+	spans: [span],
+	...(maxHeight !== undefined && { maxHeight })
+});
 
 /**
  * Nimmt ein Widget heraus. Die übrigen Widgets der Zeile teilen sich seine Breite
@@ -328,6 +348,11 @@ export function canJoin(columnRows: Rows, id: string, target: string, columnWidt
  * Verschiebt (oder fügt neu ein) ein Widget an eine Position. Liefert die Eingabe unverändert,
  * wenn das Ziel ungültig ist. Innerhalb derselben Zeile behält das Widget seine Breite, beim
  * Wechsel in eine andere Zeile werden die Breiten dort gleichmäßig verteilt.
+ *
+ * Höhen: Eine Zeile behält ihre Höchsthöhe, wenn Widgets dazukommen oder gehen. Stand das
+ * Widget allein in seiner Zeile und wird wieder eine eigene Zeile, nimmt es die Höhe mit (die
+ * Zeile wandert also als Ganzes). Löst es sich aus einer geteilten Zeile, startet die neue Zeile
+ * mit „Automatisch“.
  */
 export function placeWidget(
 	columnRows: Rows,
@@ -337,10 +362,14 @@ export function placeWidget(
 ): Rows {
 	if (placement.kind === 'row') {
 		if (placement.column < 0 || placement.column >= columnRows.length) return columnRows;
+		const from = findWidget(columnRows, id);
+		const source = from && columnRows[from.column][from.row];
+		const carried = source?.items.length === 1 ? source.maxHeight : undefined;
 		const next = removeWidget(columnRows, id);
 		const rows = next[placement.column];
 		const index = Math.max(0, Math.min(placement.index, rows.length));
-		rows.splice(index, 0, { items: [id], spans: [columnWidths[placement.column]] });
+		const span = columnWidths[placement.column];
+		rows.splice(index, 0, singleRow(id, span, placement.maxHeight ?? carried));
 		return next;
 	}
 
@@ -484,7 +513,61 @@ export function restorePlacement(columnRows: Rows, id: string): Placement | null
 			? { kind: 'beside', target: row.items[position.index - 1], side: 'after' }
 			: { kind: 'beside', target: row.items[1], side: 'before' };
 	}
-	return { kind: 'row', column: position.column, index: position.row };
+	return {
+		kind: 'row',
+		column: position.column,
+		index: position.row,
+		...(row.maxHeight !== undefined && { maxHeight: row.maxHeight })
+	};
+}
+
+// --- Höhe einer Zeile ---------------------------------------------------------------------------
+
+/** Rastet eine Höchsthöhe ein und begrenzt sie; Unbrauchbares ergibt „Automatisch“ (`undefined`) */
+export function clampRowHeight(value: unknown): number | undefined {
+	if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
+	const snapped = Math.round(value / ROW_HEIGHT_STEP) * ROW_HEIGHT_STEP;
+	return Math.min(ROW_HEIGHT_MAX, Math.max(ROW_HEIGHT_MIN, snapped));
+}
+
+/**
+ * Höhe beim Ziehen am Griff: Ausgangshöhe plus Zeigerweg, eingerastet. Über die Obergrenze
+ * hinaus gezogen heißt „Automatisch“.
+ */
+export function draggedRowHeight(startRem: number, deltaPx: number, remPx = 16) {
+	const value = startRem + deltaPx / remPx;
+	return value > ROW_HEIGHT_MAX + ROW_HEIGHT_STEP / 2 ? undefined : clampRowHeight(value);
+}
+
+/**
+ * Höhe nach einem Tastendruck am Griff. `shownRem` ist die gerade gezeigte Höhe; von
+ * „Automatisch“ aus wird von dort gerechnet. Über die Obergrenze hinaus heißt „Automatisch“.
+ */
+export function steppedRowHeight(
+	current: number | undefined,
+	shownRem: number,
+	step: -1 | 1
+): number | undefined {
+	const base = current ?? clampRowHeight(shownRem) ?? ROW_HEIGHT_MIN;
+	const value = base + step * ROW_HEIGHT_STEP;
+	return value > ROW_HEIGHT_MAX ? undefined : clampRowHeight(value);
+}
+
+/** Setzt die Höchsthöhe einer Zeile; `undefined` = „Automatisch“ */
+export function setRowHeight(
+	columnRows: Rows,
+	column: number,
+	row: number,
+	maxHeight: number | undefined
+): Rows {
+	const current = columnRows[column]?.[row];
+	if (!current) return columnRows;
+	const value = maxHeight === undefined ? undefined : clampRowHeight(maxHeight);
+	if (value === current.maxHeight) return columnRows;
+	const next = cloneRows(columnRows);
+	const { maxHeight: _previous, ...rest } = next[column][row];
+	next[column][row] = value === undefined ? rest : { ...rest, maxHeight: value };
+	return next;
 }
 
 // --- Validierung ------------------------------------------------------------------------------
@@ -509,6 +592,7 @@ export function normalizeColumnRows(
 			const record = typeof value === 'object' && value !== null ? value : {};
 			const items = 'items' in record && Array.isArray(record.items) ? record.items : [];
 			const spans = 'spans' in record && Array.isArray(record.spans) ? record.spans : [];
+			const maxHeight = clampRowHeight('maxHeight' in record ? record.maxHeight : undefined);
 			const kept: { id: string; span: unknown }[] = [];
 			items.forEach((id: unknown, i: number) => {
 				if (typeof id !== 'string' || !known.has(id) || seen.has(id)) return;
@@ -517,7 +601,11 @@ export function normalizeColumnRows(
 			});
 			for (let start = 0; start < kept.length; start += MAX_ROW_ITEMS) {
 				const chunk = kept.slice(start, start + MAX_ROW_ITEMS);
-				rows.push({ items: chunk.map((k) => k.id), spans: chunk.map((k) => k.span as number) });
+				rows.push({
+					items: chunk.map((k) => k.id),
+					spans: chunk.map((k) => k.span as number),
+					...(maxHeight !== undefined && { maxHeight })
+				});
 			}
 		}
 		return rows;
