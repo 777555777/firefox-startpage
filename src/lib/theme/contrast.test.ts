@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { GLASS_DEFAULTS } from '$lib/glass/params.svelte';
-import { AA_NORMAL, contrastRatio, textContrast, TEXT_COLORS, worstContrast } from './contrast';
+import {
+	AA_NORMAL,
+	blend,
+	contrastRatio,
+	DAY_COLORS,
+	textContrast,
+	TEXT_COLORS,
+	worstContrast
+} from './contrast';
+import { GLASS_BASE } from './palette';
 import type { Rgb } from './phase';
 
 /** Grau mit dem Gamma-Helligkeitswert `luma`; bei gleichem Wert der ungünstigste Fall */
@@ -50,5 +59,26 @@ describe('Kontrast nach WCAG', () => {
 		expect(textContrast(TEXT_COLORS.light.secondary, saturated)).toBeGreaterThan(
 			textContrast(TEXT_COLORS.light.secondary, grey(target))
 		);
+	});
+
+	describe('Tagesarten im Kalender', () => {
+		// Ungünstigste Glasflächen je Tonalität: hell = dunkelstes erlaubtes Glas (und Weiß),
+		// dunkel = hellstes erlaubtes Glas (und die dunkle Grundfarbe)
+		const glass = {
+			light: [grey(GLASS_DEFAULTS.minLuminance), grey(1)],
+			dark: [grey(GLASS_DEFAULTS.maxLuminance), GLASS_BASE.dark, grey(0)]
+		};
+
+		for (const tone of ['light', 'dark'] as const) {
+			for (const kind of ['holiday', 'off'] as const) {
+				it(`${tone}: ${kind} erreicht AA auf jeder Fläche`, () => {
+					const { text, fills } = DAY_COLORS[tone][kind];
+					const backgrounds = glass[tone].flatMap((bg) => fills.map((fill) => blend(fill, bg)));
+					expect(worstContrast(text, backgrounds)).toBeGreaterThan(AA_NORMAL);
+					// Auch normaler Text (z. B. in der Legende) bleibt auf der Fläche lesbar
+					expect(worstContrast(TEXT_COLORS[tone].primary, backgrounds)).toBeGreaterThan(AA_NORMAL);
+				});
+			}
+		}
 	});
 });

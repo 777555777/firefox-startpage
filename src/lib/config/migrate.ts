@@ -75,7 +75,16 @@ export const MIGRATIONS: Record<number, Migration> = {
 				centerSpan: share * 24
 			}
 		};
-	}
+	},
+
+	/**
+	 * v4: Termine und freie Tage (`agenda`) für den Kalender. Bestehende Configs starten leer;
+	 * ein schon vorhandenes `agenda` (z. B. aus einem Import) bleibt erhalten.
+	 */
+	3: (raw) => ({
+		...raw,
+		agenda: isRecord(raw.agenda) ? raw.agenda : { events: [], offDays: [] }
+	})
 };
 
 /** Liest die Schema-Version; fehlt sie, gilt die erste Version */

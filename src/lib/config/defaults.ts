@@ -1,4 +1,5 @@
 import { translate } from '$lib/i18n/translate';
+import { defaultAgenda } from '$lib/widgets/calendar/agenda';
 import { defaultCalendarSettings } from '$lib/widgets/calendar/settings';
 import { defaultClockSettings } from '$lib/widgets/clock/settings';
 import type { Link, LinksSettings, LinkTab, LinkView } from '$lib/widgets/links/settings';
@@ -14,7 +15,7 @@ import type {
 	SearchEngine
 } from './types';
 
-export const CONFIG_VERSION = 3;
+export const CONFIG_VERSION = 4;
 
 /** Abstand zwischen Spalten bzw. zwischen Panels in px */
 export const DEFAULT_GAP = 24;
@@ -153,6 +154,7 @@ export function createDefaultConfig(language: Language = 'en'): Config {
 			}
 		},
 		appearance: defaultAppearance(),
-		search: defaultSearch()
+		search: defaultSearch(),
+		agenda: defaultAgenda()
 	};
 }

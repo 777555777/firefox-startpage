@@ -1,3 +1,4 @@
+import type { AgendaConfig } from '$lib/widgets/calendar/agenda';
 import type { CalendarSettings } from '$lib/widgets/calendar/settings';
 import type { ClockSettings } from '$lib/widgets/clock/settings';
 import type { LinksSettings } from '$lib/widgets/links/settings';
@@ -101,6 +102,8 @@ export type Config = {
 	widgets: Record<string, WidgetInstance>;
 	appearance: AppearanceConfig;
 	search: SearchConfig;
+	/** Termine und freie Tage; global, damit alle Kalender dieselben zeigen */
+	agenda: AgendaConfig;
 };
 
 /** Klick-Statistik pro URL, getrennt von der Config gespeichert */

@@ -1,49 +1,296 @@
 <script lang="ts">
+	import { tick } from 'svelte';
+	import { createId } from '$lib/config/parse';
 	import { i18n, t } from '$lib/i18n/index.svelte';
+	import { getApp } from '$lib/state/context';
+	import { toasts } from '$lib/state/toasts.svelte';
 	import Icon from '$lib/ui/Icon.svelte';
 	import { everyMinute } from '$lib/utils/now.svelte';
 	import type { WidgetProps } from '../types';
+	import {
+		addDays,
+		addMonths,
+		bandEdges,
+		classifyDay,
+		eventsByDay,
+		offDayMap,
+		offDaysOn,
+		parseDateKey,
+		type CalendarEvent,
+		type OffDayRange
+	} from './agenda';
+	import EventDialog from './EventDialog.svelte';
 	import { dateKey, holidayMap, type Holiday } from './holidays';
 	import { getMonthGrid, getWeekdayNames } from './month-grid';
+	import OffDayDialog from './OffDayDialog.svelte';
 	import type { CalendarSettings } from './settings';
 
 	let { settings }: WidgetProps<CalendarSettings> = $props();
 
+	const app = getApp();
+	const agenda = $derived(app.config.value.agenda);
+
 	const today = $derived(everyMinute.current);
-	/** Abstand des angezeigten Monats zum aktuellen Monat */
-	let offset = $state(0);
+	const todayKey = $derived(dateKey(today));
+	/** Gewählter Tag; null = heute (folgt dem Datum auch über Mitternacht) */
+	let picked = $state<string | null>(null);
+	const selected = $derived(picked ?? todayKey);
+	/** Angezeigter Monat; null = der aktuelle */
+	let month = $state<{ year: number; month: number } | null>(null);
 
 	const weekStartsOn = $derived(settings.weekStart === 'sunday' ? 0 : 1);
-	const shown = $derived(new Date(today.getFullYear(), today.getMonth() + offset, 1));
+	const shown = $derived(
+		month
+			? new Date(month.year, month.month, 1)
+			: new Date(today.getFullYear(), today.getMonth(), 1)
+	);
 	const weeks = $derived(getMonthGrid(shown.getFullYear(), shown.getMonth(), today, weekStartsOn));
+	const firstKey = $derived(dateKey(weeks[0].days[0].date));
+	const lastKey = $derived(dateKey(weeks[weeks.length - 1].days[6].date));
 	const weekdays = $derived(getWeekdayNames(i18n.lang, weekStartsOn));
 	const holidays = $derived(
 		settings.holidays
 			? holidayMap(
-					weeks.flatMap((w) => [w.days[0].date.getFullYear(), w.days[6].date.getFullYear()]),
+					[...new Set([firstKey, lastKey, selected].map((key) => Number(key.slice(0, 4))))],
 					settings.region
 				)
 			: new Map<string, Holiday>()
 	);
+	const eventMap = $derived(eventsByDay(agenda.events));
+	const offMap = $derived(offDayMap(agenda.offDays, firstKey, lastKey));
 
-	const monthTitle = $derived(
-		new Intl.DateTimeFormat(i18n.lang, { month: 'long', year: 'numeric' }).format(shown)
+	/** Zeilen des Rasters mit allem, was ein Tag zur Darstellung braucht */
+	const rows = $derived(
+		weeks.map((week) => {
+			const days = week.days.map((day) => {
+				const key = dateKey(day.date);
+				const holiday = holidays.get(key);
+				const off = offMap.get(key);
+				return {
+					...day,
+					key,
+					holiday,
+					off,
+					events: eventMap.get(key) ?? [],
+					kinds: classifyDay(day.date, { holiday: !!holiday, off: !!off })
+				};
+			});
+			const edges = bandEdges(days.map((day) => day.kinds.off));
+			return { week: week.week, days: days.map((day, i) => ({ ...day, ...edges[i] })) };
+		})
 	);
-	const dayLabel = $derived(
-		new Intl.DateTimeFormat(i18n.lang, { weekday: 'long', day: 'numeric', month: 'long' })
+	const visible = $derived(selected >= firstKey && selected <= lastKey);
+	/** Der eine Tag im Raster, der per Tab erreichbar ist (Roving Tabindex) */
+	const focusKey = $derived(visible ? selected : dateKey(shown));
+
+	const fmt = $derived({
+		month: new Intl.DateTimeFormat(i18n.lang, { month: 'long', year: 'numeric' }),
+		day: new Intl.DateTimeFormat(i18n.lang, { weekday: 'long', day: 'numeric', month: 'long' }),
+		dayWithYear: new Intl.DateTimeFormat(i18n.lang, {
+			weekday: 'long',
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric'
+		}),
+		short: new Intl.DateTimeFormat(i18n.lang, { day: 'numeric', month: 'short' }),
+		time: new Intl.DateTimeFormat(i18n.lang, { hour: 'numeric', minute: '2-digit' })
+	});
+	const monthTitle = $derived(fmt.month.format(shown));
+
+	function formatTime(time: string) {
+		const [hours, minutes] = time.split(':').map(Number);
+		return fmt.time.format(new Date(2000, 0, 1, hours, minutes));
+	}
+
+	function formatRange(range: OffDayRange) {
+		const start = parseDateKey(range.start);
+		const end = parseDateKey(range.end);
+		if (!start || !end) return '';
+		return range.start === range.end ? fmt.short.format(start) : fmt.short.formatRange(start, end);
+	}
+
+	const offName = (range: OffDayRange) => range.label || t('calendar.off');
+
+	/** Kurzbeschreibung eines Tags für Screenreader und Tooltip */
+	function describe(day: (typeof rows)[number]['days'][number]) {
+		const parts: string[] = [];
+		if (day.holiday) parts.push(t(`holiday.${day.holiday.id}`));
+		if (day.off) parts.push(offName(day.off));
+		if (day.events.length) parts.push(t('calendar.events', { count: day.events.length }));
+		return parts;
+	}
+
+	function tooltip(day: (typeof rows)[number]['days'][number]) {
+		const lines: string[] = [];
+		if (day.holiday) lines.push(t(`holiday.${day.holiday.id}`));
+		if (day.off) lines.push(offName(day.off));
+		for (const event of day.events) {
+			lines.push(event.time ? `${formatTime(event.time)} ${event.title}` : event.title);
+		}
+		return lines.join('\n') || undefined;
+	}
+
+	// --- Auswahl und Tastatur -----------------------------------------------------------------
+
+	let grid: HTMLTableElement;
+
+	function showMonthOf(key: string) {
+		const date = parseDateKey(key);
+		if (!date) return;
+		const current =
+			date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth();
+		month = current ? null : { year: date.getFullYear(), month: date.getMonth() };
+	}
+
+	async function select(key: string, focus = false) {
+		picked = key === todayKey ? null : key;
+		showMonthOf(key);
+		if (!focus) return;
+		await tick();
+		grid.querySelector<HTMLElement>(`[data-day="${key}"]`)?.focus();
+	}
+
+	function page(delta: number) {
+		const next = new Date(shown.getFullYear(), shown.getMonth() + delta, 1);
+		month = { year: next.getFullYear(), month: next.getMonth() };
+		if (next.getFullYear() === today.getFullYear() && next.getMonth() === today.getMonth()) {
+			month = null;
+		}
+	}
+
+	function goToday() {
+		picked = null;
+		month = null;
+	}
+
+	function onGridKeydown(event: KeyboardEvent) {
+		if (event.altKey || event.ctrlKey || event.metaKey) return;
+		// Ausgangspunkt ist der fokussierte Tag (er kann vom gewählten abweichen, z. B. nach Blättern)
+		const from = (event.target as HTMLElement).dataset.day ?? focusKey;
+		const column = ((parseDateKey(from)?.getDay() ?? 0) - weekStartsOn + 7) % 7;
+		const years = event.shiftKey ? 12 : 1;
+		const target: Record<string, () => string> = {
+			ArrowLeft: () => addDays(from, -1),
+			ArrowRight: () => addDays(from, 1),
+			ArrowUp: () => addDays(from, -7),
+			ArrowDown: () => addDays(from, 7),
+			Home: () => addDays(from, -column),
+			End: () => addDays(from, 6 - column),
+			PageUp: () => addMonths(from, -years),
+			PageDown: () => addMonths(from, years)
+		};
+		if (event.key in target) {
+			event.preventDefault();
+			void select(target[event.key](), true);
+		} else if (event.key === 'Enter' || event.key === ' ') {
+			event.preventDefault();
+			// Der Tag hat schon den Fokus; ihn erneut zu setzen, würde dem Dialog den Fokus nehmen
+			void select(from);
+			if (event.key === 'Enter') newEvent(from);
+		}
+	}
+
+	// --- Bearbeiten ---------------------------------------------------------------------------
+
+	let eventDialog = $state(false);
+	let editingEvent = $state<CalendarEvent | null>(null);
+	let offDialog = $state(false);
+	let editingOff = $state<OffDayRange | null>(null);
+	/** Vorgabe-Tag für neue Einträge */
+	let dialogDate = $state('');
+
+	function newEvent(key = selected) {
+		editingEvent = null;
+		dialogDate = key;
+		eventDialog = true;
+	}
+
+	function editEvent(event: CalendarEvent) {
+		editingEvent = event;
+		dialogDate = event.date;
+		eventDialog = true;
+	}
+
+	function saveEvent(data: Omit<CalendarEvent, 'id'>) {
+		const existing = editingEvent && agenda.events.find((e) => e.id === editingEvent?.id);
+		if (existing) Object.assign(existing, data);
+		else agenda.events.push({ id: createId(), ...data });
+		void select(data.date);
+	}
+
+	function deleteEvent(event: CalendarEvent) {
+		const index = agenda.events.findIndex((e) => e.id === event.id);
+		if (index < 0) return;
+		const [removed] = agenda.events.splice(index, 1);
+		toasts.show(t('calendar.eventDeleted', { name: removed.title }), {
+			action: {
+				label: t('common.undo'),
+				run: () => app.config.value.agenda.events.splice(index, 0, removed)
+			}
+		});
+	}
+
+	function newOff(key = selected) {
+		editingOff = null;
+		dialogDate = key;
+		offDialog = true;
+	}
+
+	function editOff(range: OffDayRange) {
+		editingOff = range;
+		dialogDate = range.start;
+		offDialog = true;
+	}
+
+	function saveOff(data: Omit<OffDayRange, 'id'>) {
+		const existing = editingOff && agenda.offDays.find((r) => r.id === editingOff?.id);
+		if (existing) Object.assign(existing, data);
+		else agenda.offDays.push({ id: createId(), ...data });
+		// Bleibt der gewählte Tag nicht im Zeitraum, springt die Auswahl auf dessen Anfang
+		if (selected < data.start || selected > data.end) void select(data.start);
+	}
+
+	function deleteOff(range: OffDayRange) {
+		const index = agenda.offDays.findIndex((r) => r.id === range.id);
+		if (index < 0) return;
+		const [removed] = agenda.offDays.splice(index, 1);
+		toasts.show(t('calendar.offDeleted', { name: offName(removed) }), {
+			action: {
+				label: t('common.undo'),
+				run: () => app.config.value.agenda.offDays.splice(index, 0, removed)
+			}
+		});
+	}
+
+	// --- Tagesansicht -------------------------------------------------------------------------
+
+	const selectedDate = $derived(parseDateKey(selected) ?? today);
+	const selectedTitle = $derived(
+		(selectedDate.getFullYear() === today.getFullYear() ? fmt.day : fmt.dayWithYear).format(
+			selectedDate
+		)
 	);
+	const selectedHoliday = $derived(holidays.get(selected));
+	const selectedOff = $derived(offDaysOn(agenda.offDays, selected));
+	const selectedEvents = $derived(eventMap.get(selected) ?? []);
+	const legend = $derived({
+		holiday: settings.holidays,
+		off: rows.some((row) => row.days.some((day) => day.kinds.off)),
+		event: rows.some((row) => row.days.some((day) => day.events.length > 0))
+	});
+
 	const titleId = $props.id();
 </script>
 
 <div class="calendar">
 	<header class="header">
-		<h3 class="title" id={titleId} aria-live="polite">{monthTitle}</h3>
+		<h3 class="title" id="{titleId}-month" aria-live="polite">{monthTitle}</h3>
 		<div class="nav">
 			<button
 				type="button"
 				class="today-btn btn"
-				disabled={offset === 0}
-				onclick={() => (offset = 0)}
+				disabled={month === null && picked === null}
+				onclick={goToday}
 			>
 				{t('calendar.today')}
 			</button>
@@ -51,7 +298,7 @@
 				type="button"
 				class="icon-btn"
 				aria-label={t('calendar.previous')}
-				onclick={() => offset--}
+				onclick={() => page(-1)}
 			>
 				<Icon name="chevronLeft" />
 			</button>
@@ -59,14 +306,22 @@
 				type="button"
 				class="icon-btn"
 				aria-label={t('calendar.next')}
-				onclick={() => offset++}
+				onclick={() => page(1)}
 			>
 				<Icon name="chevronRight" />
 			</button>
 		</div>
 	</header>
 
-	<table class="grid" class:with-weeks={settings.weekNumbers} aria-labelledby={titleId}>
+	<table
+		bind:this={grid}
+		class="grid"
+		class:with-weeks={settings.weekNumbers}
+		role="grid"
+		aria-labelledby="{titleId}-month"
+		aria-describedby="{titleId}-hint"
+		onkeydown={onGridKeydown}
+	>
 		<thead>
 			<tr>
 				{#if settings.weekNumbers}
@@ -83,42 +338,174 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each weeks as week (week.days[0].date.getTime())}
+			{#each rows as row (row.days[0].key)}
 				<tr>
 					{#if settings.weekNumbers}
-						<th class="week" scope="row" aria-label={t('calendar.week', { week: week.week })}>
-							<span>{week.week}</span>
+						<th class="week" scope="row" aria-label={t('calendar.week', { week: row.week })}>
+							<span>{row.week}</span>
 						</th>
 					{/if}
-					{#each week.days as day (day.date.getTime())}
-						{@const holiday = holidays.get(dateKey(day.date))}
-						{@const holidayName = holiday ? t(`holiday.${holiday.id}`) : ''}
-						{@const weekend = day.date.getDay() === 0 || day.date.getDay() === 6}
+					{#each row.days as day (day.key)}
 						<td
 							class="day"
 							class:outside={!day.inMonth}
 							class:today={day.isToday}
-							class:holiday
-							class:weekend
-							title={holidayName || undefined}
-							aria-label={holidayName
-								? `${dayLabel.format(day.date)}, ${holidayName}`
-								: dayLabel.format(day.date)}
+							class:selected={day.key === selected}
+							class:weekend={day.kinds.weekend}
+							class:holiday={day.kinds.holiday}
+							class:off={day.kinds.off}
+							class:join-start={day.joinStart}
+							class:join-end={day.joinEnd}
+							data-day={day.key}
+							tabindex={day.key === focusKey ? 0 : -1}
+							title={tooltip(day)}
+							aria-label={[fmt.day.format(day.date), ...describe(day)].join(', ')}
+							aria-selected={day.key === selected}
 							aria-current={day.isToday ? 'date' : undefined}
+							onclick={() => select(day.key)}
+							ondblclick={() => newEvent(day.key)}
 						>
-							<span>{day.date.getDate()}</span>
+							<span class="number" class:with-dots={day.events.length > 0}>
+								{day.date.getDate()}
+								{#if day.events.length}
+									<span class="dots" aria-hidden="true">
+										{#each day.events.slice(0, 3) as event (event.id)}<i></i>{/each}
+									</span>
+								{/if}
+							</span>
 						</td>
 					{/each}
 				</tr>
 			{/each}
 		</tbody>
 	</table>
+	<p class="visually-hidden" id="{titleId}-hint">{t('calendar.gridHint')}</p>
+
+	<ul class="legend" aria-label={t('calendar.legend')}>
+		<li><span class="swatch weekend"></span>{t('calendar.weekend')}</li>
+		{#if legend.holiday}
+			<li><span class="swatch holiday"></span>{t('calendar.holiday')}</li>
+		{/if}
+		{#if legend.off}
+			<li><span class="swatch off"></span>{t('calendar.off')}</li>
+		{/if}
+		{#if legend.event}
+			<li><span class="swatch event"><i></i></span>{t('calendar.event')}</li>
+		{/if}
+	</ul>
+
+	<section class="agenda" aria-labelledby="{titleId}-day">
+		<header class="agenda-head">
+			<h4 class="agenda-title" id="{titleId}-day">
+				{#if selected === todayKey}<span class="today-tag">{t('calendar.today')}</span>{/if}
+				{selectedTitle}
+			</h4>
+			<div class="agenda-actions">
+				<button
+					type="button"
+					class="btn add"
+					aria-label={t('calendar.addEventFor', { date: fmt.day.format(selectedDate) })}
+					onclick={() => newEvent()}
+				>
+					<Icon name="plus" size={14} />{t('calendar.addEvent')}
+				</button>
+				<button
+					type="button"
+					class="btn add"
+					aria-label={t('calendar.addOffFor', { date: fmt.day.format(selectedDate) })}
+					onclick={() => newOff()}
+				>
+					<Icon name="plus" size={14} />{t('calendar.addOff')}
+				</button>
+			</div>
+		</header>
+
+		{#if selectedHoliday || selectedOff.length || selectedEvents.length}
+			<ul class="entries">
+				{#if selectedHoliday}
+					<li class="entry">
+						<span class="lead"><span class="swatch holiday"></span></span>
+						<span class="what">
+							{t(`holiday.${selectedHoliday.id}`)}
+							<span class="meta">{t('calendar.holiday')}</span>
+						</span>
+					</li>
+				{/if}
+				{#each selectedOff as range (range.id)}
+					<li class="entry">
+						<span class="lead"><span class="swatch off"></span></span>
+						<span class="what">
+							{offName(range)}
+							<span class="meta">{formatRange(range)}</span>
+						</span>
+						<span class="actions">
+							<button
+								type="button"
+								class="icon-btn"
+								aria-label={t('calendar.editNamed', { name: offName(range) })}
+								onclick={() => editOff(range)}
+							>
+								<Icon name="pencil" size={16} />
+							</button>
+							<button
+								type="button"
+								class="icon-btn"
+								aria-label={t('calendar.deleteNamed', { name: offName(range) })}
+								onclick={() => deleteOff(range)}
+							>
+								<Icon name="trash" size={16} />
+							</button>
+						</span>
+					</li>
+				{/each}
+				{#each selectedEvents as event (event.id)}
+					<li class="entry">
+						<span class="lead">
+							{#if event.time}
+								<time class="time" datetime="{event.date}T{event.time}">
+									{formatTime(event.time)}
+								</time>
+							{:else}
+								<span class="swatch event"><i></i></span>
+							{/if}
+						</span>
+						<span class="what">{event.title}</span>
+						<span class="actions">
+							<button
+								type="button"
+								class="icon-btn"
+								aria-label={t('calendar.editNamed', { name: event.title })}
+								onclick={() => editEvent(event)}
+							>
+								<Icon name="pencil" size={16} />
+							</button>
+							<button
+								type="button"
+								class="icon-btn"
+								aria-label={t('calendar.deleteNamed', { name: event.title })}
+								onclick={() => deleteEvent(event)}
+							>
+								<Icon name="trash" size={16} />
+							</button>
+						</span>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+		{#if !selectedEvents.length}
+			<p class="empty">{t('calendar.noEvents')}</p>
+		{/if}
+	</section>
 </div>
+
+<EventDialog bind:open={eventDialog} event={editingEvent} date={dialogDate} onsave={saveEvent} />
+<OffDayDialog bind:open={offDialog} range={editingOff} date={dialogDate} onsave={saveOff} />
 
 <style>
 	.calendar {
 		display: grid;
 		gap: var(--space-3);
+		--weekend-text: var(--accent-text);
 	}
 
 	.header {
@@ -209,75 +596,284 @@
 		}
 	}
 
-	.calendar {
-		--weekend-text: var(--accent-text);
-		--holiday-text: var(--holiday);
-	}
-
+	/*
+	 * Tagesarten, auch ohne Farbe unterscheidbar:
+	 * Wochenende = schlichte Fläche, Feiertag = Fläche mit Rahmen, frei = schraffierte Fläche
+	 * (zusammenhängende Tage als Band). Feiertag geht vor frei, frei vor Wochenende.
+	 */
 	.day {
 		height: 2.3em;
 		padding: 0;
+		border-radius: var(--radius-xs);
 		text-align: center;
 		font-size: var(--text-sm);
 		font-weight: 600;
 		color: var(--text);
+		cursor: pointer;
+		outline: none;
 
-		span {
-			position: relative;
-			display: inline-grid;
-			place-items: center;
-			width: 2em;
-			height: 2em;
-			border-radius: 50%;
+		&:focus-visible {
+			box-shadow: var(--focus-ring);
 		}
 
-		/* Wochenende: getönte Fläche und Akzent-Schrift */
 		&.weekend {
-			border-radius: var(--radius-xs);
 			background: var(--fill);
 			color: var(--weekend-text);
+		}
+
+		&.off {
+			background: repeating-linear-gradient(
+				-45deg,
+				var(--off-fill) 0 4px,
+				var(--off-stripe) 4px 8px
+			);
+			color: var(--off);
+
+			&.join-start {
+				border-start-start-radius: 0;
+				border-end-start-radius: 0;
+			}
+
+			&.join-end {
+				border-start-end-radius: 0;
+				border-end-end-radius: 0;
+			}
+		}
+
+		&.holiday {
+			color: var(--holiday);
+			box-shadow: inset 0 0 0 1.5px var(--holiday-ring);
+
+			&:not(.off) {
+				background: var(--holiday-fill);
+			}
+
+			&:focus-visible {
+				box-shadow:
+					inset 0 0 0 1.5px var(--holiday-ring),
+					var(--focus-ring);
+			}
+
+			.number {
+				font-weight: 800;
+			}
 		}
 
 		/* Tage aus Vor- und Folgemonat deutlich zurücknehmen */
 		&.outside {
 			font-weight: 400;
-			color: var(--text);
-			opacity: 0.32;
+			opacity: 0.4;
+
+			&:not(.weekend, .off, .holiday) {
+				opacity: 0.32;
+			}
+		}
+	}
+
+	.number {
+		position: relative;
+		display: inline-grid;
+		place-items: center;
+		width: 2em;
+		height: 2em;
+		border-radius: 50%;
+		transition: box-shadow var(--duration-fast) ease;
+	}
+
+	/* Gewählter Tag: Ring; heute: gefüllter Kreis */
+	.day.selected .number {
+		box-shadow: inset 0 0 0 2px var(--accent-text);
+	}
+
+	.day.today .number {
+		background: linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--accent-hover) 80%, white),
+			var(--accent)
+		);
+		color: var(--on-accent);
+		font-weight: 800;
+		box-shadow:
+			inset 0 1px 0 rgb(255 255 255 / 0.45),
+			0 3px 8px -3px color-mix(in srgb, var(--accent) 80%, transparent);
+	}
+
+	.day.today.selected .number {
+		box-shadow:
+			inset 0 1px 0 rgb(255 255 255 / 0.45),
+			0 0 0 2px var(--focus-gap),
+			0 0 0 3.5px var(--accent);
+	}
+
+	/* Termine: bis zu drei Punkte unter der Zahl, innerhalb von Kreis und Auswahlring */
+	.number.with-dots {
+		padding-bottom: 5px;
+	}
+
+	.dots {
+		position: absolute;
+		bottom: 4px;
+		left: 50%;
+		display: flex;
+		gap: 2px;
+		transform: translateX(-50%);
+
+		i {
+			width: 3.5px;
+			height: 3.5px;
+			border-radius: 50%;
+			background: var(--accent-text);
+		}
+	}
+
+	.day.today .dots i {
+		background: var(--on-accent);
+	}
+
+	.legend {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-1) var(--space-3);
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		font-size: var(--text-xs);
+		color: var(--text-secondary);
+
+		li {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+		}
+	}
+
+	/* Muster wie im Raster, im Kleinen */
+	.swatch {
+		display: inline-grid;
+		place-items: center;
+		flex: none;
+		width: 14px;
+		height: 14px;
+		border-radius: 4px;
+
+		&.weekend {
+			background: var(--fill);
+			box-shadow: inset 0 0 0 1px var(--line);
 		}
 
-		/* Feiertage: rot mit Punkt, wie im gedruckten Kalender */
 		&.holiday {
-			color: var(--holiday-text);
-			cursor: help;
-
-			span {
-				font-weight: 800;
-			}
-
-			span::after {
-				content: '';
-				position: absolute;
-				bottom: 1px;
-				left: 50%;
-				width: 4px;
-				height: 4px;
-				border-radius: 50%;
-				background: currentColor;
-				transform: translateX(-50%);
-			}
+			background: var(--holiday-fill);
+			box-shadow: inset 0 0 0 1.5px var(--holiday-ring);
 		}
 
-		&.today span {
-			background: linear-gradient(
-				180deg,
-				color-mix(in srgb, var(--accent-hover) 80%, white),
-				var(--accent)
+		&.off {
+			background: repeating-linear-gradient(
+				-45deg,
+				var(--off-fill) 0 2.5px,
+				var(--off-stripe) 2.5px 5px
 			);
-			color: var(--on-accent);
-			font-weight: 800;
-			box-shadow:
-				inset 0 1px 0 rgb(255 255 255 / 0.45),
-				0 3px 8px -3px color-mix(in srgb, var(--accent) 80%, transparent);
+			box-shadow: inset 0 0 0 1px var(--line);
 		}
+
+		&.event i {
+			width: 5px;
+			height: 5px;
+			border-radius: 50%;
+			background: var(--accent-text);
+		}
+	}
+
+	.agenda {
+		display: grid;
+		gap: var(--space-2);
+		padding-top: var(--space-3);
+		border-top: 1px solid var(--line);
+	}
+
+	.agenda-head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-2);
+	}
+
+	.agenda-title {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-size: var(--text-sm);
+		font-weight: 700;
+	}
+
+	.today-tag {
+		padding: 1px 8px;
+		border-radius: var(--radius-full);
+		background: var(--accent);
+		color: var(--on-accent);
+		font-size: var(--text-xs);
+		font-weight: 700;
+	}
+
+	.agenda-actions {
+		display: flex;
+		gap: var(--space-1);
+	}
+
+	.add {
+		min-height: 28px;
+		padding: 0 var(--space-3) 0 var(--space-2);
+		gap: var(--space-1);
+		font-size: var(--text-xs);
+	}
+
+	.entries {
+		display: grid;
+		grid-template-columns: max-content 1fr auto;
+		gap: 2px var(--space-3);
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.entry {
+		display: grid;
+		grid-template-columns: subgrid;
+		grid-column: 1 / -1;
+		align-items: center;
+		min-height: 32px;
+		font-size: var(--text-sm);
+	}
+
+	.lead {
+		display: flex;
+		justify-content: flex-end;
+	}
+
+	.time {
+		font-weight: 650;
+		font-variant-numeric: tabular-nums;
+		color: var(--text-secondary);
+	}
+
+	.what {
+		min-width: 0;
+		overflow-wrap: anywhere;
+		font-weight: 600;
+	}
+
+	.meta {
+		margin-left: var(--space-1);
+		font-weight: 400;
+		color: var(--text-secondary);
+	}
+
+	.actions {
+		display: flex;
+	}
+
+	.empty {
+		font-size: var(--text-sm);
+		color: var(--text-secondary);
 	}
 </style>

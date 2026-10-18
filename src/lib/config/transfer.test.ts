@@ -19,6 +19,8 @@ function configWithMedia() {
 	const config = createDefaultConfig('de');
 	config.appearance.background.main = { id: 'm1', kind: 'image', name: 'berge.jpg' };
 	config.appearance.background.slots.night = { id: 'm2', kind: 'video', name: 'nacht.mp4' };
+	config.agenda.events.push({ id: 'e1', date: '2026-03-04', time: '14:00', title: 'Zahnarzt' });
+	config.agenda.offDays.push({ id: 'o1', start: '2026-03-30', end: '2026-04-10', label: 'Urlaub' });
 	return config;
 }
 

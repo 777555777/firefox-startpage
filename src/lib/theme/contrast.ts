@@ -51,3 +51,44 @@ export function textContrast(color: TextColor, background: Rgb): number {
 export function worstContrast(color: TextColor, backgrounds: Rgb[]): number {
 	return backgrounds.reduce((worst, bg) => Math.min(worst, textContrast(color, bg)), Infinity);
 }
+
+/** Halbtransparente Fläche über einem Hintergrund, z. B. eine Tönung auf Glas */
+export type Fill = { rgb: Rgb; alpha: number };
+
+/**
+ * Flächen und Schrift der Tagesarten im Kalender. Die Werte entsprechen `--holiday*` und
+ * `--off*` in `app.css`. Unterscheidbar sind die Arten auch ohne Farbe: Wochenende ist eine
+ * schlichte Fläche, Feiertag eine Fläche mit Rahmen, frei eine schraffierte Fläche (zwei
+ * Streifenfarben).
+ */
+export const DAY_COLORS: Record<
+	Tone,
+	{ holiday: { text: TextColor; fills: Fill[] }; off: { text: TextColor; fills: Fill[] } }
+> = {
+	light: {
+		holiday: {
+			text: { rgb: [156, 16, 40], alpha: 1 },
+			fills: [{ rgb: [255, 226, 230], alpha: 0.66 }]
+		},
+		off: {
+			text: { rgb: [5, 83, 91], alpha: 1 },
+			fills: [
+				{ rgb: [222, 246, 247], alpha: 0.62 },
+				{ rgb: [168, 226, 232], alpha: 0.62 }
+			]
+		}
+	},
+	dark: {
+		holiday: {
+			text: { rgb: [255, 179, 191], alpha: 1 },
+			fills: [{ rgb: [255, 120, 140], alpha: 0.16 }]
+		},
+		off: {
+			text: { rgb: [158, 236, 242], alpha: 1 },
+			fills: [
+				{ rgb: [100, 214, 226], alpha: 0.08 },
+				{ rgb: [100, 214, 226], alpha: 0.2 }
+			]
+		}
+	}
+};

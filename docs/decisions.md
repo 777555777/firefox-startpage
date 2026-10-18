@@ -393,3 +393,46 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   die gleiche Gecko-ID erhalten. Ein Update-Server lohnt sich für zwei Rechner nicht.
 - **README** auf Deutsch, wie Spec und Entscheidungen: Installation, Update, Datensicherung,
   Entwicklung und Release-Ablauf.
+
+## Nach v1 – Termine und freie Tage im Kalender
+
+- **Ausbau über v1 hinaus:** §1 und §11 führen „Termine“ als Nicht-v1. Gebaut ist davon nur der
+  manuelle Teil, und zwar direkt im Kalender-Widget statt als eigenes Widget `upcoming`: Termine
+  (Titel, Tag, optionale Uhrzeit) und freie Tage (einzelner Tag oder Zeitraum mit Bezeichnung,
+  z. B. „Urlaub“). Eine ICS-URL mit Host-Rechten zur Laufzeit gibt es weiterhin nicht.
+- **Daten global in der Config (Schema v4):** `config.agenda = { events, offDays }` statt in den
+  Settings einer Kalender-Instanz. So zeigen mehrere Kalender dieselben Termine, ein späteres
+  Widget „Anstehende Termine“ kann sie mitlesen, und Export/Import/Backups nehmen sie ohne
+  Sonderweg mit. Die Migration v3 → v4 ergänzt eine leere `agenda`; ein schon vorhandenes Feld
+  (z. B. aus einem Import) bleibt erhalten und wird wie immer beim Laden validiert.
+- **Format:** Tage als `YYYY-MM-DD` in lokaler Zeit, Uhrzeit als `HH:MM` oder `null`. Ohne
+  Zeitzone, weil beide Rechner in derselben stehen und ein Termin „am 21.“ auch nach einem
+  Umzug der Daten am 21. bleiben soll. Termine ohne Uhrzeit stehen vor denen mit. Validierung
+  verwirft Termine ohne Titel oder mit unmöglichem Datum (31.4.), dreht vertauschte Zeiträume
+  um und kürzt Zeiträume auf höchstens 366 Tage. Obergrenzen: 5000 Termine, 1000 Zeiträume.
+- **Tagesarten ohne Farbe unterscheidbar:** Wochenende bleibt eine schlichte Fläche, ein
+  Feiertag ist eine getönte Fläche mit Rahmen (der rote Punkt entfällt), frei ist eine
+  schraffierte Fläche. Aufeinanderfolgende freie Tage einer Woche bilden ein Band (innen eckig,
+  nur die Enden rund). Bei Überschneidungen gilt: Feiertag vor frei vor Wochenende; ein Feiertag
+  im Urlaub zeigt Schraffur und Rahmen. Termine sind bis zu drei Punkte im Zahlenkreis. Frei ist
+  Petrol statt Grün, damit es sich auch bei Rot-Grün-Schwäche vom Feiertags-Rot abhebt. Eine
+  kleine Legende unter dem Raster zeigt die Muster (Feiertag, frei und Termin nur, wenn sie
+  vorkommen bzw. eingeschaltet sind).
+- **Kontrast:** Die Farben stehen als Tokens (`--holiday*`, `--off*`) in `app.css` und gespiegelt
+  in `DAY_COLORS` (contrast.ts). Ein Unit-Test prüft Schrift auf jeder Fläche gegen das dunkelste
+  bzw. hellste erlaubte Glas der WebGL-Stufen (AA 4,5:1). Dafür ist das Feiertags-Rot im hellen
+  Ton dunkler geworden (`#9c1028` statt `#b4182f`), die Flächen sind im hellen Ton aufgehellt und
+  im dunklen nur leicht getönt. Die Static-Stufe ist manuell bei Tag und Nacht geprüft.
+- **Auswahl und Tagesansicht:** Ein Klick wählt einen Tag, die Tagesansicht unter dem Raster
+  zeigt Feiertag, freie Zeiträume und Termine mit Bearbeiten/Löschen sowie „+ Termin“ und
+  „+ Frei“. Ohne Auswahl folgt sie dem heutigen Tag (auch über Mitternacht). Gewählt = Ring,
+  heute = gefüllter Kreis. Ein Doppelklick legt einen Termin an. Löschen hat wie bei Links einen
+  Rückgängig-Toast statt einer Bestätigung.
+- **Tastatur:** Das Raster ist ein `grid` mit Roving Tabindex. Pfeile bewegen um Tag/Woche,
+  `Pos1`/`Ende` an Wochenanfang/-ende, `Bild auf/ab` um einen Monat, mit Umschalt um ein Jahr.
+  Verlässt die Auswahl den Monat, blättert der Kalender mit. `Enter` legt einen Termin am Tag an,
+  `Leertaste` wählt nur. Der Hinweis dazu hängt per `aria-describedby` am Raster. Die Dialoge
+  setzen den Fokus ins erste Feld.
+- **Eingabe:** Datum und Uhrzeit über die nativen Felder (`type="date"`/`"time"`), damit
+  Darstellung und Bedienung der Sprache des Browsers folgen. Unvollständige Eingaben
+  (`validity.badInput`) werden als Fehler gemeldet statt still als „keine Uhrzeit“ gespeichert.

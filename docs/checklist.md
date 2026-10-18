@@ -54,6 +54,20 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
       Edit-Modus bzw. in leerer Gruppe, Kontextmenü bietet „Link hinzufügen“
 - [ ] Favicons: beim zweiten Öffnen kein Flackern, im Netzwerk-Tab keine 404-Versuche mehr
 
+## Termine und freie Tage (Schema v4)
+
+- [ ] Bestehende Config (v3) wird übernommen, Kalender zeigt „Keine Termine“
+- [ ] Tag per Klick und per Tastatur wählen (Pfeile, `Pos1`/`Ende`, `Bild auf/ab`, Umschalt für
+      ein Jahr); „Heute“ springt zurück
+- [ ] `Enter` auf einem Tag bzw. „+ Termin“: Termin mit und ohne Uhrzeit anlegen, bearbeiten,
+      löschen, „Rückgängig“; Punkte im Raster, Liste sortiert (ohne Uhrzeit zuerst)
+- [ ] „+ Frei“: einzelnen Tag und Zeitraum (auch über Monats- und Jahresgrenze) eintragen,
+      bearbeiten, löschen; Zeitraum erscheint als schraffiertes Band
+- [ ] Wochenende (schlicht), Feiertag (Rahmen) und frei (Schraffur) bei Tag und Nacht, mit
+      WebGL und in der Static-Stufe unterscheidbar und lesbar, auch in Graustufen
+- [ ] Export enthält Termine und freie Tage, Import auf dem anderen Rechner zeigt sie
+- [ ] Zwei Kalender-Widgets zeigen dieselben Einträge
+
 ## Ab M4
 
 - [ ] Upload Bild und Video per Dateiauswahl und per Drag & Drop auf einen Slot

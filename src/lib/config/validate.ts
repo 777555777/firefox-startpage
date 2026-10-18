@@ -13,6 +13,7 @@ import {
 	PANEL_GAP_MAX,
 	PANEL_GAP_MIN
 } from '$lib/layout/operations';
+import { parseAgenda } from '$lib/widgets/calendar/agenda';
 import { isWidgetType, widgetSettings } from '$lib/widgets/settings';
 import {
 	CONFIG_VERSION,
@@ -201,7 +202,8 @@ export function parseConfig(raw: unknown, fallbackLanguage: Language = 'en'): Co
 		layout: parseLayout(raw.layout, Object.keys(widgets)),
 		widgets,
 		appearance: parseAppearance(raw.appearance),
-		search: parseSearch(raw.search)
+		search: parseSearch(raw.search),
+		agenda: parseAgenda(raw.agenda)
 	};
 }
 

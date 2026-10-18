@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CONFIG_VERSION, createDefaultConfig } from './defaults';
-import { migrate, rawVersion, type Migration } from './migrate';
+import { MIGRATIONS, migrate, rawVersion, type Migration } from './migrate';
 
 describe('migrate', () => {
 	it('liest die aktuelle Version unverändert', () => {
@@ -53,7 +53,7 @@ describe('migrate', () => {
 			widgets: { a: { type: 'clock' }, b: { type: 'calendar' }, c: { type: 'search' } },
 			layout: { columns: 2, columnItems: [['a', 'b'], ['c']], columnWidths: [4, 8], gap: 32 }
 		});
-		expect(config.version).toBe(3);
+		expect(config.version).toBe(CONFIG_VERSION);
 		expect(config.layout.columnRows).toEqual([
 			[
 				{ items: ['a'], spans: [8] },
@@ -102,6 +102,41 @@ describe('migrate', () => {
 		const items = config.layout.columnRows.map((rows) => rows.map((row) => row.items[0]));
 		expect(items).toEqual([['b', 'c'], ['d'], ['a']]);
 		expect(config.layout.centerSpan).toBe(12);
+	});
+
+	it('v3 → v4: Termine und freie Tage starten leer', () => {
+		const config = createDefaultConfig('de');
+		const { agenda: _agenda, ...v3 } = structuredClone(config);
+		const migrated = migrate({ ...v3, version: 3 });
+		expect(migrated.version).toBe(4);
+		expect(migrated.agenda).toEqual({ events: [], offDays: [] });
+		// Alles andere bleibt unverändert
+		expect({ ...migrated, agenda: undefined }).toEqual({ ...config, agenda: undefined });
+	});
+
+	it('v3 → v4: ein schon vorhandenes `agenda` bleibt erhalten und wird validiert', () => {
+		const migrated = migrate({
+			version: 3,
+			agenda: {
+				events: [
+					{ id: 'e', date: '2026-10-21', time: '9:30', title: ' Zahnarzt ' },
+					{ id: 'x', date: '2026-02-30', title: 'Gibt es nicht' }
+				],
+				offDays: [{ id: 'u', start: '2026-12-31', end: '2026-12-24', label: 'Urlaub' }]
+			}
+		});
+		expect(migrated.agenda).toEqual({
+			events: [{ id: 'e', date: '2026-10-21', time: '09:30', title: 'Zahnarzt' }],
+			offDays: [{ id: 'u', start: '2026-12-24', end: '2026-12-31', label: 'Urlaub' }]
+		});
+	});
+
+	it('v3 → v4: Migration allein ergänzt `agenda`', () => {
+		expect(MIGRATIONS[3]({ version: 3 })).toEqual({
+			version: 3,
+			agenda: { events: [], offDays: [] }
+		});
+		expect(MIGRATIONS[3]({ agenda: 'kaputt' }).agenda).toEqual({ events: [], offDays: [] });
 	});
 
 	it('überspringt bereits erreichte Versionen', () => {
