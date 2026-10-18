@@ -3,6 +3,10 @@
  * damit es nur eine Quelle dafür gibt.
  */
 export function createManifest(version: string) {
+	// Firefox erlaubt nur bis zu vier Zahlen, keine Vorabversionen wie `1.1.0-beta.1`
+	if (!/^\d+(\.\d+){0,3}$/.test(version)) {
+		throw new Error(`Ungültige Extension-Version „${version}“ in package.json`);
+	}
 	return {
 		manifest_version: 3,
 		name: '__MSG_extName__',

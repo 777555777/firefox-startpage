@@ -379,3 +379,17 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   (`position: fixed`), das Standbild aus `boot.js` per `background-attachment: fixed`.
 - **Dialoge:** Solange ein Dialog offen ist, steht die Page still (`html:has(dialog[open])`).
 - **Drag & Drop:** Ohne eigenen Scroll-Container scrollt beim Ziehen an den Fensterrand die Page.
+
+## M7 – Auslieferung
+
+- **Versionierung:** SemVer, nur Zahlen (Firefox lehnt Vorabversionen wie `1.1.0-beta.1` ab; der
+  Build bricht dann mit klarer Meldung ab). Die erste ausgelieferte Version ist `1.0.0`.
+  Erhöht wird mit `pnpm version patch|minor|major`, das in pnpm 10 an `npm version` geht: Es
+  führt vorher per `preversion` alle vier Checks aus und erzeugt Commit `chore: Version x.y.z`
+  und Tag `vx.y.z` (eingestellt in `.npmrc`). Signiert wird bewusst nicht automatisch danach,
+  weil dafür die API-Keys nötig sind und AMO jede Version nur einmal annimmt.
+- **Updates:** Ohne eigenen Update-Server (`update_url`) gibt es bei „unlisted“ keine
+  automatischen Updates. Eine neue `.xpi` wird über die alte installiert, die Daten bleiben über
+  die gleiche Gecko-ID erhalten. Ein Update-Server lohnt sich für zwei Rechner nicht.
+- **README** auf Deutsch, wie Spec und Entscheidungen: Installation, Update, Datensicherung,
+  Entwicklung und Release-Ablauf.

@@ -72,7 +72,9 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
 - [ ] Leistung zeigt „WebGL-Glas, Stufe Hoch“; Panels mit Refraktion, Farbsäumen, Glanzkante und Schatten
 - [ ] Himmelsverlauf bewegt sich kaum merklich (~15 fps), ohne Flimmern oder Banding
 - [ ] Video-Hintergrund läuft flüssig, pausiert im Hintergrund-Tab
-- [ ] Spalten scrollen: Glas bleibt deckungsgleich mit dem Inhalt und endet an der Spaltenkante
+- [ ] Page scrollen: nur eine Scrollleiste, Glas bleibt deckungsgleich mit den Panels, das
+      Mausrad wirkt auch neben den Spalten; offener Dialog sperrt das Scrollen
+- [ ] Widget beim Ziehen an den oberen/unteren Fensterrand: Page scrollt mit
 - [ ] Widgets ziehen: Glas folgt den Panels während der Federanimation
 - [ ] Dialog öffnen: Szene dahinter wird weich und dunkler
 - [ ] Qualitätsstufe „Statisch“ schaltet sofort auf CSS-Glas, zurück auf „Automatisch“ wieder auf WebGL
@@ -88,3 +90,12 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
 - [ ] Kontrast: `pnpm dev`, `?debug`, je ein helles und ein dunkles Testbild, Uhrzeit-Regler
       Mittag und Nacht, „Kontrast prüfen“ zeigt überall mindestens 4,5:1
 - [ ] Kontextverlust im Debug-Panel auslösen: kurz Static, danach wieder WebGL
+
+## Ab M7
+
+- [ ] `pnpm version …` führt erst alle Checks aus, dann Commit `chore: Version x.y.z` und Tag `vx.y.z`
+- [ ] `pnpm ext:sign` legt eine signierte `.xpi` in `web-ext-artifacts/` ab
+- [ ] `.xpi` per Drag & Drop bzw. `about:addons` installieren, „Änderungen beibehalten“ bestätigen
+- [ ] `about:addons` zeigt die richtige Version
+- [ ] Neue Version über die alte installieren: Einstellungen, Links und Hintergründe bleiben
+- [ ] Installation auf beiden Rechnern (Privat, MacBook M4 Pro)

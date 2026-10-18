@@ -15,7 +15,8 @@
 		"ext:dev": "vite build && concurrently -k -n vite,web-ext \"vite build --watch\" \"web-ext run\"",
 		"ext:lint": "vite build && web-ext lint",
 		"ext:build": "vite build && web-ext build --overwrite-dest",
-		"ext:sign": "vite build && node scripts/sign.js"
+		"ext:sign": "vite build && node scripts/sign.js",
+		"preversion": "pnpm check && pnpm lint && pnpm test && pnpm ext:lint"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
