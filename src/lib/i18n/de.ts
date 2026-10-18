@@ -218,12 +218,7 @@ export const de = {
 	'clock.dateLong': 'Lang',
 	'clock.sun': 'Sonne anzeigen (Bogen, Auf- und Untergang, Tageslänge)',
 	'clock.moon': 'Mond anzeigen (Phase, Auf- und Untergang)',
-	'clock.skyHint':
-		'Tagsüber erscheint die Sonne, nachts der Mond. Mit den Knöpfen oben rechts lässt sich umschalten.',
 	'clock.sky': 'Sonne und Mond',
-	'clock.skyView': 'Anzeige wählen',
-	'clock.viewSun': 'Sonne zeigen',
-	'clock.viewMoon': 'Mond zeigen',
 	'clock.dayLength': 'Tageslänge',
 	'clock.duration': '{hours} h {minutes} min',
 	'clock.dayLengthChange': '{delta} min gegenüber gestern',

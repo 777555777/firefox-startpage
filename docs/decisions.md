@@ -462,7 +462,8 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   an der Stelle, die dem vergangenen Anteil des Tags entspricht (zeitlich, nicht nach
   Sonnenhöhe), der zurückgelegte Teil farbig. Kurze Striche auf dem Horizont zeigen die
   bürgerliche Dämmerung (Sonne 6° unter dem Horizont) im selben Zeitmaßstab. Darunter Auf- und
-  Untergang an den Enden und mittig die Tageslänge mit Änderung gegenüber gestern („−4“, voll im
+  Untergang an den Enden (ohne Icons, die Grafik erklärt sie; Name im Tooltip und für
+  Screenreader) und mittig die Tageslänge mit Änderung gegenüber gestern („−4“, voll im
   Tooltip und für Screenreader). Polartag und Polarnacht zeigen weiter den Text statt des Bogens.
 - **Mond (neu, Schalter „Mond anzeigen“, Default aus):** Mondscheibe mit der richtigen
   Schattengrenze (auf der Südhalbkugel gespiegelt), Name der Phase, beleuchteter Anteil,
@@ -470,11 +471,13 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   Untergang aus (etwa einmal im Monat), steht „–“ mit Erklärung im Tooltip; bleibt der Mond den
   ganzen Tag über bzw. unter dem Horizont (hohe Breiten, z. B. Tromsø zur großen Mondwende),
   steht das als Text da.
-- **Sonne und Mond an derselben Stelle:** Sind beide an, zeigt die Uhr tagsüber die Sonne und
-  nachts den Mond. Zwei kleine Knöpfe oben rechts schalten von Hand um; die Wahl gilt bis zum
-  nächsten Auf- oder Untergang. Beide Ansichten liegen übereinander (die unsichtbare `inert`),
-  damit sich die Höhe des Panels beim Wechsel nicht ändert. Das Band ist höchstens 22 rem
-  breit, weil der Bogen ein festes Seitenverhältnis hat und die Zeiten an seinen Enden stehen.
+- **Sonne und Mond als eigene Abschnitte:** Uhr, Sonne und Mond stehen untereinander, Sonne und
+  Mond jeweils mit eigenem Schalter. Eine erste Fassung zeigte beide an derselben Stelle
+  (tagsüber Sonne, nachts Mond, Umschalter oben rechts); untereinander ist alles auf einen
+  Blick sichtbar, und ohne Umschalten bleibt die Höhe des Panels ohnehin gleich. Bei Mondauf- und
+  -untergang bleiben kleine Pfeile, weil es dort keine Grafik gibt, die die Zeiten erklärt. Das
+  Band ist höchstens 22 rem breit, weil der Bogen ein festes Seitenverhältnis hat und die Zeiten
+  an seinen Enden stehen.
 - **Berechnung, offline:** Mondposition aus den größten Gliedern der Mondtheorie nach Meeus
   (Kap. 47), Sonnenlänge auf das Äquinoktium des Datums bezogen (ein festes Perihel ergab 2025
   schon 45 Minuten Fehler). Voll- und Neumond treffen die veröffentlichten Zeitpunkte

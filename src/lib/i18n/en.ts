@@ -213,12 +213,7 @@ export const en: Dictionary = {
 	'clock.dateLong': 'Long',
 	'clock.sun': 'Show sun (arc, sunrise and sunset, day length)',
 	'clock.moon': 'Show moon (phase, rise and set)',
-	'clock.skyHint':
-		'The sun shows during the day, the moon at night. Switch with the buttons top right.',
 	'clock.sky': 'Sun and moon',
-	'clock.skyView': 'Choose view',
-	'clock.viewSun': 'Show sun',
-	'clock.viewMoon': 'Show moon',
 	'clock.dayLength': 'Day length',
 	'clock.duration': '{hours} h {minutes} min',
 	'clock.dayLengthChange': '{delta} min compared to yesterday',

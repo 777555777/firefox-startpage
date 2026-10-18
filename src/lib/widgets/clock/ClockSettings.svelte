@@ -67,16 +67,11 @@
 		checked={settings.showSun}
 		onchange={(value) => update((s) => (s.showSun = value))}
 	/>
-	<div class="field">
-		<Switch
-			label={t('clock.moon')}
-			checked={settings.showMoon}
-			onchange={(value) => update((s) => (s.showMoon = value))}
-		/>
-		{#if settings.showSun && settings.showMoon}
-			<p class="field-hint">{t('clock.skyHint')}</p>
-		{/if}
-	</div>
+	<Switch
+		label={t('clock.moon')}
+		checked={settings.showMoon}
+		onchange={(value) => update((s) => (s.showMoon = value))}
+	/>
 	{#if settings.showSun || settings.showMoon}
 		<p class="field-hint">{t('clock.sunHint')}</p>
 		<div class="coordinates">

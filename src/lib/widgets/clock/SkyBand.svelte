@@ -35,24 +35,10 @@
 		const yesterday = new Date(day.getFullYear(), day.getMonth(), day.getDate() - 1);
 		return length - dayLength(sunTimes(yesterday, latitude, longitude));
 	});
-	const sunUp = $derived(current.up);
 
 	const moon = $derived(showMoon ? moonTimes(new Date(today), latitude, longitude) : null);
 	const phase = $derived(moonPhase(now));
 	const next = $derived(nextMajorPhase(now));
-
-	// --- Umschalten Sonne/Mond --------------------------------------------------------------
-
-	type View = 'sun' | 'moon';
-	/** Automatisch: Sonne, solange sie über dem Horizont steht, sonst Mond */
-	const auto = $derived<View>(!showMoon ? 'sun' : !showSun ? 'moon' : sunUp ? 'sun' : 'moon');
-	/** Von Hand gewählt; gilt bis zum nächsten automatischen Wechsel (Auf- oder Untergang) */
-	let manual = $state<{ view: View; auto: View } | null>(null);
-	const view = $derived(manual && manual.auto === auto ? manual.view : auto);
-
-	function choose(next: View) {
-		manual = next === auto ? null : { view: next, auto };
-	}
 
 	// --- Sonnenbogen ------------------------------------------------------------------------
 
@@ -103,128 +89,104 @@
 </script>
 
 <section class="sky" aria-label={t('clock.sky')}>
-	{#if showSun && showMoon}
-		<div class="switch" role="group" aria-label={t('clock.skyView')}>
-			<button
-				type="button"
-				class="icon-btn"
-				aria-label={t('clock.viewSun')}
-				aria-pressed={view === 'sun'}
-				onclick={() => choose('sun')}
-			>
-				<Icon name="sun" size={16} />
-			</button>
-			<button
-				type="button"
-				class="icon-btn"
-				aria-label={t('clock.viewMoon')}
-				aria-pressed={view === 'moon'}
-				onclick={() => choose('moon')}
-			>
-				<Icon name="moon" size={16} />
-			</button>
+	{#if showSun}
+		<div class="sun-part">
+			{#if sun.kind === 'normal'}
+				<svg class="arc" viewBox="0 0 {W} {HORIZON + 4}" aria-hidden="true">
+					<line class="horizon" x1="4" x2={W - 4} y1={HORIZON} y2={HORIZON} />
+					{#if twilight}
+						<line class="twilight" x1={twilight.dawn} x2={LEFT} y1={HORIZON} y2={HORIZON} />
+						<line class="twilight" x1={RIGHT} x2={twilight.dusk} y1={HORIZON} y2={HORIZON} />
+					{/if}
+					<path class="path" class:night={progress === null} d={arc(1)} />
+					{#if progress !== null}
+						{@const at = point(progress)}
+						<path class="travelled" d={arc(progress)} />
+						<circle class="glow" cx={at.x} cy={at.y} r="10" />
+						<circle class="sun" cx={at.x} cy={at.y} r="5.5" />
+					{/if}
+				</svg>
+				<div class="sun-row">
+					<span class="event" title={t('clock.sunrise')}>
+						<span class="visually-hidden">{t('clock.sunrise')}</span>
+						<time datetime={sun.sunrise.toISOString()}>{timeFormat.format(sun.sunrise)}</time>
+					</span>
+					<span class="length" title={t('clock.dayLengthChange', { delta: signed(change) })}>
+						<span class="visually-hidden">{t('clock.dayLength')}</span>
+						{duration(length)}
+						<span class="change" aria-hidden="true">{signed(change)}</span>
+						<span class="visually-hidden">
+							{t('clock.dayLengthChange', { delta: signed(change) })}
+						</span>
+					</span>
+					<span class="event" title={t('clock.sunset')}>
+						<span class="visually-hidden">{t('clock.sunset')}</span>
+						<time datetime={sun.sunset.toISOString()}>{timeFormat.format(sun.sunset)}</time>
+					</span>
+				</div>
+			{:else}
+				<p class="polar">
+					<Icon name={sun.kind === 'polarDay' ? 'sunrise' : 'sunset'} size={18} />
+					{t(sun.kind === 'polarDay' ? 'clock.polarDay' : 'clock.polarNight')}
+				</p>
+			{/if}
 		</div>
 	{/if}
 
-	<!-- Beide Ansichten liegen übereinander, damit die Höhe beim Umschalten gleich bleibt -->
-	<div class="views">
-		{#if showSun}
-			<div class="view" class:hidden={view !== 'sun'} inert={view !== 'sun'}>
-				{#if sun.kind === 'normal'}
-					<svg class="arc" viewBox="0 0 {W} {HORIZON + 4}" aria-hidden="true">
-						<line class="horizon" x1="4" x2={W - 4} y1={HORIZON} y2={HORIZON} />
-						{#if twilight}
-							<line class="twilight" x1={twilight.dawn} x2={LEFT} y1={HORIZON} y2={HORIZON} />
-							<line class="twilight" x1={RIGHT} x2={twilight.dusk} y1={HORIZON} y2={HORIZON} />
-						{/if}
-						<path class="path" class:night={progress === null} d={arc(1)} />
-						{#if progress !== null}
-							{@const at = point(progress)}
-							<path class="travelled" d={arc(progress)} />
-							<circle class="glow" cx={at.x} cy={at.y} r="10" />
-							<circle class="sun" cx={at.x} cy={at.y} r="5.5" />
-						{/if}
-					</svg>
-					<div class="sun-row">
-						<span class="event" title={t('clock.sunrise')}>
-							<Icon name="sunrise" size={16} />
-							<span class="visually-hidden">{t('clock.sunrise')}</span>
-							<time datetime={sun.sunrise.toISOString()}>{timeFormat.format(sun.sunrise)}</time>
-						</span>
-						<span class="length" title={t('clock.dayLengthChange', { delta: signed(change) })}>
-							<span class="visually-hidden">{t('clock.dayLength')}</span>
-							{duration(length)}
-							<span class="change" aria-hidden="true">{signed(change)}</span>
-							<span class="visually-hidden">
-								{t('clock.dayLengthChange', { delta: signed(change) })}
+	{#if showMoon && moon}
+		<div class="moon">
+			<svg
+				class="disc"
+				viewBox="{-MOON_R - 1} {-MOON_R - 1} {2 * MOON_R + 2} {2 * MOON_R + 2}"
+				aria-hidden="true"
+			>
+				<circle class="dark" r={MOON_R} />
+				<!-- Auf der Südhalbkugel steht die Sichel seitenverkehrt -->
+				<path
+					class="lit"
+					d={litPath(phase.phase, MOON_R)}
+					transform={latitude < 0 ? 'scale(-1 1)' : undefined}
+				/>
+			</svg>
+			<div class="moon-text">
+				<p class="moon-name">{t(`moon.${phase.name}`)}</p>
+				<p class="moon-times">
+					{#if moon.alwaysUp || moon.alwaysDown}
+						{t(moon.alwaysUp ? 'clock.moonAlwaysUp' : 'clock.moonAlwaysDown')}
+					{:else}
+						{#each [{ icon: 'rise', label: 'clock.moonrise', none: 'clock.noMoonrise', at: moon.rise }, { icon: 'set', label: 'clock.moonset', none: 'clock.noMoonset', at: moon.set }] as const as event (event.icon)}
+							<span class="event" title={t(event.label)}>
+								<Icon name={event.icon} size={15} />
+								<span class="visually-hidden">{t(event.label)}</span>
+								{#if event.at}
+									<time datetime={event.at.toISOString()}>{timeFormat.format(event.at)}</time>
+								{:else}
+									<span title={t(event.none)}>–</span>
+									<span class="visually-hidden">{t(event.none)}</span>
+								{/if}
 							</span>
-						</span>
-						<span class="event" title={t('clock.sunset')}>
-							<span class="visually-hidden">{t('clock.sunset')}</span>
-							<time datetime={sun.sunset.toISOString()}>{timeFormat.format(sun.sunset)}</time>
-							<Icon name="sunset" size={16} />
-						</span>
-					</div>
-				{:else}
-					<p class="polar">
-						<Icon name={sun.kind === 'polarDay' ? 'sunrise' : 'sunset'} size={18} />
-						{t(sun.kind === 'polarDay' ? 'clock.polarDay' : 'clock.polarNight')}
-					</p>
-				{/if}
+						{/each}
+					{/if}
+				</p>
+				<p class="meta">
+					{t('clock.illumination', { percent })} ·
+					{t(next.kind === 'full' ? 'clock.nextFull' : 'clock.nextNew', {
+						date: nextFormat.format(next.at)
+					})}
+				</p>
 			</div>
-		{/if}
-
-		{#if showMoon && moon}
-			<div class="view moon" class:hidden={view !== 'moon'} inert={view !== 'moon'}>
-				<svg
-					class="disc"
-					viewBox="{-MOON_R - 1} {-MOON_R - 1} {2 * MOON_R + 2} {2 * MOON_R + 2}"
-					aria-hidden="true"
-				>
-					<circle class="dark" r={MOON_R} />
-					<!-- Auf der Südhalbkugel steht die Sichel seitenverkehrt -->
-					<path
-						class="lit"
-						d={litPath(phase.phase, MOON_R)}
-						transform={latitude < 0 ? 'scale(-1 1)' : undefined}
-					/>
-				</svg>
-				<div class="moon-text">
-					<p class="moon-name">{t(`moon.${phase.name}`)}</p>
-					<p class="moon-times">
-						{#if moon.alwaysUp || moon.alwaysDown}
-							{t(moon.alwaysUp ? 'clock.moonAlwaysUp' : 'clock.moonAlwaysDown')}
-						{:else}
-							{#each [{ icon: 'rise', label: 'clock.moonrise', none: 'clock.noMoonrise', at: moon.rise }, { icon: 'set', label: 'clock.moonset', none: 'clock.noMoonset', at: moon.set }] as const as event (event.icon)}
-								<span class="event" title={t(event.label)}>
-									<Icon name={event.icon} size={15} />
-									<span class="visually-hidden">{t(event.label)}</span>
-									{#if event.at}
-										<time datetime={event.at.toISOString()}>{timeFormat.format(event.at)}</time>
-									{:else}
-										<span title={t(event.none)}>–</span>
-										<span class="visually-hidden">{t(event.none)}</span>
-									{/if}
-								</span>
-							{/each}
-						{/if}
-					</p>
-					<p class="meta">
-						{t('clock.illumination', { percent })} ·
-						{t(next.kind === 'full' ? 'clock.nextFull' : 'clock.nextNew', {
-							date: nextFormat.format(next.at)
-						})}
-					</p>
-				</div>
-			</div>
-		{/if}
-	</div>
+		</div>
+	{/if}
 </section>
 
 <style>
-	/* Feste Höchstbreite: Der Bogen hat ein festes Seitenverhältnis, die Zeiten stehen an seinen Enden */
+	/*
+	 * Sonne und Mond untereinander, jeweils einzeln abschaltbar. Feste Höchstbreite: Der Bogen hat
+	 * ein festes Seitenverhältnis, die Zeiten stehen an seinen Enden.
+	 */
 	.sky {
-		position: relative;
+		display: grid;
+		gap: var(--space-4);
 		max-width: 22rem;
 		margin-top: var(--space-2);
 		font-size: var(--text-sm);
@@ -233,40 +195,9 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	.switch {
-		position: absolute;
-		top: -6px;
-		right: -6px;
-		z-index: 1;
-		display: flex;
-
-		.icon-btn {
-			width: 28px;
-			height: 28px;
-			color: var(--text-tertiary);
-
-			&[aria-pressed='true'] {
-				color: var(--text);
-				background: var(--fill);
-			}
-		}
-	}
-
-	.views {
+	.sun-part {
 		display: grid;
-	}
-
-	.view {
-		grid-area: 1 / 1;
-		display: grid;
-		align-content: center;
 		gap: var(--space-1);
-		transition: opacity var(--duration) ease;
-
-		&.hidden {
-			visibility: hidden;
-			opacity: 0;
-		}
 	}
 
 	/* --- Sonne --- */
@@ -350,6 +281,7 @@
 	/* --- Mond --- */
 
 	.moon {
+		display: grid;
 		grid-template-columns: auto 1fr;
 		align-items: center;
 		gap: var(--space-3);
@@ -377,8 +309,6 @@
 	}
 
 	.moon-name {
-		/* Platz für den Umschalter oben rechts */
-		padding-right: 64px;
 		color: var(--text);
 		font-weight: 600;
 	}
