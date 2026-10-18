@@ -16,7 +16,7 @@ Widgets, und das RSS-Widget (Teil B) baut darauf auf.
 | Höhe           | Höchsthöhe pro Zeile, Standard „Automatisch“, Inhalt scrollt im Panel          |
 | Einheit        | rem in 2er-Schritten, wie die maximale Breite                                  |
 | Host-Rechte    | pro Feed-Origin, zur Laufzeit beim Hinzufügen                                  |
-| Darstellung    | nur eine gemischte, chronologische Liste pro Widget (keine Tabs)               |
+| Darstellung    | gemischte, chronologische Liste; seit Teil C pro Tab (Kategorie)               |
 | Gelesen        | Punkt und fette Schrift für ungelesen, „Alle als gelesen“, optional ausblenden |
 | Aktualisierung | nur aus der offenen Newtab-Page, kein Hintergrundskript                        |
 | Titelbilder    | klein rechts in der Zeile, pro Widget einschaltbar, Standard aus               |
@@ -397,6 +397,81 @@ Reine Funktionen mit Fixtures (`src/lib/widgets/rss/fixtures/`), jsdom hat `DOMP
 
 ---
 
+# Teil C – Kategorien als Tabs (nach dem ersten Test)
+
+Beim Testen hat sich gezeigt, dass Kategorien in einem Widget praktischer sind als mehrere
+Widgets (z. B. „Webdev“, „Nachrichten“, „Gaming“). Damit wird die Wahl „nur eine gemischte
+Liste“ aus Teil B ersetzt: Jeder Tab ist eine Kategorie mit eigenen Feeds, innerhalb eines Tabs
+bleibt die Liste chronologisch gemischt. Mit der nutzenden Person abgestimmt:
+
+| Frage      | Wahl                                                               |
+| ---------- | ------------------------------------------------------------------ |
+| Zähler     | ungelesene Einträge als kleine Zahl am Tab, bei null nichts        |
+| „Alle“-Tab | keiner; jeder Tab ist eine Kategorie                               |
+| Bedienung  | wie im Link-Board: „+“, Doppelklick/Kontextmenü, Ziehen, `Alt+1…9` |
+
+## C1. Schema
+
+```ts
+type RssTab = {
+	id: string;
+	label: string;
+	/** Optionales Emoji, wie bei Link-Tabs */
+	icon: string;
+	feeds: RssFeed[];
+};
+
+type RssSettings = {
+	title: string;
+	tabs: RssTab[]; // mindestens 1, höchstens 10
+	activeTabId: string;
+	maxItems: number;
+	intervalMinutes: IntervalMinutes;
+	showSummary: boolean;
+	showImages: boolean;
+	hideRead: boolean;
+};
+```
+
+- **Kein Schema-Sprung:** `parseRssSettings` liest ein altes `feeds` als einen Tab ohne Namen.
+  Bestehende RSS-Widgets behalten so ihre Feeds. `CONFIG_VERSION` bleibt 4.
+- Höchstens 20 Feeds pro Tab. Derselbe Feed darf in mehreren Tabs stehen; Cache und
+  Gelesen-Status gelten weiter pro Feed-URL, also tabübergreifend.
+- Anzahl, Intervall und die Schalter bleiben pro Widget, nicht pro Tab.
+
+## C2. Widget
+
+- Tab-Leiste wie im Link-Board (Reiter mit optionalem Emoji, Zahl der ungelesenen Einträge,
+  „+“ am Ende). Die Zahl zählt alle ungelesenen Einträge im Cache der Feeds des Tabs, nicht nur
+  die sichtbaren, und wird ab 100 als „99+“ gezeigt. Für Screenreader steht sie im Namen des Tabs
+  („Webdev, 3 ungelesen“).
+- Doppelklick oder Kontextmenü auf einen Reiter: umbenennen, Emoji, löschen (mit
+  Rückgängig-Toast, der letzte Tab bleibt). Reiter lassen sich ziehen (bestehender `Sortable`).
+- Ist das Widget fokussiert, wechseln `Alt+1…9` die Tabs. Die Ziffern `1…9` bleiben dem
+  Link-Board.
+- „Alle als gelesen“ und „Aktualisieren“ wirken auf den aktiven Tab. Der Problem-Fuß zeigt nur
+  Feeds des aktiven Tabs; ein Tab mit Problemen bekommt ein kleines Warnzeichen am Reiter.
+- Abgerufen werden weiter die Feeds aller Tabs, damit die Zähler stimmen.
+
+## C3. Einstellungen
+
+- Die Feeds stehen nach Tabs gruppiert. „Feed hinzufügen“ bekommt eine Auswahl, in welchen
+  Tab der Feed kommt (Standard: der aktive Tab). Jeder Feed lässt sich per Auswahlfeld in einen
+  anderen Tab verschieben.
+- Tabs selbst werden im Widget verwaltet (siehe C2); die Einstellungen zeigen nur ihre Namen als
+  Gruppenüberschriften.
+
+## C4. Tests
+
+- `parseRssSettings`: altes `feeds` wird ein Tab, leere Tab-Liste ergibt einen Tab, Grenzen,
+  ungültige `activeTabId`.
+- Zähler pro Tab, Feeds aller Tabs im Abruf-Dienst, Aufräumen nur von Feeds, die in keinem Tab
+  mehr stehen.
+- Komponententests: Tab wechseln (Klick, `Alt+Ziffer`), Zähler, Tab anlegen, löschen samt
+  Rückgängig, Feed in anderen Tab verschieben.
+
+---
+
 ## Meilensteine
 
 Jeder Meilenstein endet mit `pnpm check && pnpm lint && pnpm test && pnpm ext:lint` grün und
@@ -425,13 +500,16 @@ einem Commit.
 6. **R4 – Einstellungen und Rechte-Ablauf (erledigt, Prüfung in Firefox steht aus):** Einstellungs-Komponente, Dialog „Feed hinzufügen“ mit
    Rechte-Abfrage und Feed-Suche, sortieren, umbenennen, entfernen mit Rückgängig, „Zugriff
    erlauben“ im Widget, Kontrastprüfung bei Tag und Nacht.
-7. **R5 – Abschluss:** Entscheidungen nach `docs/decisions.md`, Checkliste, README-Abschnitt,
+7. **R4b – Kategorien als Tabs (Teil C):** Schema mit Tabs samt Lesen alter Settings,
+   Tab-Leiste mit Zählern, Tab-Verwaltung wie im Link-Board, Einstellungen nach Tabs gruppiert,
+   Tests. Startet, sobald der Test in Firefox abgeschlossen ist.
+8. **R5 – Abschluss:** Entscheidungen nach `docs/decisions.md`, Checkliste, README-Abschnitt,
    diesen Plan löschen. Danach `pnpm version minor` (1.1.0) und `pnpm ext:sign`. Signiert wird erst
    nach Rücksprache mit der nutzenden Person, weil AMO jede Version nur einmal annimmt.
 
 ## Bewusst nicht enthalten
 
-Volltext-Ansicht im Widget, große Bilder über dem Titel, OPML-Import/-Export, Tabs pro Feed,
+Volltext-Ansicht im Widget, große Bilder über dem Titel, OPML-Import/-Export, ein „Alle“-Tab,
 Abruf im Hintergrund, http-only-Feeds, Feeds mit Anmeldung (außer per Token in der URL), feste
 (statt höchstens) Zeilenhöhe. Alles davon ließe sich später ergänzen, ohne das Schema umzubauen
 (OPML z. B. als Aktion in den Widget-Einstellungen, eine feste Höhe als zusätzlicher Modus des
