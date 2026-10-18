@@ -531,10 +531,37 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   verwirft Ungültiges; beim Teilen zu voller Zeilen behalten beide Teile die Höhe.
   `CONFIG_VERSION` bleibt 4.
 
-## Nach v1 – RSS-Widget: Rechte und Abruf
+## Nach v1 – RSS-Widget: Überblick
 
-Grundlage ist der freigegebene Plan in `docs/plan-rss.md` (wird mit Abschluss des RSS-Widgets hier
-zusammengefasst und dann gelöscht).
+Umsetzung von SPEC.md §11 in Version 1.1.0. Der Plan dazu wurde mit der nutzenden Person
+abgestimmt und ist in den folgenden Abschnitten aufgegangen. Die Wahl in Kürze:
+
+| Frage          | Wahl                                                                             |
+| -------------- | -------------------------------------------------------------------------------- |
+| Host-Rechte    | pro Feed-Origin, optional und erst zur Laufzeit beim Hinzufügen                  |
+| Aktualisierung | nur aus der offenen Newtab-Page, kein Hintergrundskript                          |
+| Darstellung    | Kategorien als Tabs, darin eine gemischte, chronologische Liste; kein „Alle“-Tab |
+| Gelesen        | Punkt und fette Schrift für ungelesen, „Alle als gelesen“, optional ausblenden   |
+| Titelbilder    | klein rechts in der Zeile, pro Widget einschaltbar, Standard aus                 |
+| Höhe           | über die Höchsthöhe der Zeile (siehe oben), darin scrollt nur die Liste          |
+
+- **Ohne Background-Script:** Die Newtab-Page ist eine Extension-Page. Mit Host-Recht gilt für
+  `fetch` dorthin kein CORS; Hintergrundskript, Message-Schicht oder `alarms` braucht es nicht.
+  Hintergrund-Tabs rufen nichts ab.
+- **Registry-Feld `permissions` bleibt ungenutzt:** Es beschreibt feste Rechte beim Hinzufügen
+  eines Widgets; die Origins von RSS ergeben sich erst aus den Feeds. Ein RSS-Widget lässt sich
+  ohne Abfrage hinzufügen, die Abfrage kommt mit dem ersten Feed.
+- **Kein Schema-Sprung:** Der neue Widget-Typ ist additiv, `CONFIG_VERSION` bleibt 4. Folge: Eine
+  ältere Version der Extension verwirft RSS-Widgets beim Import, weil ihre Validierung den Typ
+  nicht kennt. Vertretbar, weil beide Rechner dieselbe Version bekommen.
+- **Default-Config ohne RSS-Widget,** weil es ohne Rechte-Abfrage nichts zeigen könnte.
+- **Export, Import und Backups:** Feed-Adressen, Namen und Kategorien stehen in den Settings und
+  reisen mit, Cache und Gelesen-Status nicht. Nach einem Import auf einem anderen Rechner zeigt
+  das Widget „Zugriff erlauben“; ein Klick fragt alle fehlenden Origins auf einmal an.
+- **Sicherheit:** Feed-Inhalte gehen nie per `innerHTML` oder `{@html}` ins DOM (ein Test prüft
+  die Komponenten darauf). Das hält auch die AMO-Warnung `UNSAFE_VAR_ASSIGNMENT` fern.
+
+## Nach v1 – RSS-Widget: Rechte und Abruf
 
 - **Manifest:** `optional_host_permissions: ['https://*/*']`, sonst unverändert. Weder Installation
   noch Update fragen damit etwas ab. Nur https, weil die Standard-CSP von MV3 für Extension-Pages
@@ -547,12 +574,13 @@ zusammengefasst und dann gelöscht).
   ohne Referrer, und nichts geht an Entwickler oder Dritte. Fordert AMO bei der Signierung etwas
   anderes, wird das hier nachgetragen.
 - **Ort im Code:** Die Netzwerk-Teile liegen gesammelt in `src/lib/net/` (`permissions.ts`,
-  `feed-url.ts`, `fetch-feed.ts`, `charset.ts`) statt `lib/permissions.ts` und
-  `lib/net/fetch-feed.ts` wie im Plan.
+  `feed-url.ts`, `fetch-feed.ts`, `charset.ts`).
 - **Rechte-Muster pro Domain samt Subdomains** (`https://*.heise.de/*`, führendes `www.` entfällt);
   IP-Adressen und Namen ohne Punkt (z. B. `localhost`) bekommen das genaue Muster.
-  `requestAccess` ruft die API synchron auf, damit die Nutzeraktion in Firefox noch gilt.
-  Außerhalb der Extension gilt alles als erlaubt.
+  Eine Public-Suffix-Liste braucht es dafür nicht. `requestAccess` ruft die API synchron auf,
+  vor jedem `await`, damit die Nutzeraktion in Firefox noch gilt. Außerhalb der Extension gilt
+  alles als erlaubt. Nicht mehr gebrauchte Rechte werden erst beim nächsten Laden der Page
+  abgegeben, damit „Rückgängig“ nach dem Entfernen ohne neue Abfrage auskommt.
 - **Abruf:** Zeitlimit 20 s, höchstens 5 MB (auch ohne `Content-Length`, beim Lesen gezählt),
   bedingte Anfragen über `ETag`/`Last-Modified`, `Retry-After` als Sekunden oder Datum. Der
   Zeichensatz kommt aus BOM, `Content-Type` oder der Angabe im Dokument, weil `Response.text()`
@@ -560,10 +588,10 @@ zusammengefasst und dann gelöscht).
   `opaqueredirect`-Antwort heißt dann „Umleitung auf eine Origin ohne Recht“.
 - **Dev-Server:** Vite leitet `/__dev/feed?url=…` (nur https) weiter und meldet die endgültige
   Adresse im Header `x-feed-url`. Im Build gibt es die Weiterleitung nicht.
-- **Noch offen:** Das Verhalten in echtem Firefox (Abfrage im Klick, Abruf ohne CORS, Upgrade von
-  http, `opaqueredirect`, Entziehen in `about:addons`) ist noch nicht von Hand geprüft. Es gibt
-  dafür noch keine Oberfläche; die Punkte stehen in `docs/checklist.md` und werden mit R4
-  geprüft. Weicht Firefox ab, wird der Abruf vorher angepasst.
+- **Geprüft in Firefox:** Die nutzende Person hat das Widget mit echten Feeds in Firefox
+  verwendet (Abfrage im Klick, Abruf ohne CORS) und keine Abweichung gemeldet. Die Randfälle
+  (Upgrade von http, `opaqueredirect`, Entziehen in `about:addons`) wurden nicht gezielt
+  nachgestellt; sie stehen in `docs/checklist.md`.
 
 ## Nach v1 – RSS-Widget: Parser
 
@@ -587,8 +615,13 @@ zusammengefasst und dann gelöscht).
 - **Daten:** RFC 822 mit eigenem Parser, weil Feeds Zeitzonen-Namen wie `CEST`/`MESZ`, deutsche
   Monatsnamen und zweistellige Jahre nutzen, die `Date.parse` nicht kennt; unbekannte Zonen
   gelten als UTC. ISO 8601 über `Date.parse`.
-- **Titelbilder** wie im Plan (`image.ts`). Bei mehreren Größen gewinnt die kleinste mit
-  mindestens 144 px Breite (72 px bei doppelter Pixeldichte), ohne Größenangaben die erste.
+- **Titelbilder** (`image.ts`) werden immer ermittelt, damit das Einschalten ohne neuen Abruf
+  wirkt. Reihenfolge: `media:thumbnail`, `media:content` mit Bildtyp (auch in `media:group`),
+  Bild-`enclosure`, `itunes:image`, JSON `image`/`banner_image`, sonst das erste `<img>` im
+  Inhalt (nur aus dem inerten Dokument gelesen; Bilder mit Breite oder Höhe ≤ 2 gelten als
+  Tracking-Pixel). Bei mehreren Größen gewinnt die kleinste mit mindestens 144 px Breite (72 px
+  bei doppelter Pixeldichte), ohne Größenangaben die erste. Nur http(s), `http` wird zu `https`.
+- **Sprache:** Gibt der Feed eine Sprache an, bekommt jede Zeile ein `lang`-Attribut.
 - **Feed-Suche** (`discover.ts`): `<link rel="alternate">` mit RSS-, Atom- oder JSON-Feed-Typ,
   relativ zu `<base href>`. Gewöhnliches `application/json` zählt nur mit „feed“ im Titel, sonst
   kämen z. B. WordPress-API-Links mit. Manche große Seiten (heise.de, golem.de) weisen ihre Feeds
@@ -599,14 +632,12 @@ zusammengefasst und dann gelöscht).
 
 ## Nach v1 – RSS-Widget: Settings, Cache und Abruf
 
-- **Neuer Widget-Typ `rss`** (Schema bleibt v4, siehe Plan). `RssSettings` wie geplant; Feeds
-  werden beim Validieren normalisiert (`http` → `https`, andere Schemata und doppelte Adressen
-  fallen weg), höchstens 20 pro Widget, `maxItems` 5–50 (Standard 20), das Intervall rastet auf
-  15/30/60/180/360 Minuten ein. Das Widget setzt `scrollsSelf`: Mit Höchsthöhe der Zeile bleibt
-  der Kopf stehen und nur die Liste scrollt.
-- **Vorläufige Liste:** Bis R3 zeigt das Widget nur eine schlichte Liste, und bis R4 gibt es
-  keine Oberfläche zum Hinzufügen von Feeds. Das „+ Widget“-Menü bietet RSS trotzdem schon an;
-  ausgeliefert wird erst, wenn beides fertig ist.
+- **Neuer Widget-Typ `rss`** (Schema bleibt v4, siehe Überblick). `parseRssSettings` wirft nie;
+  Feeds werden beim Validieren normalisiert (`http` → `https`, andere Schemata und doppelte
+  Adressen fallen weg), höchstens 20 pro Kategorie, `maxItems` 5–50 (Standard 20, mehr als
+  sichtbar, weil die Liste scrollt), das Intervall rastet auf 15/30/60/180/360 Minuten ein
+  (Standard 30). Steht ein Feed in mehreren Widgets, gilt das kürzeste Intervall. Das Widget
+  setzt `scrollsSelf`: Mit Höchsthöhe der Zeile bleibt der Kopf stehen und nur die Liste scrollt.
 - **Cache und Gelesen-Status** liegen unter `feeds` und `feedReads` in `storage.local`, laufen
   wie Config und Statistik über `SyncedValue` (Tab-Sync, validiert beim Lesen) und reisen nicht
   in Export und Backups. Ein unlesbarer Cache zeigt keinen Hinweis, er füllt sich beim nächsten
@@ -617,8 +648,10 @@ zusammengefasst und dann gelöscht).
   Verbindung wiederkommt und wenn sich die Feeds ändern; höchstens vier gleichzeitig. Die
   Tab-Sperre (`lockUntil`, 60 s) wird vor dem Abruf sofort gespeichert. Offline ist kein Fehler
   des Feeds und löst keinen Backoff aus. Eine Webseite oder Unlesbares statt eines Feeds ergibt
-  den Fehler `parse`. „Aktualisieren“ übergeht Intervall und Backoff, aber weder `Retry-After`
-  noch die Sperre eines anderen Tabs.
+  den Fehler `parse`. Nach Fehlern gilt ein Backoff (doppeltes Intervall, höchstens 24 h),
+  `Retry-After` bei `429`/`503` wird beachtet, die letzten gültigen Einträge bleiben stehen.
+  „Aktualisieren“ übergeht Intervall und Backoff, aber weder `Retry-After` noch die Sperre eines
+  anderen Tabs.
 - **Rechte im Dienst:** Fehlende Host-Rechte (`missing`) werden beim Start, bei geänderten Feeds
   und bei `permissions.onAdded/onRemoved` geprüft; solche Feeds werden nicht abgerufen. Nicht
   mehr gebrauchte Rechte gibt der Dienst nur beim Laden der Page ab. Cache und Gelesen-Status
@@ -635,13 +668,13 @@ zusammengefasst und dann gelöscht).
   Zusammenfassung als Titel. Ungelesen: Akzentpunkt, Gewicht 600, Textfarbe; gelesen: normales
   Gewicht, sekundäre Farbe. Für Screenreader steht „Ungelesen:“ vor dem Titel. Quelle und Zeit
   nutzen die sekundäre statt der tertiären Textfarbe, damit auch sie AA erreichen.
-- **Kopf:** optionaler Titel, „Alle als gelesen markieren“ und „Aktualisieren“. Der Stand
+- **Kopf:** Tab-Leiste (siehe Kategorien), „Alle als gelesen markieren“ und „Aktualisieren“. Der Stand
   („Aktualisiert vor 5 Min.“) steht im Tooltip und als Beschreibung des Buttons, nicht sichtbar
   im Kopf, damit das Widget ruhig bleibt. Beim Abruf dreht sich das Icon, bei Reduced Motion
   pulsiert es nur.
 - **Fuß nur bei Bedarf:** offline mit Stand, bei Problemen „n Feeds haben ein Problem“. Die
-  Einzelheiten (Quelle und Grund) stehen in einem aufklappbaren `<details>` statt eines Popovers
-  wie im Plan: nativ per Tastatur bedienbar und ohne zusätzlichen Klick, um es zu schließen.
+  Einzelheiten (Quelle und Grund) stehen in einem aufklappbaren `<details>` statt eines Popovers:
+  nativ per Tastatur bedienbar und ohne zusätzlichen Klick, um es zu schließen.
   „Zugriff erlauben“ und „Erneut versuchen“ stehen direkt sichtbar daneben; „Zugriff erlauben“
   fragt alle fehlenden Rechte des Widgets in einer einzigen Anfrage direkt im Klick an.
 - **Leere Zustände:** ohne Feeds „Noch keine Feeds“ mit „Feed hinzufügen“, das die
@@ -673,8 +706,9 @@ zusammengefasst und dann gelöscht).
   Adressen werden wie Eingaben auf https gebracht. Der Abruf zum Prüfen füllt gleich den Cache,
   damit das Widget sofort Einträge zeigt. Ungültige und doppelte Adressen werden abgelehnt, ohne
   Rechte anzufragen; eine `http://`-Eingabe meldet, dass über https abgerufen wird.
-- **Keine Sortierung der Feeds (Abweichung vom Plan):** Die Liste im Widget ist chronologisch
-  gemischt, die Reihenfolge der Feeds hätte keine sichtbare Wirkung.
+- **Keine Sortierung der Feeds:** Anders als zuerst geplant lassen sich die Feeds nicht
+  umsortieren. Die Liste im Widget ist chronologisch gemischt, die Reihenfolge hätte keine
+  sichtbare Wirkung.
 - **Umbenennen** direkt im Namensfeld jedes Feeds (Platzhalter: Feed-Titel, sonst Host),
   übernommen beim Verlassen des Felds. Unter dem Namen stehen Host und gegebenenfalls der
   aktuelle Fehler.

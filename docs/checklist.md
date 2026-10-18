@@ -133,9 +133,7 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
 - [ ] Widget allein verschieben: Höhe wandert mit; Entfernen + Rückgängig stellt sie wieder her
 - [ ] WebGL- und Static-Stufe: Glas folgt der neuen Höhe, schmales Fenster (untereinander)
 
-## RSS – Rechte und Abruf (R0)
-
-Noch ohne Oberfläche; prüfbar, sobald „Feed hinzufügen“ existiert (R4).
+## RSS – Rechte und Abruf
 
 - [ ] Installation und Update der `.xpi` fragen keine Rechte ab, `about:addons` → Berechtigungen zeigt den optionalen Zugriff
 - [ ] `permissions.request` im Klick zeigt die Firefox-Abfrage für `*.domain`, Ablehnen legt nichts an
@@ -145,7 +143,7 @@ Noch ohne Oberfläche; prüfbar, sobald „Feed hinzufügen“ existiert (R4).
 - [ ] Recht in `about:addons` entziehen: Page bemerkt es (`permissions.onRemoved`) ohne Neuladen
 - [ ] Titelbilder laden als `<img>` ohne Host-Recht
 
-## RSS – Widget (R3)
+## RSS – Widget
 
 - [ ] Gemischte Liste neueste zuerst, Quelle und Zeit stimmen, lange Titel höchstens zwei Zeilen
 - [ ] Klick/Mittelklick/`Enter` öffnet und markiert gelesen; `Strg/Cmd+Enter` öffnet neuen Tab
@@ -157,7 +155,7 @@ Noch ohne Oberfläche; prüfbar, sobald „Feed hinzufügen“ existiert (R4).
 - [ ] Offline-Hinweis mit Stand; Fehler-Fuß mit Gründen, „Erneut versuchen“
 - [ ] Tag und Nacht: Text, Punkt und Fuß gut lesbar (WebGL und Static)
 
-## RSS – Einstellungen (R4)
+## RSS – Einstellungen
 
 - [ ] Feed-Adresse eintragen: Firefox fragt nach Zugriff, danach erscheint der Feed sofort im Widget
 - [ ] Website mit einem Feed (z. B. theverge.com) wird direkt übernommen, mit mehreren (blog.mozilla.org) gibt es eine Auswahl
@@ -167,7 +165,7 @@ Noch ohne Oberfläche; prüfbar, sobald „Feed hinzufügen“ existiert (R4).
 - [ ] Umbenennen, Entfernen und „Rückgängig“ im Dialog
 - [ ] Intervall, Anzahl, Zusammenfassung, Titelbilder, Gelesene ausblenden wirken sofort
 
-## RSS – Kategorien (R4b)
+## RSS – Kategorien
 
 - [ ] Bestehendes RSS-Widget zeigt seine Feeds nach dem Update im Tab „Feeds“
 - [ ] „+“ legt eine Kategorie an (Fokus im Namensfeld), Doppelklick/Kontextmenü bearbeitet und löscht, Rückgängig

@@ -1,7 +1,7 @@
 # Startpage
 
 Eine Firefox-Extension, die den neuen Tab und die Startseite durch eine eigene Startpage ersetzt:
-Uhr, Kalender, Suche und Link-Boards als Widgets auf Liquid Glass über einem eigenen Hintergrundbild
+Uhr, Kalender, Suche, Link-Boards und RSS-Feeds als Widgets auf Liquid Glass über einem eigenen Hintergrundbild
 oder -video. Alles ist über die Oberfläche einstellbar, auf Deutsch und Englisch.
 
 Die Extension wird nicht im Add-on-Store gelistet, sondern „unlisted“ signiert und als `.xpi`-Datei
@@ -29,6 +29,29 @@ und neue Fenster“ auf die Erweiterung stellen.
 Eine neue Version wird genauso installiert wie die erste, einfach über die vorhandene drüber.
 Einstellungen, Links und hochgeladene Hintergründe bleiben erhalten, weil die Extension-ID gleich
 bleibt. Automatische Updates gibt es bei „unlisted“ ohne eigenen Update-Server nicht.
+
+### RSS-Feeds und Zugriff auf Websites
+
+Das RSS-Widget ruft Feeds direkt aus der Startpage ab, ohne Hintergrundprozess und nur, solange
+ein neuer Tab offen ist. Dafür braucht die Extension Zugriff auf die Website des Feeds. Bei der
+Installation fragt Firefox deshalb nichts ab. Erst beim **ersten Feed einer Website** erscheint die
+Frage, ob die Extension auf z. B. `*.heise.de` zugreifen darf. Ohne diese Erlaubnis lässt sich der
+Feed nicht abrufen und wird nicht angelegt.
+
+- Der Zugriff gilt nur für diese Domain samt Subdomains und nur über https. Abgerufen wird ohne
+  Cookies und ohne Referrer; Daten gehen an niemanden außer an die Website selbst.
+- Wird kein Feed einer Website mehr gebraucht, gibt die Extension den Zugriff beim nächsten
+  Öffnen eines neuen Tabs von selbst zurück.
+- Entziehen lässt er sich jederzeit in `about:addons` → Startpage → Reiter **Berechtigungen**
+  (in neueren Firefox-Versionen „Berechtigungen und Daten“). Das Widget zeigt dann „Zugriff
+  erlauben“, bis man ihn wieder erteilt.
+- Nach einem Import auf einem anderen Rechner fehlen die Zugriffe dort noch; ein Klick auf
+  „Zugriff erlauben“ im Widget fragt alle auf einmal an.
+
+Feeds lassen sich im Widget in Kategorien (Tabs) ordnen. Damit eine lange Liste die Page nicht
+verlängert, bekommt die Zeile im Bearbeiten-Modus eine Höchsthöhe (Griff unter der Zeile); dann
+scrollt nur die Liste. Feed-Inhalte und Gelesen-Status bleiben auf dem Rechner und sind nicht im
+Export enthalten, die Feeds selbst schon.
 
 ### Daten sichern und auf einen anderen Rechner bringen
 
