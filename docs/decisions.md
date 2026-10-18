@@ -379,6 +379,10 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   (`position: fixed`), das Standbild aus `boot.js` per `background-attachment: fixed`.
 - **Dialoge:** Solange ein Dialog offen ist, steht die Page still (`html:has(dialog[open])`).
 - **Drag & Drop:** Ohne eigenen Scroll-Container scrollt beim Ziehen an den Fensterrand die Page.
+- **Dialoge springen nicht mehr an den Seitenanfang:** `.glass` setzt `position: relative` und
+  überschrieb damit beim Dialog das `position: fixed` des Browsers. Ein modaler Dialog lag so
+  absolut am Dokumentanfang, und der Fokus scrollte die Page dorthin; nach dem Schließen blieb
+  sie oben. Der Dialog setzt `position: fixed` jetzt selbst (Menüs taten das schon).
 
 ## M7 – Auslieferung
 
@@ -410,23 +414,29 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   Umzug der Daten am 21. bleiben soll. Termine ohne Uhrzeit stehen vor denen mit. Validierung
   verwirft Termine ohne Titel oder mit unmöglichem Datum (31.4.), dreht vertauschte Zeiträume
   um und kürzt Zeiträume auf höchstens 366 Tage. Obergrenzen: 5000 Termine, 1000 Zeiträume.
-- **Tagesarten ohne Farbe unterscheidbar:** Wochenende bleibt eine schlichte Fläche, ein
-  Feiertag ist eine getönte Fläche mit Rahmen (der rote Punkt entfällt), frei ist eine
-  schraffierte Fläche. Aufeinanderfolgende freie Tage einer Woche bilden ein Band (innen eckig,
-  nur die Enden rund). Bei Überschneidungen gilt: Feiertag vor frei vor Wochenende; ein Feiertag
-  im Urlaub zeigt Schraffur und Rahmen. Termine sind bis zu drei Punkte im Zahlenkreis. Frei ist
-  Petrol statt Grün, damit es sich auch bei Rot-Grün-Schwäche vom Feiertags-Rot abhebt. Eine
-  kleine Legende unter dem Raster zeigt die Muster (Feiertag, frei und Termin nur, wenn sie
-  vorkommen bzw. eingeschaltet sind).
+- **Tagesarten ohne Farbe unterscheidbar:** Wochenende bleibt eine schlichte Fläche. Feiertag
+  und frei sind beide schraffiert, damit „arbeitsfrei“ einheitlich aussieht: frei in Petrol mit
+  Streifen nach links unten, Feiertag in Rot mit Streifen nach rechts unten und fetter Zahl (der
+  rote Punkt entfällt). Ohne Farbe trennt sie die Streifenrichtung. Aufeinanderfolgende freie
+  Tage einer Woche bilden ein Band (innen eckig, nur die Enden rund). Bei Überschneidungen gilt
+  Feiertag vor frei vor Wochenende. Termine sind bis zu drei Punkte im Zahlenkreis. Frei ist
+  Petrol statt Grün, damit es sich auch bei Rot-Grün-Schwäche vom Feiertags-Rot abhebt. Die
+  Legende unter dem Raster zeigt immer alle Muster (Feiertag nur, wenn eingeschaltet), damit ihre
+  Breite beim Blättern gleich bleibt.
 - **Kontrast:** Die Farben stehen als Tokens (`--holiday*`, `--off*`) in `app.css` und gespiegelt
   in `DAY_COLORS` (contrast.ts). Ein Unit-Test prüft Schrift auf jeder Fläche gegen das dunkelste
   bzw. hellste erlaubte Glas der WebGL-Stufen (AA 4,5:1). Dafür ist das Feiertags-Rot im hellen
-  Ton dunkler geworden (`#9c1028` statt `#b4182f`), die Flächen sind im hellen Ton aufgehellt und
-  im dunklen nur leicht getönt. Die Static-Stufe ist manuell bei Tag und Nacht geprüft.
-- **Auswahl und Tagesansicht:** Ein Klick wählt einen Tag, die Tagesansicht unter dem Raster
-  zeigt Feiertag, freie Zeiträume und Termine mit Bearbeiten/Löschen sowie „+ Termin“ und
-  „+ Frei“. Ohne Auswahl folgt sie dem heutigen Tag (auch über Mitternacht). Gewählt = Ring,
-  heute = gefüllter Kreis. Ein Doppelklick legt einen Termin an. Löschen hat wie bei Links einen
+  Ton dunkler geworden (`#8f0d24` statt `#b4182f`) und im dunklen heller (`#ffc4cd`), die Flächen
+  sind im hellen Ton aufgehellt und im dunklen nur leicht getönt. Die Static-Stufe ist manuell bei Tag und Nacht geprüft.
+- **Auswahl und Tagesansicht mit fester Höhe:** Ein Klick wählt einen Tag. Rechts in der Zeile
+  der Legende stehen der gewählte Tag (Kurzform in fester Breite, „Heute“ als Akzent-Pille, das
+  volle Datum für Screenreader) und „+ Termin“/„+ Frei“. Darunter folgt eine Liste von genau
+  einer Zeile Höhe: erst Termine, dann freie Zeiträume, zuletzt der Feiertag (die beiden sieht
+  man ohnehin im Raster), je mit Bearbeiten/Löschen. Mehr Einträge scrollen zeilenweise
+  einrastend, weiche Kanten zeigen, dass es weitergeht. So bleibt die Höhe des Kalenders beim
+  Wechsel des Tags gleich, und Nachbar-Widgets in derselben Zeile springen nicht. Lange Titel
+  werden abgeschnitten, der volle Titel steht im Tooltip. Ohne Auswahl folgt die Ansicht dem
+  heutigen Tag (auch über Mitternacht). Gewählt = Ring, heute = gefüllter Kreis. Ein Doppelklick legt einen Termin an. Löschen hat wie bei Links einen
   Rückgängig-Toast statt einer Bestätigung.
 - **Tastatur:** Das Raster ist ein `grid` mit Roving Tabindex. Pfeile bewegen um Tag/Woche,
   `Pos1`/`Ende` an Wochenanfang/-ende, `Bild auf/ab` um einen Monat, mit Umschalt um ein Jahr.

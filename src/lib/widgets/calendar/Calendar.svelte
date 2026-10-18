@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tick } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import { createId } from '$lib/config/parse';
 	import { i18n, t } from '$lib/i18n/index.svelte';
 	import { getApp } from '$lib/state/context';
@@ -93,6 +93,17 @@
 			year: 'numeric'
 		}),
 		short: new Intl.DateTimeFormat(i18n.lang, { day: 'numeric', month: 'short' }),
+		weekdayShort: new Intl.DateTimeFormat(i18n.lang, {
+			weekday: 'short',
+			day: 'numeric',
+			month: 'short'
+		}),
+		weekdayShortWithYear: new Intl.DateTimeFormat(i18n.lang, {
+			weekday: 'short',
+			day: 'numeric',
+			month: 'short',
+			year: 'numeric'
+		}),
 		time: new Intl.DateTimeFormat(i18n.lang, { hour: 'numeric', minute: '2-digit' })
 	});
 	const monthTitle = $derived(fmt.month.format(shown));
@@ -265,19 +276,34 @@
 	// --- Tagesansicht -------------------------------------------------------------------------
 
 	const selectedDate = $derived(parseDateKey(selected) ?? today);
-	const selectedTitle = $derived(
-		(selectedDate.getFullYear() === today.getFullYear() ? fmt.day : fmt.dayWithYear).format(
-			selectedDate
-		)
+	const sameYear = $derived(selectedDate.getFullYear() === today.getFullYear());
+	/** Kurz für die Zeile neben der Legende, lang für Screenreader */
+	const selectedShort = $derived(
+		(sameYear ? fmt.weekdayShort : fmt.weekdayShortWithYear).format(selectedDate)
 	);
+	const selectedLong = $derived((sameYear ? fmt.day : fmt.dayWithYear).format(selectedDate));
 	const selectedHoliday = $derived(holidays.get(selected));
 	const selectedOff = $derived(offDaysOn(agenda.offDays, selected));
 	const selectedEvents = $derived(eventMap.get(selected) ?? []);
-	const legend = $derived({
-		holiday: settings.holidays,
-		off: rows.some((row) => row.days.some((day) => day.kinds.off)),
-		event: rows.some((row) => row.days.some((day) => day.events.length > 0))
-	});
+
+	/** Weiche Kanten oben/unten, solange die Liste in diese Richtung weiterscrollt */
+	let fade = $state({ top: false, bottom: false });
+
+	function updateFade(list: HTMLElement) {
+		const top = list.scrollTop > 1;
+		const bottom = list.scrollTop + list.clientHeight < list.scrollHeight - 1;
+		if (top !== fade.top || bottom !== fade.bottom) fade = { top, bottom };
+	}
+
+	/** Neuer Tag: an den Anfang der Liste und Kanten neu bestimmen */
+	function watchOverflow(list: HTMLElement) {
+		void selected;
+		void selectedEvents.length;
+		void selectedOff.length;
+		list.scrollTop = 0;
+		// Ohne untrack hinge das Attachment an `fade` und setzte bei jedem Scrollen zurück
+		untrack(() => updateFade(list));
+	}
 
 	const titleId = $props.id();
 </script>
@@ -381,60 +407,90 @@
 	</table>
 	<p class="visually-hidden" id="{titleId}-hint">{t('calendar.gridHint')}</p>
 
-	<ul class="legend" aria-label={t('calendar.legend')}>
-		<li><span class="swatch weekend"></span>{t('calendar.weekend')}</li>
-		{#if legend.holiday}
-			<li><span class="swatch holiday"></span>{t('calendar.holiday')}</li>
-		{/if}
-		{#if legend.off}
+	<div class="footer">
+		<!-- Alle Einträge immer zeigen, damit die Zeile beim Blättern nicht umbricht -->
+		<ul class="legend" aria-label={t('calendar.legend')}>
+			<li><span class="swatch weekend"></span>{t('calendar.weekend')}</li>
+			{#if settings.holidays}
+				<li><span class="swatch holiday"></span>{t('calendar.holiday')}</li>
+			{/if}
 			<li><span class="swatch off"></span>{t('calendar.off')}</li>
-		{/if}
-		{#if legend.event}
 			<li><span class="swatch event"><i></i></span>{t('calendar.event')}</li>
-		{/if}
-	</ul>
-
-	<section class="agenda" aria-labelledby="{titleId}-day">
-		<header class="agenda-head">
-			<h4 class="agenda-title" id="{titleId}-day">
-				{#if selected === todayKey}<span class="today-tag">{t('calendar.today')}</span>{/if}
-				{selectedTitle}
+		</ul>
+		<div class="day-head">
+			<!-- Feste Breite und Kurzform, damit die Zeile nicht von der Länge des Datums abhängt -->
+			<h4 class="day-title" class:is-today={selected === todayKey} id="{titleId}-day">
+				<span aria-hidden="true">
+					{selected === todayKey ? t('calendar.today') : selectedShort}
+				</span>
+				<span class="visually-hidden">{selectedLong}</span>
 			</h4>
-			<div class="agenda-actions">
-				<button
-					type="button"
-					class="btn add"
-					aria-label={t('calendar.addEventFor', { date: fmt.day.format(selectedDate) })}
-					onclick={() => newEvent()}
-				>
-					<Icon name="plus" size={14} />{t('calendar.addEvent')}
-				</button>
-				<button
-					type="button"
-					class="btn add"
-					aria-label={t('calendar.addOffFor', { date: fmt.day.format(selectedDate) })}
-					onclick={() => newOff()}
-				>
-					<Icon name="plus" size={14} />{t('calendar.addOff')}
-				</button>
-			</div>
-		</header>
+			<button
+				type="button"
+				class="btn add"
+				aria-label={t('calendar.addEventFor', { date: selectedLong })}
+				onclick={() => newEvent()}
+			>
+				<Icon name="plus" size={14} />{t('calendar.addEvent')}
+			</button>
+			<button
+				type="button"
+				class="btn add"
+				aria-label={t('calendar.addOffFor', { date: selectedLong })}
+				onclick={() => newOff()}
+			>
+				<Icon name="plus" size={14} />{t('calendar.addOff')}
+			</button>
+		</div>
+	</div>
 
+	<!-- Feste Höhe: Die Liste scrollt, statt das Panel beim Wechsel des Tags wachsen zu lassen -->
+	<div class="agenda">
 		{#if selectedHoliday || selectedOff.length || selectedEvents.length}
-			<ul class="entries">
-				{#if selectedHoliday}
+			<ul
+				class="entries"
+				class:fade-top={fade.top}
+				class:fade-bottom={fade.bottom}
+				aria-labelledby="{titleId}-day"
+				{@attach watchOverflow}
+				onscroll={(event) => updateFade(event.currentTarget)}
+			>
+				{#each selectedEvents as event (event.id)}
 					<li class="entry">
-						<span class="lead"><span class="swatch holiday"></span></span>
-						<span class="what">
-							{t(`holiday.${selectedHoliday.id}`)}
-							<span class="meta">{t('calendar.holiday')}</span>
+						<span class="lead">
+							{#if event.time}
+								<time class="time" datetime="{event.date}T{event.time}">
+									{formatTime(event.time)}
+								</time>
+							{:else}
+								<span class="swatch event"><i></i></span>
+							{/if}
+						</span>
+						<span class="what" title={event.title}>{event.title}</span>
+						<span class="actions">
+							<button
+								type="button"
+								class="icon-btn"
+								aria-label={t('calendar.editNamed', { name: event.title })}
+								onclick={() => editEvent(event)}
+							>
+								<Icon name="pencil" size={16} />
+							</button>
+							<button
+								type="button"
+								class="icon-btn"
+								aria-label={t('calendar.deleteNamed', { name: event.title })}
+								onclick={() => deleteEvent(event)}
+							>
+								<Icon name="trash" size={16} />
+							</button>
 						</span>
 					</li>
-				{/if}
+				{/each}
 				{#each selectedOff as range (range.id)}
 					<li class="entry">
 						<span class="lead"><span class="swatch off"></span></span>
-						<span class="what">
+						<span class="what" title="{offName(range)} · {formatRange(range)}">
 							{offName(range)}
 							<span class="meta">{formatRange(range)}</span>
 						</span>
@@ -458,44 +514,20 @@
 						</span>
 					</li>
 				{/each}
-				{#each selectedEvents as event (event.id)}
+				{#if selectedHoliday}
 					<li class="entry">
-						<span class="lead">
-							{#if event.time}
-								<time class="time" datetime="{event.date}T{event.time}">
-									{formatTime(event.time)}
-								</time>
-							{:else}
-								<span class="swatch event"><i></i></span>
-							{/if}
-						</span>
-						<span class="what">{event.title}</span>
-						<span class="actions">
-							<button
-								type="button"
-								class="icon-btn"
-								aria-label={t('calendar.editNamed', { name: event.title })}
-								onclick={() => editEvent(event)}
-							>
-								<Icon name="pencil" size={16} />
-							</button>
-							<button
-								type="button"
-								class="icon-btn"
-								aria-label={t('calendar.deleteNamed', { name: event.title })}
-								onclick={() => deleteEvent(event)}
-							>
-								<Icon name="trash" size={16} />
-							</button>
+						<span class="lead"><span class="swatch holiday"></span></span>
+						<span class="what">
+							{t(`holiday.${selectedHoliday.id}`)}
+							<span class="meta">{t('calendar.holiday')}</span>
 						</span>
 					</li>
-				{/each}
+				{/if}
 			</ul>
-		{/if}
-		{#if !selectedEvents.length}
+		{:else}
 			<p class="empty">{t('calendar.noEvents')}</p>
 		{/if}
-	</section>
+	</div>
 </div>
 
 <EventDialog bind:open={eventDialog} event={editingEvent} date={dialogDate} onsave={saveEvent} />
@@ -598,8 +630,9 @@
 
 	/*
 	 * Tagesarten, auch ohne Farbe unterscheidbar:
-	 * Wochenende = schlichte Fläche, Feiertag = Fläche mit Rahmen, frei = schraffierte Fläche
-	 * (zusammenhängende Tage als Band). Feiertag geht vor frei, frei vor Wochenende.
+	 * Wochenende = schlichte Fläche, frei = Schraffur nach links unten, Feiertag = Schraffur nach
+	 * rechts unten und fette Zahl. Zusammenhängende freie Tage bilden ein Band. Feiertag geht vor
+	 * frei, frei vor Wochenende.
 	 */
 	.day {
 		height: 2.3em;
@@ -641,18 +674,12 @@
 		}
 
 		&.holiday {
+			background: repeating-linear-gradient(
+				45deg,
+				var(--holiday-fill) 0 4px,
+				var(--holiday-stripe) 4px 8px
+			);
 			color: var(--holiday);
-			box-shadow: inset 0 0 0 1.5px var(--holiday-ring);
-
-			&:not(.off) {
-				background: var(--holiday-fill);
-			}
-
-			&:focus-visible {
-				box-shadow:
-					inset 0 0 0 1.5px var(--holiday-ring),
-					var(--focus-ring);
-			}
 
 			.number {
 				font-weight: 800;
@@ -762,8 +789,12 @@
 		}
 
 		&.holiday {
-			background: var(--holiday-fill);
-			box-shadow: inset 0 0 0 1.5px var(--holiday-ring);
+			background: repeating-linear-gradient(
+				45deg,
+				var(--holiday-fill) 0 2.5px,
+				var(--holiday-stripe) 2.5px 5px
+			);
+			box-shadow: inset 0 0 0 1px var(--line);
 		}
 
 		&.off {
@@ -783,41 +814,40 @@
 		}
 	}
 
-	.agenda {
-		display: grid;
-		gap: var(--space-2);
-		padding-top: var(--space-3);
-		border-top: 1px solid var(--line);
-	}
-
-	.agenda-head {
+	/* Legende links, gewählter Tag mit Knöpfen rechts; bricht nur bei schmalen Panels um */
+	.footer {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: var(--space-2);
+		gap: var(--space-2) var(--space-4);
 	}
 
-	.agenda-title {
+	.day-head {
 		display: flex;
+		flex: none;
 		align-items: center;
-		gap: var(--space-2);
+		gap: var(--space-1);
+		margin-left: auto;
+	}
+
+	.day-title {
+		width: 8.5rem;
+		margin-right: var(--space-1);
+		overflow: hidden;
 		font-size: var(--text-sm);
 		font-weight: 700;
-	}
+		text-align: right;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 
-	.today-tag {
-		padding: 1px 8px;
-		border-radius: var(--radius-full);
-		background: var(--accent);
-		color: var(--on-accent);
-		font-size: var(--text-xs);
-		font-weight: 700;
-	}
-
-	.agenda-actions {
-		display: flex;
-		gap: var(--space-1);
+		&.is-today span {
+			padding: 1px 8px;
+			border-radius: var(--radius-full);
+			background: var(--accent);
+			color: var(--on-accent);
+			font-size: var(--text-xs);
+		}
 	}
 
 	.add {
@@ -827,13 +857,43 @@
 		font-size: var(--text-xs);
 	}
 
+	.agenda {
+		--entry-height: 32px;
+		padding-top: var(--space-2);
+		border-top: 1px solid var(--line);
+	}
+
+	/* Genau eine Zeile hoch; weitere Einträge per Scrollen, jeweils zeilenweise einrastend */
 	.entries {
 		display: grid;
 		grid-template-columns: max-content 1fr auto;
-		gap: 2px var(--space-3);
+		column-gap: var(--space-3);
+		height: var(--entry-height);
 		margin: 0;
 		padding: 0;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		scroll-snap-type: y mandatory;
+		scrollbar-width: thin;
 		list-style: none;
+		--fade: 8px;
+
+		&.fade-top {
+			mask-image: linear-gradient(transparent, #000 var(--fade));
+		}
+
+		&.fade-bottom {
+			mask-image: linear-gradient(#000 calc(100% - var(--fade)), transparent);
+		}
+
+		&.fade-top.fade-bottom {
+			mask-image: linear-gradient(
+				transparent,
+				#000 var(--fade),
+				#000 calc(100% - var(--fade)),
+				transparent
+			);
+		}
 	}
 
 	.entry {
@@ -841,7 +901,8 @@
 		grid-template-columns: subgrid;
 		grid-column: 1 / -1;
 		align-items: center;
-		min-height: 32px;
+		height: var(--entry-height);
+		scroll-snap-align: start;
 		font-size: var(--text-sm);
 	}
 
@@ -858,8 +919,10 @@
 
 	.what {
 		min-width: 0;
-		overflow-wrap: anywhere;
+		overflow: hidden;
 		font-weight: 600;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.meta {
@@ -873,6 +936,9 @@
 	}
 
 	.empty {
+		display: flex;
+		align-items: center;
+		height: var(--entry-height);
 		font-size: var(--text-sm);
 		color: var(--text-secondary);
 	}

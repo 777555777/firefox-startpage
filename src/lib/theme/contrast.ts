@@ -57,9 +57,8 @@ export type Fill = { rgb: Rgb; alpha: number };
 
 /**
  * Flächen und Schrift der Tagesarten im Kalender. Die Werte entsprechen `--holiday*` und
- * `--off*` in `app.css`. Unterscheidbar sind die Arten auch ohne Farbe: Wochenende ist eine
- * schlichte Fläche, Feiertag eine Fläche mit Rahmen, frei eine schraffierte Fläche (zwei
- * Streifenfarben).
+ * `--off*` in `app.css`. Feiertag und frei sind schraffiert (je zwei Streifenfarben), ohne Farbe
+ * unterscheidbar über die Richtung der Streifen; Wochenende ist eine schlichte Fläche.
  */
 export const DAY_COLORS: Record<
 	Tone,
@@ -67,8 +66,11 @@ export const DAY_COLORS: Record<
 > = {
 	light: {
 		holiday: {
-			text: { rgb: [156, 16, 40], alpha: 1 },
-			fills: [{ rgb: [255, 226, 230], alpha: 0.66 }]
+			text: { rgb: [143, 13, 36], alpha: 1 },
+			fills: [
+				{ rgb: [255, 228, 232], alpha: 0.66 },
+				{ rgb: [248, 192, 201], alpha: 0.66 }
+			]
 		},
 		off: {
 			text: { rgb: [5, 83, 91], alpha: 1 },
@@ -80,8 +82,11 @@ export const DAY_COLORS: Record<
 	},
 	dark: {
 		holiday: {
-			text: { rgb: [255, 179, 191], alpha: 1 },
-			fills: [{ rgb: [255, 120, 140], alpha: 0.16 }]
+			text: { rgb: [255, 196, 205], alpha: 1 },
+			fills: [
+				{ rgb: [255, 120, 140], alpha: 0.08 },
+				{ rgb: [255, 120, 140], alpha: 0.2 }
+			]
 		},
 		off: {
 			text: { rgb: [158, 236, 242], alpha: 1 },

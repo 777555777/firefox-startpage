@@ -84,6 +84,12 @@
 
 <style>
 	.dialog {
+		/*
+		 * `.glass` setzt `position: relative` und überschriebe so das `fixed` des Browsers. Ein
+		 * modaler Dialog läge dann absolut am Dokumentanfang, und der Fokus würde die Page
+		 * dorthin scrollen.
+		 */
+		position: fixed;
 		width: min(100% - 32px, var(--dialog-width));
 		max-height: min(100% - 48px, 760px);
 		padding: 0;

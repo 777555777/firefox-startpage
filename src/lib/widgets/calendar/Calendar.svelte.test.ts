@@ -165,6 +165,29 @@ describe('Kalender', () => {
 		expect(within(legend).getByText(t('calendar.holiday'))).toBeInTheDocument();
 	});
 
+	it('listet erst Termine, dann freie Tage, dann den Feiertag; ohne Einträge „keine Termine“', async () => {
+		const { user } = await setup({
+			events: [{ id: 'e', date: '2026-10-03', time: null, title: 'Fest' }],
+			offDays: [{ id: 'u', start: '2026-10-01', end: '2026-10-04', label: 'Urlaub' }]
+		});
+		// Heute steht als „Heute“ neben der Legende, das volle Datum für Screenreader
+		expect(screen.getByRole('heading', { level: 4 })).toHaveTextContent(t('calendar.today'));
+		expect(screen.getByText(t('calendar.noEvents'))).toBeInTheDocument();
+
+		await user.click(day('2026-10-03'));
+		const list = screen.getByRole('list', { name: /October 3/ });
+		expect(
+			within(list)
+				.getAllByRole('listitem')
+				.map((li) => li.textContent)
+		).toEqual([
+			expect.stringContaining('Fest'),
+			expect.stringContaining('Urlaub'),
+			expect.stringContaining(t('holiday.germanUnity'))
+		]);
+		expect(screen.queryByText(t('calendar.noEvents'))).toBeNull();
+	});
+
 	it('trägt freie Tage ein und zeigt sie in der Tagesansicht', async () => {
 		const { app, user } = await setup();
 		await user.click(day('2026-10-22'));

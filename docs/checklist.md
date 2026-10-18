@@ -63,8 +63,12 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
       löschen, „Rückgängig“; Punkte im Raster, Liste sortiert (ohne Uhrzeit zuerst)
 - [ ] „+ Frei“: einzelnen Tag und Zeitraum (auch über Monats- und Jahresgrenze) eintragen,
       bearbeiten, löschen; Zeitraum erscheint als schraffiertes Band
-- [ ] Wochenende (schlicht), Feiertag (Rahmen) und frei (Schraffur) bei Tag und Nacht, mit
-      WebGL und in der Static-Stufe unterscheidbar und lesbar, auch in Graustufen
+- [ ] Wochenende (schlicht), Feiertag (rote Schraffur nach rechts) und frei (Schraffur nach
+      links) bei Tag und Nacht, mit WebGL und in der Static-Stufe unterscheidbar und lesbar, auch
+      in Graustufen
+- [ ] Tage mit null, einem und mehreren Einträgen anklicken: Kalender und Nachbar-Widgets in
+      derselben Zeile ändern ihre Höhe nicht; die Liste scrollt zeilenweise
+- [ ] Weit nach unten scrollen, Dialog öffnen und schließen: Page bleibt an ihrer Stelle
 - [ ] Export enthält Termine und freie Tage, Import auf dem anderen Rechner zeigt sie
 - [ ] Zwei Kalender-Widgets zeigen dieselben Einträge
 
