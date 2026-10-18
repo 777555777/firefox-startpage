@@ -419,7 +419,7 @@ einem Commit.
    Registry-Eintrag mit einer schlichten Liste als Platzhalter-Komponente. Dazu `feeds` und
    `feedReads` über `SyncedValue`, Scheduler (rein) und Abruf-Dienst (Sichtbarkeit, online/offline,
    Sperre, Backoff), Aufräumen von Cache und Rechten sowie „Alles zurücksetzen“.
-5. **R3 – Widget-Oberfläche:** Gemischte Liste mit eigenem Scrollbereich, Zeilen-Design,
+5. **R3 – Widget-Oberfläche (erledigt):** Gemischte Liste mit eigenem Scrollbereich, Zeilen-Design,
    Titelbilder, Gelesen/Ungelesen, Kopf und Fuß, leere und Fehler-Zustände, Kontextmenü, Tastatur,
    Announcer, Reduced Motion, i18n und Komponententests.
 6. **R4 – Einstellungen und Rechte-Ablauf:** Einstellungs-Komponente, Dialog „Feed hinzufügen“ mit

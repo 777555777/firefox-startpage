@@ -626,3 +626,38 @@ zusammengefasst und dann gelöscht).
   aufgeräumt und nichts abgegeben.
 - **Gelesen** gilt pro Feed-URL und Eintrags-ID. IDs von Einträgen, die aus dem Feed
   verschwunden sind, fallen nach dem nächsten Abruf weg.
+
+## Nach v1 – RSS-Widget: Oberfläche
+
+- **Zeile:** Favicon der Website (über `LinkIcon`, also mit Gedächtnis und Anfangsbuchstabe als
+  Ersatz), Titel in höchstens zwei Zeilen, optional zwei Zeilen Zusammenfassung, darunter Quelle ·
+  relative Zeit (volles Datum im Tooltip). Hat ein Eintrag keinen Titel, dient der Anfang der
+  Zusammenfassung als Titel. Ungelesen: Akzentpunkt, Gewicht 600, Textfarbe; gelesen: normales
+  Gewicht, sekundäre Farbe. Für Screenreader steht „Ungelesen:“ vor dem Titel. Quelle und Zeit
+  nutzen die sekundäre statt der tertiären Textfarbe, damit auch sie AA erreichen.
+- **Kopf:** optionaler Titel, „Alle als gelesen markieren“ und „Aktualisieren“. Der Stand
+  („Aktualisiert vor 5 Min.“) steht im Tooltip und als Beschreibung des Buttons, nicht sichtbar
+  im Kopf, damit das Widget ruhig bleibt. Beim Abruf dreht sich das Icon, bei Reduced Motion
+  pulsiert es nur.
+- **Fuß nur bei Bedarf:** offline mit Stand, bei Problemen „n Feeds haben ein Problem“. Die
+  Einzelheiten (Quelle und Grund) stehen in einem aufklappbaren `<details>` statt eines Popovers
+  wie im Plan: nativ per Tastatur bedienbar und ohne zusätzlichen Klick, um es zu schließen.
+  „Zugriff erlauben“ und „Erneut versuchen“ stehen direkt sichtbar daneben; „Zugriff erlauben“
+  fragt alle fehlenden Rechte des Widgets in einer einzigen Anfrage direkt im Klick an.
+- **Leere Zustände:** ohne Feeds „Noch keine Feeds“ mit „Feed hinzufügen“, das die
+  Widget-Einstellungen öffnet. Dafür bekommen Widgets neu die optionale Eigenschaft
+  `opensettings` (nur, wenn es Einstellungen gibt). Sind alle Einträge gelesen und
+  ausgeblendet: „Alles gelesen“.
+- **Gelesen** wird beim Öffnen (Klick, Mittelklick, `Enter`, Kontextmenü) sofort gespeichert,
+  nicht verzögert, weil die Page beim Öffnen im selben Tab gleich verlassen wird.
+- **Tastatur:** Die Liste hat einen Tab-Stopp (Roving Tabindex über den Schlüssel des Eintrags,
+  damit der Fokus beim Neusortieren nach einem Abruf beim selben Eintrag bleibt). Pfeile,
+  `Pos1`/`Ende`, `Enter` (nativ), `Strg/Cmd+Enter` (neuer Tab), `M` (gelesen umschalten). Das
+  Kontextmenü (Öffnen, In neuem Tab, Gelesen/Ungelesen, Link kopieren) hängt am nativen
+  `contextmenu`-Ereignis, kommt also auch über die Kontextmenü-Taste und `Umschalt+F10`. Im
+  Vorschau-Browser des Dev-Servers löste `Umschalt+F10` kein Ereignis aus; in Firefox ist es
+  noch zu prüfen. Nach „Aktualisieren“ sagt der Announcer das Ergebnis an.
+- **Titelbilder:** Bilder, die nicht laden oder schmaler als 40 px sind, merkt sich die Sitzung
+  und zeigt sie nicht erneut. 72 × 48 px, in Panels unter 18 rem 56 × 40 px (Container Query).
+  Manche Feeds liefern sehr große Bilder (tagesschau 1920 px); verkleinern lässt sich das ohne
+  eigenen Dienst nicht, `loading="lazy"` begrenzt es auf die sichtbaren.

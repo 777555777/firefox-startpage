@@ -11,6 +11,8 @@ export type WidgetProps<S> = {
 	settings: S;
 	editing: boolean;
 	update: UpdateSettings<S>;
+	/** Öffnet die Einstellungen des Widgets; fehlt, wenn es keine gibt */
+	opensettings?: () => void;
 };
 
 export type WidgetSettingsProps<S> = {

@@ -121,7 +121,13 @@
 		{@attach scrolls ? area.attach : undefined}
 	>
 		<svelte:boundary onerror={(error) => console.error(`Widget ${instance.id} abgestürzt`, error)}>
-			<definition.component id={instance.id} settings={instance.settings} {editing} {update} />
+			<definition.component
+				id={instance.id}
+				settings={instance.settings}
+				{editing}
+				{update}
+				opensettings={definition.settingsComponent ? onsettings : undefined}
+			/>
 
 			{#snippet failed(_error, reset)}
 				<div class="crashed" role="alert">

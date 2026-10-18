@@ -144,3 +144,15 @@ Noch ohne Oberfläche; prüfbar, sobald „Feed hinzufügen“ existiert (R4).
 - [ ] Umleitung auf eine fremde Origin ergibt den Fehler „Umleitung“ (`opaqueredirect`)
 - [ ] Recht in `about:addons` entziehen: Page bemerkt es (`permissions.onRemoved`) ohne Neuladen
 - [ ] Titelbilder laden als `<img>` ohne Host-Recht
+
+## RSS – Widget (R3)
+
+- [ ] Gemischte Liste neueste zuerst, Quelle und Zeit stimmen, lange Titel höchstens zwei Zeilen
+- [ ] Klick/Mittelklick/`Enter` öffnet und markiert gelesen; `Strg/Cmd+Enter` öffnet neuen Tab
+- [ ] `Tab` erreicht die Liste einmal, Pfeile/`Pos1`/`Ende` wandern, `M` schaltet gelesen um
+- [ ] Kontextmenü per Rechtsklick, Kontextmenü-Taste und `Umschalt+F10`
+- [ ] „Alle als gelesen“, „Gelesene ausblenden“ → „Alles gelesen“
+- [ ] Titelbilder an/aus, kaputte Bilder verschwinden, schmales Panel zeigt kleinere Bilder
+- [ ] Mit Höchsthöhe der Zeile scrollt nur die Liste, Kopf und Fuß bleiben stehen
+- [ ] Offline-Hinweis mit Stand; Fehler-Fuß mit Gründen, „Erneut versuchen“
+- [ ] Tag und Nacht: Text, Punkt und Fuß gut lesbar (WebGL und Static)
