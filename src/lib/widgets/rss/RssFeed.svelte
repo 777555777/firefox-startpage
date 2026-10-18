@@ -629,17 +629,13 @@
 		container-type: inline-size;
 	}
 
+	/* Wie die Tab-Leiste im Link-Board bleibt der Kopf innerhalb des Innenabstands */
 	.head {
 		display: flex;
+		/* Mit Höchsthöhe würde der Flex-Container den Kopf sonst zusammendrücken */
+		flex: none;
 		align-items: center;
 		gap: var(--space-1);
-		/* Die Knöpfe rücken an die Ecke des Panels, ihr Hover-Kreis braucht keinen Rand */
-		margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0 0;
-	}
-
-	/* Mit Höchsthöhe würde der Flex-Container sonst den Kopf zusammendrücken */
-	.head {
-		flex: none;
 	}
 
 	.spacer {
