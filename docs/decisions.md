@@ -454,3 +454,37 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
 - **Eingabe:** Datum und Uhrzeit über die nativen Felder (`type="date"`/`"time"`), damit
   Darstellung und Bedienung der Sprache des Browsers folgen. Unvollständige Eingaben
   (`validity.badInput`) werden als Fehler gemeldet statt still als „keine Uhrzeit“ gespeichert.
+
+## Nach v1 – Sonne und Mond in der Uhr
+
+- **Ausbau von „Sonnenauf- und -untergang“:** Statt zweier Zeiten zeigt die Uhr einen
+  Sonnenbogen: Horizont, Bogen vom Aufgang (links) zum Untergang (rechts), die Sonne als Punkt
+  an der Stelle, die dem vergangenen Anteil des Tags entspricht (zeitlich, nicht nach
+  Sonnenhöhe), der zurückgelegte Teil farbig. Kurze Striche auf dem Horizont zeigen die
+  bürgerliche Dämmerung (Sonne 6° unter dem Horizont) im selben Zeitmaßstab. Darunter Auf- und
+  Untergang an den Enden und mittig die Tageslänge mit Änderung gegenüber gestern („−4“, voll im
+  Tooltip und für Screenreader). Polartag und Polarnacht zeigen weiter den Text statt des Bogens.
+- **Mond (neu, Schalter „Mond anzeigen“, Default aus):** Mondscheibe mit der richtigen
+  Schattengrenze (auf der Südhalbkugel gespiegelt), Name der Phase, beleuchteter Anteil,
+  Mondauf- und -untergang des Tags und der nächste Voll- oder Neumond. Fällt ein Auf- oder
+  Untergang aus (etwa einmal im Monat), steht „–“ mit Erklärung im Tooltip; bleibt der Mond den
+  ganzen Tag über bzw. unter dem Horizont (hohe Breiten, z. B. Tromsø zur großen Mondwende),
+  steht das als Text da.
+- **Sonne und Mond an derselben Stelle:** Sind beide an, zeigt die Uhr tagsüber die Sonne und
+  nachts den Mond. Zwei kleine Knöpfe oben rechts schalten von Hand um; die Wahl gilt bis zum
+  nächsten Auf- oder Untergang. Beide Ansichten liegen übereinander (die unsichtbare `inert`),
+  damit sich die Höhe des Panels beim Wechsel nicht ändert. Das Band ist höchstens 22 rem
+  breit, weil der Bogen ein festes Seitenverhältnis hat und die Zeiten an seinen Enden stehen.
+- **Berechnung, offline:** Mondposition aus den größten Gliedern der Mondtheorie nach Meeus
+  (Kap. 47), Sonnenlänge auf das Äquinoktium des Datums bezogen (ein festes Perihel ergab 2025
+  schon 45 Minuten Fehler). Voll- und Neumond treffen die veröffentlichten Zeitpunkte
+  (Finsternisse 2024–2026) auf unter 5 Minuten. Mondauf- und -untergang: Höhe des oberen Rands
+  mit Refraktion und Parallaxe, Suche in 20-Minuten-Schritten über den lokalen Kalendertag und
+  Eingrenzung auf eine halbe Minute. Getestet über Eigenschaften (Vollmond geht mit der Sonne
+  unter auf, Neumond mit ihr auf, im Mittel rund 50 Minuten Verspätung pro Tag, ein Ausfall pro
+  Monat, zirkumpolare Tage in Tromsø), weil keine verlässliche Referenztabelle mitgeliefert wird.
+- **Zeitzone:** Gerechnet wird für den lokalen Kalendertag des Rechners. Liegt dessen Zeitzone
+  weit vom eingetragenen Ort entfernt, sucht `sunDay` den Sonnentag, zu dem „jetzt“ gehört,
+  damit Tag und Nacht trotzdem stimmen. Die Tests laufen in mehreren Zeitzonen grün.
+- **Kein Schema-Sprung:** `showMoon` ergänzt `parseClockSettings` mit Default. Die
+  Koordinatenfelder erscheinen, sobald Sonne oder Mond an ist.

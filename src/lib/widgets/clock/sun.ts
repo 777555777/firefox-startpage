@@ -12,7 +12,9 @@ export type SunTimes =
 
 const MS_PER_DAY = 86_400_000;
 /** Höhe des Sonnenmittelpunkts bei Auf-/Untergang: Refraktion (34′) plus Sonnenradius (16′) */
-const ZENITH = 90.833;
+export const ZENITH = 90.833;
+/** Bürgerliche Dämmerung: Sonnenmittelpunkt 6° unter dem Horizont */
+export const CIVIL_ZENITH = 96;
 
 const rad = (deg: number) => (deg * Math.PI) / 180;
 const deg = (r: number) => (r * 180) / Math.PI;
@@ -52,11 +54,11 @@ function solarPosition(jd: number): { declination: number; equationOfTime: numbe
 }
 
 /** Cosinus des Stundenwinkels bei Auf-/Untergang; außerhalb von [-1, 1] gibt es keinen */
-function cosHourAngle(latitude: number, declination: number): number {
+function cosHourAngle(latitude: number, declination: number, zenith: number): number {
 	const phi = rad(latitude);
 	const delta = rad(declination);
 	return (
-		Math.cos(rad(ZENITH)) / (Math.cos(phi) * Math.cos(delta)) - Math.tan(phi) * Math.tan(delta)
+		Math.cos(rad(zenith)) / (Math.cos(phi) * Math.cos(delta)) - Math.tan(phi) * Math.tan(delta)
 	);
 }
 
@@ -64,9 +66,15 @@ function cosHourAngle(latitude: number, declination: number): number {
  * Berechnet Auf- und Untergang für den Kalendertag von `date` (in lokaler Zeit gelesen) am Ort
  * `latitude`/`longitude` (Dezimalgrad, Nord und Ost positiv). Gemeint ist der Sonnentag des Orts
  * um dessen Mittag; die Ergebnisse sind absolute Zeitpunkte und werden in der Zeitzone des
- * Rechners angezeigt.
+ * Rechners angezeigt. Mit `zenith = CIVIL_ZENITH` liefert sie Beginn und Ende der bürgerlichen
+ * Dämmerung; „Polartag“ heißt dann, dass es nie dunkler als die Dämmerung wird.
  */
-export function sunTimes(date: Date, latitude: number, longitude: number): SunTimes {
+export function sunTimes(
+	date: Date,
+	latitude: number,
+	longitude: number,
+	zenith = ZENITH
+): SunTimes {
 	const midnightUtc = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
 	const jdMidnight = midnightUtc / MS_PER_DAY + 2440587.5;
 	// Minuten nach Mitternacht UTC → Julianisches Datum
@@ -76,7 +84,7 @@ export function sunTimes(date: Date, latitude: number, longitude: number): SunTi
 	let noon = 720 - 4 * longitude;
 	for (let i = 0; i < 2; i++) noon = 720 - 4 * longitude - solarPosition(jdAt(noon)).equationOfTime;
 
-	const atNoon = cosHourAngle(latitude, solarPosition(jdAt(noon)).declination);
+	const atNoon = cosHourAngle(latitude, solarPosition(jdAt(noon)).declination, zenith);
 	if (atNoon > 1) return { kind: 'polarNight' };
 	if (atNoon < -1) return { kind: 'polarDay' };
 
@@ -86,7 +94,7 @@ export function sunTimes(date: Date, latitude: number, longitude: number): SunTi
 		for (let i = 0; i < 2; i++) {
 			const { declination, equationOfTime } = solarPosition(jdAt(minutes));
 			// Am Rand der Polarzeit kann die Verfeinerung knapp über ±1 laufen
-			const cos = Math.min(1, Math.max(-1, cosHourAngle(latitude, declination)));
+			const cos = Math.min(1, Math.max(-1, cosHourAngle(latitude, declination, zenith)));
 			minutes = 720 - 4 * longitude - equationOfTime + sign * 4 * deg(Math.acos(cos));
 		}
 		return minutes;
@@ -97,6 +105,45 @@ export function sunTimes(date: Date, latitude: number, longitude: number): SunTi
 		sunrise: new Date(midnightUtc + event(-1) * 60_000),
 		sunset: new Date(midnightUtc + event(1) * 60_000)
 	};
+}
+
+/** Tageslänge in Minuten; Polartag 24 h, Polarnacht 0 */
+export function dayLength(times: SunTimes): number {
+	if (times.kind === 'polarDay') return 24 * 60;
+	if (times.kind === 'polarNight') return 0;
+	return Math.round((times.sunset.getTime() - times.sunrise.getTime()) / 60_000);
+}
+
+/**
+ * Wie weit der Tag zwischen Auf- und Untergang fortgeschritten ist, 0..1; `null` vor dem
+ * Aufgang und nach dem Untergang
+ */
+export function dayProgress(now: Date, sunrise: Date, sunset: Date): number | null {
+	const t = now.getTime();
+	if (t < sunrise.getTime() || t > sunset.getTime()) return null;
+	return (t - sunrise.getTime()) / (sunset.getTime() - sunrise.getTime());
+}
+
+/**
+ * Sonnenzeiten des Tags, zu dem `now` gehört: Liegt `now` zwischen Auf- und Untergang des
+ * vorigen, heutigen oder nächsten lokalen Kalendertags, dieser Tag, sonst der heutige. Das
+ * spielt nur eine Rolle, wenn die Zeitzone des Rechners weit vom eingetragenen Ort abweicht.
+ */
+export function sunDay(
+	now: Date,
+	latitude: number,
+	longitude: number
+): { date: Date; times: SunTimes; up: boolean } {
+	const local = (offset: number) =>
+		new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+	for (const offset of [0, -1, 1]) {
+		const times = sunTimes(local(offset), latitude, longitude);
+		if (times.kind === 'normal' && dayProgress(now, times.sunrise, times.sunset) !== null) {
+			return { date: local(offset), times, up: true };
+		}
+	}
+	const times = sunTimes(local(0), latitude, longitude);
+	return { date: local(0), times, up: times.kind === 'polarDay' };
 }
 
 /**

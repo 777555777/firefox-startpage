@@ -44,6 +44,10 @@
 	--off: #05535b;
 	--off-fill: rgb(222 246 247 / 0.62);
 	--off-stripe: rgb(168 226 232 / 0.62);
+	/* Sonne und Mond in der Uhr (nur Grafik, kein Text) */
+	--sun: #e8900c;
+	--sun-dim: rgb(245 166 35 / 0.32);
+	--moon-lit: #fffaf0;
 	/* Akzent als Textfarbe auf Glas */
 	--accent-text: color-mix(in srgb, var(--accent-pressed) 75%, var(--text));
 
@@ -147,6 +151,9 @@
 	--off: #9eecf2;
 	--off-fill: rgb(100 214 226 / 0.08);
 	--off-stripe: rgb(100 214 226 / 0.2);
+	--sun: #ffc04d;
+	--sun-dim: rgb(255 192 77 / 0.28);
+	--moon-lit: #f4ecd2;
 	--accent-text: color-mix(in srgb, var(--accent-hover) 45%, #fff);
 	--shade: 0 4 16;
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseCoordinate, sunTimes } from './sun';
+import { CIVIL_ZENITH, dayLength, dayProgress, parseCoordinate, sunDay, sunTimes } from './sun';
 
 const BERLIN = [52.52, 13.405] as const;
 
@@ -81,6 +81,71 @@ describe('sunTimes', () => {
 			expect(hours).toBeGreaterThan(12);
 			expect(hours).toBeLessThan(12.2);
 		}
+	});
+});
+
+describe('Dämmerung, Tageslänge und Fortschritt', () => {
+	const minutesBetween = (a: Date, b: Date) => (b.getTime() - a.getTime()) / 60_000;
+
+	it('bürgerliche Dämmerung liegt in Berlin 30–80 Minuten vor Aufgang und nach Untergang', () => {
+		for (const month of [3, 6, 9, 12]) {
+			const sun = normal(sunTimes(day(2025, month, 21), ...BERLIN));
+			const civil = normal(sunTimes(day(2025, month, 21), ...BERLIN, CIVIL_ZENITH));
+			for (const minutes of [
+				minutesBetween(civil.sunrise, sun.sunrise),
+				minutesBetween(sun.sunset, civil.sunset)
+			]) {
+				expect(minutes).toBeGreaterThan(30);
+				expect(minutes).toBeLessThan(80);
+			}
+		}
+	});
+
+	it('am Äquator dauert die Dämmerung nur gut 20 Minuten', () => {
+		const sun = normal(sunTimes(day(2025, 3, 20), 0, 0));
+		const civil = normal(sunTimes(day(2025, 3, 20), 0, 0, CIVIL_ZENITH));
+		const minutes = minutesBetween(civil.sunrise, sun.sunrise);
+		expect(minutes).toBeGreaterThan(19);
+		expect(minutes).toBeLessThan(26);
+	});
+
+	it('Tromsø: Polarnacht hat Dämmerung, Mittsommer wird nie dunkel', () => {
+		expect(sunTimes(day(2025, 12, 21), 69.65, 18.96, CIVIL_ZENITH).kind).toBe('normal');
+		expect(sunTimes(day(2025, 6, 21), 69.65, 18.96, CIVIL_ZENITH).kind).toBe('polarDay');
+	});
+
+	it('Tageslänge: Berlin zur Sonnenwende 16 h 50 min bzw. 7 h 39 min', () => {
+		expect(dayLength(sunTimes(day(2025, 6, 21), ...BERLIN))).toBeCloseTo(16 * 60 + 50, -1);
+		expect(dayLength(sunTimes(day(2025, 12, 21), ...BERLIN))).toBeCloseTo(7 * 60 + 39, -1);
+		expect(dayLength({ kind: 'polarDay' })).toBe(24 * 60);
+		expect(dayLength({ kind: 'polarNight' })).toBe(0);
+	});
+
+	it('Fortschritt zwischen Auf- und Untergang', () => {
+		const rise = new Date(2025, 5, 21, 6);
+		const set = new Date(2025, 5, 21, 18);
+		expect(dayProgress(new Date(2025, 5, 21, 12), rise, set)).toBeCloseTo(0.5);
+		expect(dayProgress(rise, rise, set)).toBe(0);
+		expect(dayProgress(set, rise, set)).toBe(1);
+		expect(dayProgress(new Date(2025, 5, 21, 5), rise, set)).toBeNull();
+		expect(dayProgress(new Date(2025, 5, 21, 19), rise, set)).toBeNull();
+	});
+});
+
+describe('sunDay', () => {
+	it('erkennt Tag und Nacht unabhängig von der Zeitzone des Rechners', () => {
+		// 13:00 und 23:00 in Berlin; in Auckland ist dann schon der nächste Kalendertag
+		expect(sunDay(new Date('2026-10-18T11:00Z'), ...BERLIN).up).toBe(true);
+		expect(sunDay(new Date('2026-10-18T21:00Z'), ...BERLIN).up).toBe(false);
+		const { times } = sunDay(new Date('2026-10-18T11:00Z'), ...BERLIN);
+		if (times.kind !== 'normal') throw new Error('erwartet normal');
+		expect(times.sunrise.getTime()).toBeLessThan(Date.parse('2026-10-18T11:00Z'));
+		expect(times.sunset.getTime()).toBeGreaterThan(Date.parse('2026-10-18T11:00Z'));
+	});
+
+	it('Polartag zählt als Tag, Polarnacht als Nacht', () => {
+		expect(sunDay(new Date('2025-06-21T11:00Z'), 69.65, 18.96).up).toBe(true);
+		expect(sunDay(new Date('2025-12-21T11:00Z'), 69.65, 18.96).up).toBe(false);
 	});
 });
 

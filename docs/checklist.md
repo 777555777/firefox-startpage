@@ -46,8 +46,12 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
 ## Ab M3
 
 - [ ] Uhr tickt auf die Sekunde, Kalender blättert, Feiertage mit Tooltip
-- [ ] Uhr mit Sonnenauf-/-untergang: Koordinaten eintragen (Komma oder Punkt), Zeiten im Format
-      der Uhr; 69,65 / 18,96 zeigt im Sommer Polartag und im Winter Polarnacht
+- [ ] Uhr mit Sonne: Koordinaten eintragen (Komma oder Punkt), Bogen mit Sonnenpunkt, Zeiten im
+      Format der Uhr, Tageslänge mit Änderung; 69,65 / 18,96 zeigt im Sommer Polartag und im
+      Winter Polarnacht
+- [ ] Uhr mit Mond: Phase und Scheibe passen zum Himmel, Auf- und Untergang, nächster
+      Voll-/Neumond; mit Sonne zusammen nachts automatisch der Mond, Umschalter wechselt von Hand,
+      Panel-Höhe bleibt gleich
 - [ ] Suche: Bangs, Engine-Umschalter, Link-Vorschläge, `/` fokussiert
 - [ ] Link-Board: Tabs, Ansichten, Kontextmenü, DnD, `1…9`, `Alt+1…9`
 - [ ] Kacheln: Icons auf einer Höhe, Namen brechen zwischen Wörtern um, „+ Link“ immer am

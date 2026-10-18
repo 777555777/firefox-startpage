@@ -105,6 +105,7 @@ describe('parseConfig', () => {
 			showDate: true,
 			dateStyle: 'long',
 			showSun: false,
+			showMoon: false,
 			latitude: null,
 			longitude: -74
 		});

@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { i18n, t } from '$lib/i18n/index.svelte';
-	import Icon from '$lib/ui/Icon.svelte';
 	import { everyMinute, everySecond } from '$lib/utils/now.svelte';
 	import type { WidgetProps } from '../types';
 	import type { ClockSettings } from './settings';
-	import { sunTimes } from './sun';
+	import SkyBand from './SkyBand.svelte';
 
 	let { settings }: WidgetProps<ClockSettings> = $props();
 
@@ -32,14 +31,14 @@
 		})
 	);
 
-	/** Ändert sich nur beim Tageswechsel, damit nicht jede Minute neu gerechnet wird */
-	const today = $derived(new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime());
-
-	const sun = $derived.by(() => {
-		const { showSun, latitude, longitude } = settings;
-		if (!showSun || latitude === null || longitude === null) return null;
-		return sunTimes(new Date(today), latitude, longitude);
-	});
+	/** Sonne und Mond brauchen Koordinaten; ohne sie bleibt der Bereich leer */
+	const location = $derived(
+		(settings.showSun || settings.showMoon) &&
+			settings.latitude !== null &&
+			settings.longitude !== null
+			? { latitude: settings.latitude, longitude: settings.longitude }
+			: null
+	);
 
 	const dateFormat = $derived(
 		new Intl.DateTimeFormat(
@@ -89,23 +88,14 @@
 	{#if settings.showDate}
 		<p class="date">{dateFormat.format(now)}</p>
 	{/if}
-	{#if sun}
-		<p class="sun">
-			{#if sun.kind === 'normal'}
-				{#each [{ icon: 'sunrise', label: 'clock.sunrise', at: sun.sunrise }, { icon: 'sunset', label: 'clock.sunset', at: sun.sunset }] as const as event (event.icon)}
-					<span class="sun-event" title={t(event.label)}>
-						<Icon name={event.icon} size={18} />
-						<span class="visually-hidden">{t(event.label)}</span>
-						<time datetime={event.at.toISOString()}>{sunFormat.format(event.at)}</time>
-					</span>
-				{/each}
-			{:else}
-				<span class="sun-event">
-					<Icon name={sun.kind === 'polarDay' ? 'sunrise' : 'sunset'} size={18} />
-					{t(sun.kind === 'polarDay' ? 'clock.polarDay' : 'clock.polarNight')}
-				</span>
-			{/if}
-		</p>
+	{#if location}
+		<SkyBand
+			now={everyMinute.current}
+			{...location}
+			showSun={settings.showSun}
+			showMoon={settings.showMoon}
+			timeFormat={sunFormat}
+		/>
 	{/if}
 </div>
 
@@ -146,20 +136,5 @@
 		font-size: var(--text-lg);
 		font-weight: 500;
 		color: var(--text-secondary);
-	}
-
-	.sun {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-1) var(--space-4);
-		font-weight: 500;
-		color: var(--text-secondary);
-		font-variant-numeric: tabular-nums;
-	}
-
-	.sun-event {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-1);
 	}
 </style>
