@@ -50,8 +50,8 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
       der Uhr; 69,65 / 18,96 zeigt im Sommer Polartag und im Winter Polarnacht
 - [ ] Suche: Bangs, Engine-Umschalter, Link-Vorschläge, `/` fokussiert
 - [ ] Link-Board: Tabs, Ansichten, Kontextmenü, DnD, `1…9`, `Alt+1…9`
-- [ ] Kacheln: Icons auf einer Höhe, Namen brechen zwischen Wörtern um, „+ Link“ nur im
-      Edit-Modus bzw. in leerer Gruppe, Kontextmenü bietet „Link hinzufügen“
+- [ ] Kacheln: Icons auf einer Höhe, Namen brechen zwischen Wörtern um, „+ Link“ immer am
+      Ende der Gruppe (auch ohne Edit-Modus), Kontextmenü bietet „Link hinzufügen“
 - [ ] Favicons: beim zweiten Öffnen kein Flackern, im Netzwerk-Tab keine 404-Versuche mehr
 
 ## Termine und freie Tage (Schema v4)

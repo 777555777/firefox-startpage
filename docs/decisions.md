@@ -81,9 +81,10 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   wenn sie gültig sind (URL mit `%s`, Bang eindeutig). So entstehen keine halb gültigen Engines,
   die beim Speichern verworfen würden. Eigene Engine-Icons (Data-URL) sind im Schema vorgesehen,
   in der Oberfläche aber noch nicht hochladbar. Es wird immer das Favicon genutzt.
-- **Link-Board:** „+ Link“ erscheint nur im Edit-Modus oder in einer leeren Gruppe (geändert nach
-  M6: in der Kachel-Ansicht erzeugte es sonst eine eigene, fast leere Reihe). Ohne Edit-Modus
-  geht Hinzufügen über das Kontextmenü eines Links oder Tabs. Tabs bearbeitet man per Doppelklick oder Kontextmenü. Löschen von
+- **Link-Board:** „+ Link“ steht immer am Ende der Gruppe. Nach M6 erschien es eine Zeit lang
+  nur im Edit-Modus oder in einer leeren Gruppe (in der Kachel-Ansicht erzeugte es sonst eine
+  eigene, fast leere Reihe); das wurde auf Wunsch wieder zurückgenommen, weil der direkte Weg
+  praktischer ist. Zusätzlich bietet das Kontextmenü eines Links oder Tabs „Link hinzufügen“. Tabs bearbeitet man per Doppelklick oder Kontextmenü. Löschen von
   Links und Tabs geht ohne Bestätigungsdialog, dafür mit Rückgängig-Toast (wie bei Widgets). Der
   letzte Tab eines Boards kann nicht gelöscht werden.
 - **Links zwischen Boards verschieben** (nice-to-have) ist noch nicht umgesetzt.

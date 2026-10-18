@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Component } from 'svelte';
+import { t } from '$lib/i18n/index.svelte';
 import { createMemoryAppState } from '$lib/state/app.svelte';
 import Harness from '$lib/test/Harness.svelte';
 import type { WidgetProps } from '../types';
@@ -109,6 +110,12 @@ describe('Link-Board', () => {
 
 		await user.keyboard('{ArrowLeft}');
 		expect(board.activeTabId).toBe('a');
+	});
+
+	it('zeigt „Link hinzufügen“ auch außerhalb des Edit-Modus und öffnet den Dialog', async () => {
+		const { user } = await setup();
+		await user.click(screen.getByRole('button', { name: t('links.addLink') }));
+		expect(screen.getByRole('dialog', { name: t('links.newLink') })).toBeInTheDocument();
 	});
 
 	it('ignoriert Kürzel in Eingabefeldern', async () => {

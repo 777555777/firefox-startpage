@@ -25,7 +25,7 @@
 	import TabDialog from './TabDialog.svelte';
 	import type { Link, LinksSettings, LinkTab } from './settings';
 
-	let { id, settings, editing, update }: WidgetProps<LinksSettings> = $props();
+	let { id, settings, update }: WidgetProps<LinksSettings> = $props();
 
 	const app = getApp();
 	const uid = $props.id();
@@ -398,19 +398,16 @@
 					</a>
 				</li>
 			{/each}
-			<!-- Hinzufügen nur im Edit-Modus (sonst über das Kontextmenü), außer die Gruppe ist leer -->
-			{#if editing || activeTab.links.length === 0}
-				<li class="item add-item">
-					<button type="button" class="add {activeTab.view}" onclick={addLink}>
-						{#if activeTab.view === 'tiles'}
-							<span class="tile-icon"><Icon name="plus" size={22} /></span>
-						{:else}
-							<Icon name="plus" size={16} />
-						{/if}
-						<span class="label">{t('links.addLink')}</span>
-					</button>
-				</li>
-			{/if}
+			<li class="item add-item">
+				<button type="button" class="add {activeTab.view}" onclick={addLink}>
+					{#if activeTab.view === 'tiles'}
+						<span class="tile-icon"><Icon name="plus" size={22} /></span>
+					{:else}
+						<Icon name="plus" size={16} />
+					{/if}
+					<span class="label">{t('links.addLink')}</span>
+				</button>
+			</li>
 		</ul>
 	</div>
 </div>
