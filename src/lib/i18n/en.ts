@@ -211,6 +211,18 @@ export const en: Dictionary = {
 	'clock.dateStyle': 'Date format',
 	'clock.dateShort': 'Short',
 	'clock.dateLong': 'Long',
+	'clock.sun': 'Show sunrise and sunset',
+	'clock.sunHint':
+		'Calculated locally from the coordinates, without location access or network. Decimal degrees, e.g. 52.52 and 13.405 for Berlin.',
+	'clock.latitude': 'Latitude',
+	'clock.longitude': 'Longitude',
+	'clock.latitudeError': 'Number between −90 (south) and 90 (north)',
+	'clock.longitudeError': 'Number between −180 (west) and 180 (east)',
+	'clock.sunMissing': 'Enter latitude and longitude to show the times.',
+	'clock.sunrise': 'Sunrise',
+	'clock.sunset': 'Sunset',
+	'clock.polarDay': 'Polar day, the sun does not set today',
+	'clock.polarNight': 'Polar night, the sun does not rise today',
 
 	'calendar.previous': 'Previous month',
 	'calendar.next': 'Next month',

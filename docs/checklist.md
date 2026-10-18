@@ -46,6 +46,8 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
 ## Ab M3
 
 - [ ] Uhr tickt auf die Sekunde, Kalender blättert, Feiertage mit Tooltip
+- [ ] Uhr mit Sonnenauf-/-untergang: Koordinaten eintragen (Komma oder Punkt), Zeiten im Format
+      der Uhr; 69,65 / 18,96 zeigt im Sommer Polartag und im Winter Polarnacht
 - [ ] Suche: Bangs, Engine-Umschalter, Link-Vorschläge, `/` fokussiert
 - [ ] Link-Board: Tabs, Ansichten, Kontextmenü, DnD, `1…9`, `Alt+1…9`
 - [ ] Kacheln: Icons auf einer Höhe, Namen brechen zwischen Wörtern um, „+ Link“ nur im

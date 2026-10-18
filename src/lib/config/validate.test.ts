@@ -92,7 +92,10 @@ describe('parseConfig', () => {
 	it('validiert Widget-Settings je Typ', () => {
 		const config = parseConfig({
 			widgets: {
-				a: { type: 'clock', settings: { showSeconds: true, hourCycle: '13', extra: 1 } },
+				a: {
+					type: 'clock',
+					settings: { showSeconds: true, hourCycle: '13', extra: 1, latitude: 91, longitude: -74 }
+				},
 				b: { type: 'calendar', settings: { region: 'XX', weekStart: 'sunday' } }
 			}
 		});
@@ -100,7 +103,10 @@ describe('parseConfig', () => {
 			showSeconds: true,
 			hourCycle: 'auto',
 			showDate: true,
-			dateStyle: 'long'
+			dateStyle: 'long',
+			showSun: false,
+			latitude: null,
+			longitude: -74
 		});
 		expect(config.widgets.b.settings).toMatchObject({ region: 'none', weekStart: 'sunday' });
 	});

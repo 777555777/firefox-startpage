@@ -216,6 +216,18 @@ export const de = {
 	'clock.dateStyle': 'Datumsformat',
 	'clock.dateShort': 'Kurz',
 	'clock.dateLong': 'Lang',
+	'clock.sun': 'Sonnenauf- und -untergang anzeigen',
+	'clock.sunHint':
+		'Wird lokal aus den Koordinaten berechnet, ohne Standortzugriff und ohne Netzwerk. Dezimalgrad, z. B. 52,52 und 13,405 für Berlin.',
+	'clock.latitude': 'Breitengrad',
+	'clock.longitude': 'Längengrad',
+	'clock.latitudeError': 'Zahl zwischen −90 (Süd) und 90 (Nord)',
+	'clock.longitudeError': 'Zahl zwischen −180 (West) und 180 (Ost)',
+	'clock.sunMissing': 'Für die Anzeige Breiten- und Längengrad eintragen.',
+	'clock.sunrise': 'Sonnenaufgang',
+	'clock.sunset': 'Sonnenuntergang',
+	'clock.polarDay': 'Polartag, die Sonne geht heute nicht unter',
+	'clock.polarNight': 'Polarnacht, die Sonne geht heute nicht auf',
 
 	'calendar.previous': 'Vorheriger Monat',
 	'calendar.next': 'Nächster Monat',

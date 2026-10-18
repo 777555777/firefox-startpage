@@ -339,3 +339,29 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
   Skript im `<head>` (kein Inline-Skript, CSP-konform). Als Modul lief das erst nach dem ersten
   Paint. Die Static-Darstellung legt den Himmel erst unter ein Medium, wenn dieses seinen ersten
   Frame hat, und verschwindet erst, wenn das Canvas fertig eingeblendet ist (`transitionend`).
+
+## Nach M6 – Sonnenauf- und -untergang in der Uhr
+
+- **Erweiterung von §6.1:** Die Uhr kann unter dem Datum Sonnenauf- und -untergang zeigen
+  (Schalter „Sonnenauf- und -untergang anzeigen“, Default aus). Die Zeiten stehen im Format der
+  Uhr (12/24 h wie eingestellt), immer ohne Sekunden.
+- **Standortquelle: manuell pro Uhr-Widget.** Die Config hatte bisher keine Koordinaten; die
+  Tageszeit-Phasen arbeiten mit festen Startzeiten, nicht mit dem Sonnenstand. Breiten- und
+  Längengrad werden deshalb in den Einstellungen des Uhr-Widgets in Dezimalgrad eingetragen
+  (`latitude`/`longitude`, `null` = leer). Keine Geolocation-Permission, kein Netzwerk, keine
+  API und keine Ortssuche: Geolocation bräuchte eine zusätzliche Berechtigung und fragt im
+  Hintergrund einen Netzwerkdienst ab, eine Ortssuche bräuchte Host-Rechte oder eine
+  mitgelieferte Ortsdatenbank. Pro Widget statt global, weil Widgets mehrfach platziert werden
+  dürfen und die Werte so mit den übrigen Uhr-Einstellungen exportiert und validiert werden.
+  Sollten die Tageszeit-Phasen später dem Sonnenstand folgen, wandern die Koordinaten in
+  `appearance` und die Uhr liest sie dort.
+- **Kein Schema-Sprung:** Die neuen Felder ergänzt `parseClockSettings` mit Defaults; ungültige
+  oder außerhalb von ±90°/±180° liegende Werte werden zu `null`. Eingaben dürfen Komma oder
+  Punkt nutzen, ungültige bleiben mit Hinweis im Feld stehen und werden nicht gespeichert.
+- **Berechnung:** NOAA-Algorithmus (nach Meeus) als reine Funktion in `widgets/clock/sun.ts`,
+  Sonnenmittag und Ereignisse je zweimal verfeinert, Zenit 90,833° (Refraktion und
+  Sonnenradius). Gerechnet wird für den lokalen Kalendertag des Rechners am angegebenen Ort; die
+  Zeiten erscheinen in der Zeitzone des Rechners. Neu gerechnet wird nur beim Tageswechsel.
+- **Polartag und Polarnacht:** Liegt der Stundenwinkel zum Sonnenmittag außerhalb von [−1, 1],
+  zeigt die Uhr statt der Zeiten „Polartag“ bzw. „Polarnacht“ mit kurzem Hinweis. Am Rand der
+  Polarzeit wird die Verfeinerung begrenzt, damit nie `NaN` entsteht.
