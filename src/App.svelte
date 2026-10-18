@@ -152,8 +152,8 @@
 	.page {
 		position: relative;
 		z-index: 1;
-		height: 100vh;
-		height: 100dvh;
+		min-height: 100vh;
+		min-height: 100dvh;
 		padding: clamp(16px, 4vh, 48px) clamp(16px, 4vw, 56px) 0;
 	}
 </style>

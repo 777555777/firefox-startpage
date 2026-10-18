@@ -201,8 +201,11 @@ html {
 
 html,
 body {
-	height: 100%;
 	margin: 0;
+}
+
+/* Die ganze Page scrollt; hinter offenen Dialogen steht sie still */
+html:has(dialog[open]) {
 	overflow: hidden;
 }
 

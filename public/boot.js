@@ -22,6 +22,8 @@
 			root.style.backgroundSize = poster.size === 'contain' ? 'contain' : 'cover';
 			root.style.backgroundPosition = String(poster.position || 'center');
 			root.style.backgroundRepeat = 'no-repeat';
+			// Steht wie das Glas-Canvas fest, während die Page scrollt
+			root.style.backgroundAttachment = 'fixed';
 		}
 	} catch {
 		// ohne Standbild startet die Seite mit der Grundfarbe

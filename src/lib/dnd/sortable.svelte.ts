@@ -358,7 +358,10 @@ export class Sortable {
 		session.busy = false;
 	}
 
-	/** Scrollt die Spalte unter dem Zeiger, wenn er nahe an deren Rand ist */
+	/**
+	 * Scrollt den Container unter dem Zeiger, wenn er nahe an dessen Rand ist. Ohne eigenen
+	 * Scroll-Container (z. B. bei Panels) scrollt die ganze Page am Fensterrand.
+	 */
 	#autoScroll = () => {
 		const session = this.#session;
 		if (!session) return;
@@ -373,12 +376,15 @@ export class Sortable {
 		) {
 			scroller = scroller.parentElement;
 		}
-		if (scroller) {
-			const rect = scroller.getBoundingClientRect();
+		const target = scroller ?? document.scrollingElement;
+		if (target) {
+			const { top, bottom } = scroller
+				? scroller.getBoundingClientRect()
+				: { top: 0, bottom: window.innerHeight };
 			const edge = 56;
 			const speed = (distance: number) => Math.round(((edge - distance) / edge) * 14);
-			if (session.y < rect.top + edge) scroller.scrollTop -= speed(session.y - rect.top);
-			else if (session.y > rect.bottom - edge) scroller.scrollTop += speed(rect.bottom - session.y);
+			if (session.y < top + edge) target.scrollTop -= speed(session.y - top);
+			else if (session.y > bottom - edge) target.scrollTop += speed(bottom - session.y);
 		}
 		session.scrollFrame = requestAnimationFrame(this.#autoScroll);
 	};

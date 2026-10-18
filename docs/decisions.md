@@ -365,3 +365,17 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
 - **Polartag und Polarnacht:** Liegt der Stundenwinkel zum Sonnenmittag außerhalb von [−1, 1],
   zeigt die Uhr statt der Zeiten „Polartag“ bzw. „Polarnacht“ mit kurzem Hinweis. Am Rand der
   Polarzeit wird die Verfeinerung begrenzt, damit nie `NaN` entsteht.
+
+## Nach M6 – Die ganze Page scrollt
+
+- **Page statt Spalten** (weicht von §5 „Die Page selbst scrollt möglichst nicht“ und §7
+  „Spalten-Scroll“ ab): Einzeln scrollende Spalten fühlten sich mit Mitte und Seitenspalten
+  zerstückelt an (mehrere Scrollleisten, Mausrad wirkt nur über der jeweiligen Spalte). Jetzt
+  scrollt das Dokument, die Spalten wachsen mit ihrem Inhalt. Damit entfallen das Mausrad-Umleiten
+  neben einer einzelnen Spalte und der Clip des Glases auf die Spaltenkante (Einträge oben unter
+  „Clip auf den Scroll-Container“ und „Mausrad neben der Spalte“ sind damit überholt).
+- **Glas-Synchronisation:** Bleibt ereignisgetrieben. Der Layer hört ohnehin per Capture auf jedes
+  `scroll`, also auch auf das der Page. Glas-Canvas und Static-Hintergrund stehen fest
+  (`position: fixed`), das Standbild aus `boot.js` per `background-attachment: fixed`.
+- **Dialoge:** Solange ein Dialog offen ist, steht die Page still (`html:has(dialog[open])`).
+- **Drag & Drop:** Ohne eigenen Scroll-Container scrollt beim Ziehen an den Fensterrand die Page.

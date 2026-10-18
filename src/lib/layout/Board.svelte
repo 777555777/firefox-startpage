@@ -337,33 +337,6 @@
 		if (!ui.editing) grabbed = null;
 	});
 
-	// Einspaltig liegt rechts und links oft freie Fläche: das Mausrad scrollt dort trotzdem
-	// die Spalte. Elemente, die selbst scrollen (Spalte, Dialoge, Listen), bleiben unberührt.
-	$effect(() => {
-		if (columns.length !== 1) return;
-		const onwheel = (event: WheelEvent) => {
-			if (event.ctrlKey || event.defaultPrevented) return;
-			// deltaY vor deltaMode lesen: Firefox liefert dann Pixel statt Zeilen
-			const delta = event.deltaY;
-			for (let node = event.target as Element | null; node; node = node.parentElement) {
-				if (node.matches('dialog, [popover]')) return;
-				const { overflowY } = getComputedStyle(node);
-				if (/(auto|scroll)/.test(overflowY) && node.scrollHeight > node.clientHeight) return;
-			}
-			const column = board.querySelector<HTMLElement>(':scope > .column');
-			if (!column) return;
-			const unit =
-				event.deltaMode === WheelEvent.DOM_DELTA_LINE
-					? 40
-					: event.deltaMode === WheelEvent.DOM_DELTA_PAGE
-						? column.clientHeight
-						: 1;
-			column.scrollBy({ top: delta * unit });
-		};
-		window.addEventListener('wheel', onwheel, { passive: true });
-		return () => window.removeEventListener('wheel', onwheel);
-	});
-
 	// --- Breite der Mitte: Trenner im Edit-Modus ziehen oder per Pfeiltasten verschieben -----
 	// Die Mitte rastet in Schritten von 2 Einheiten ein, beide Seiten bleiben gleich breit.
 
@@ -583,13 +556,11 @@
 <style>
 	.frame {
 		width: 100%;
-		height: 100%;
 	}
 
 	.board {
 		display: grid;
 		width: 100%;
-		height: 100%;
 		margin-inline: auto;
 	}
 
@@ -604,17 +575,12 @@
 		grid-row: 1;
 	}
 
-	/* Jede Spalte scrollt für sich, die Page selbst nicht */
+	/* Die Spalten scrollen nicht selbst, sondern mit der ganzen Page */
 	.column {
 		display: flex;
 		flex-direction: column;
 		gap: var(--gap);
-		min-height: 0;
-		/* Platz für Fokusringe und Schatten, die sonst abgeschnitten würden */
-		margin: -12px;
-		padding: 12px 12px 96px;
-		overflow-y: auto;
-		overscroll-behavior: contain;
+		padding-bottom: 96px;
 	}
 
 	.segment {
