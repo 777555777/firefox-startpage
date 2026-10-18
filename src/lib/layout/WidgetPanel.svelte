@@ -182,7 +182,14 @@
 		color: var(--text-secondary);
 	}
 
+	/*
+	 * Füllt das Panel, wenn es durch einen höheren Nachbarn in der Zeile gestreckt wird. Als
+	 * Flex-Spalte wachsen Widgets dabei nur, wenn sie es selbst wollen (z. B. die Uhr).
+	 */
 	.content {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
 		min-width: 0;
 	}
 

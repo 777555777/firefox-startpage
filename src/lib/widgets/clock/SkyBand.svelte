@@ -185,19 +185,24 @@
 	 * ein festes Seitenverhältnis, die Zeiten stehen an seinen Enden.
 	 */
 	.sky {
-		display: grid;
-		gap: var(--space-4);
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
 		max-width: 22rem;
-		margin-top: var(--space-2);
+		/* Gleich wie `gap`, damit sich zusätzliche Höhe exakt gleichmäßig verteilt */
+		margin-top: var(--space-3);
 		font-size: var(--text-sm);
 		font-weight: 500;
 		color: var(--text-secondary);
 		font-variant-numeric: tabular-nums;
 	}
 
+	/* Bei zusätzlicher Höhe gleich viel Luft über und unter der Sonne, der Mond rückt nach unten */
 	.sun-part {
 		display: grid;
 		gap: var(--space-1);
+		margin-block: auto;
 	}
 
 	/* --- Sonne --- */
@@ -280,11 +285,17 @@
 
 	/* --- Mond --- */
 
+	/* Ohne Sonne rückt der Mond allein nach unten; mit Sonne teilen sich deren Ränder den Platz */
 	.moon {
 		display: grid;
 		grid-template-columns: auto 1fr;
 		align-items: center;
 		gap: var(--space-3);
+		margin-top: auto;
+
+		.sun-part + & {
+			margin-top: 0;
+		}
 	}
 
 	.disc {

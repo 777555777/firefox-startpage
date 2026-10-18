@@ -474,7 +474,10 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
 - **Sonne und Mond als eigene Abschnitte:** Uhr, Sonne und Mond stehen untereinander, Sonne und
   Mond jeweils mit eigenem Schalter. Eine erste Fassung zeigte beide an derselben Stelle
   (tagsüber Sonne, nachts Mond, Umschalter oben rechts); untereinander ist alles auf einen
-  Blick sichtbar, und ohne Umschalten bleibt die Höhe des Panels ohnehin gleich. Bei Mondauf- und
+  Blick sichtbar, und ohne Umschalten bleibt die Höhe des Panels ohnehin gleich. Streckt ein
+  höherer Nachbar in derselben Zeile das Panel, füllt die Uhr die Höhe: Zeit und Datum oben, der
+  Mond unten, die Sonne mit gleichem Abstand dazwischen. Dafür wächst der Inhaltsbereich jedes
+  Panels mit (Flex-Spalte); andere Widgets bleiben oben stehen und strecken sich nicht. Bei Mondauf- und
   -untergang bleiben kleine Pfeile, weil es dort keine Grafik gibt, die die Zeiten erklärt. Das
   Band ist höchstens 22 rem breit, weil der Bogen ein festes Seitenverhältnis hat und die Zeiten
   an seinen Enden stehen.

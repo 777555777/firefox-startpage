@@ -51,7 +51,7 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
       Winter Polarnacht
 - [ ] Uhr mit Mond: Phase und Scheibe passen zum Himmel, Auf- und Untergang, nächster
       Voll-/Neumond; mit Sonne zusammen stehen Uhr, Sonne und Mond untereinander, beide einzeln
-      abschaltbar
+      abschaltbar; neben einem höheren Widget verteilen sie sich gleichmäßig über die Höhe
 - [ ] Suche: Bangs, Engine-Umschalter, Link-Vorschläge, `/` fokussiert
 - [ ] Link-Board: Tabs, Ansichten, Kontextmenü, DnD, `1…9`, `Alt+1…9`
 - [ ] Kacheln: Icons auf einer Höhe, Namen brechen zwischen Wörtern um, „+ Link“ immer am

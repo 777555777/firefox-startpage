@@ -75,19 +75,21 @@
 </script>
 
 <div class="clock">
-	<time
-		class="time"
-		style:--width-em={widthEm}
-		datetime={now.toISOString()}
-		aria-label={t('clock.label')}
-	>
-		<span class="main">{parts.main}</span>
-		{#if parts.seconds}<span class="seconds">{parts.seconds}</span>{/if}
-		{#if parts.period}<span class="period">{parts.period}</span>{/if}
-	</time>
-	{#if settings.showDate}
-		<p class="date">{dateFormat.format(now)}</p>
-	{/if}
+	<div class="top">
+		<time
+			class="time"
+			style:--width-em={widthEm}
+			datetime={now.toISOString()}
+			aria-label={t('clock.label')}
+		>
+			<span class="main">{parts.main}</span>
+			{#if parts.seconds}<span class="seconds">{parts.seconds}</span>{/if}
+			{#if parts.period}<span class="period">{parts.period}</span>{/if}
+		</time>
+		{#if settings.showDate}
+			<p class="date">{dateFormat.format(now)}</p>
+		{/if}
+	</div>
 	{#if location}
 		<SkyBand
 			now={everyMinute.current}
@@ -100,12 +102,22 @@
 </div>
 
 <style>
-	/* Schriftgröße folgt der Breite des Panels, nicht des Fensters */
+	/*
+	 * Schriftgröße folgt der Breite des Panels, nicht des Fensters. Wird das Panel von einem
+	 * höheren Nachbarn gestreckt, füllt die Uhr die Höhe: Zeit oben, Sonne mittig, Mond unten
+	 * (Verteilung in SkyBand).
+	 */
 	.clock {
 		container-type: inline-size;
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		padding: var(--space-2) var(--space-1);
+	}
+
+	.top {
 		display: grid;
 		gap: var(--space-1);
-		padding: var(--space-2) var(--space-1);
 	}
 
 	.time {
