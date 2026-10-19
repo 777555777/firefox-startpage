@@ -23,11 +23,16 @@
 		removeTab
 	} from './operations';
 	import TabDialog from './TabDialog.svelte';
-	import { tileMetrics, type Link, type LinksSettings, type LinkTab } from './settings';
+	import { density } from '$lib/state/density.svelte';
+	import { TILE_SIZE, tileMetrics, type Link, type LinksSettings, type LinkTab } from './settings';
 
 	let { id, settings, update }: WidgetProps<LinksSettings> = $props();
 
-	const tile = $derived(tileMetrics(settings.tileSize));
+	/** Kantenlänge der Icon-Fläche; in kompakter Dichte eine Stufe von 8 px kleiner */
+	const tileSize = $derived(
+		density.compact ? Math.max(TILE_SIZE.min, settings.tileSize - 8) : settings.tileSize
+	);
+	const tile = $derived(tileMetrics(tileSize));
 
 	const app = getApp();
 	const uid = $props.id();
@@ -350,7 +355,7 @@
 		<ul
 			bind:this={list}
 			class="links {activeTab.view}"
-			style:--tile="{settings.tileSize}px"
+			style:--tile="{tileSize}px"
 			style:--tile-radius="{tile.radius}px"
 			style:--tile-column="{tile.column}px"
 			{@attach linkSort.list({
@@ -621,6 +626,16 @@
 			hyphens: manual;
 			text-wrap: balance;
 			overflow-wrap: anywhere;
+		}
+
+		/* Kompakt: weniger Luft, und kurze Namen reservieren keine zweite Zeile */
+		:global(:root[data-density='compact']) & {
+			gap: 6px;
+			padding: 6px 6px 4px;
+
+			.label {
+				min-height: 0;
+			}
 		}
 
 		&:hover {

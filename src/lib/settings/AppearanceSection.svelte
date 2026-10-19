@@ -2,7 +2,10 @@
 	import { ACCENT_PRESETS } from '$lib/config/defaults';
 	import { t } from '$lib/i18n/index.svelte';
 	import { getApp } from '$lib/state/context';
+	import { COMPACT_BELOW_PX } from '$lib/state/density';
+	import { density } from '$lib/state/density.svelte';
 	import Icon from '$lib/ui/Icon.svelte';
+	import Segmented from '$lib/ui/Segmented.svelte';
 
 	const app = getApp();
 	const appearance = $derived(app.config.value.appearance);
@@ -54,6 +57,21 @@
 			<span>{t('settings.frostMilky')}</span>
 		</div>
 		<p class="field-hint">{t('settings.frostHint')}</p>
+	</div>
+
+	<div class="field">
+		<span class="field-label">{t('settings.density')}</span>
+		<Segmented
+			label={t('settings.density')}
+			value={density.setting}
+			options={[
+				{ value: 'auto', label: t('settings.densityAuto') },
+				{ value: 'normal', label: t('settings.densityNormal') },
+				{ value: 'compact', label: t('settings.densityCompact') }
+			]}
+			onchange={(value) => density.set(value)}
+		/>
+		<p class="field-hint">{t('settings.densityHint', { height: COMPACT_BELOW_PX })}</p>
 	</div>
 </div>
 

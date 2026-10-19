@@ -875,3 +875,49 @@ Höhenbudget und eine Stufe „Mitte + eine Seitenspalte“ sind zurückgestellt
     die Mitte hat dann nur 5 Kacheln pro Zeile und die Page scrollt. Mit Mitte 14/24 und
     Maximalbreite 96 rem kommt die Sidebar auch auf 2000 px, weil die Schwelle innerhalb der
     Maximalbreite rechnet.
+
+## Nach v1 – Kompakte Dichte für niedrige Fenster
+
+Ziel: Auf dem Laptop passen Uhr, Kalender, Suche und drei Kachelzeilen ohne Scrollen. Die
+kompakte Dichte verkleinert zuerst nur Abstände, nicht die Schrift.
+
+- **Einstellung „Dichte: Automatisch / Normal / Kompakt“** unter Darstellung. Gespeichert pro
+  Rechner in `localStorage` (`startpage:density`), nicht in der Config:
+  Sie hängt wie die Qualitätsstufe vom Bildschirm ab, und ein Export vom Laptop soll den Desktop
+  nicht kompakt machen. Ohne `localStorage` gilt „Automatisch“.
+- **Automatik nach Fensterhöhe:** kompakt unter 900 CSS-px (`COMPACT_BELOW_PX`). Ein
+  Full-HD-Monitor hat in Firefox gut 950 px, ein MacBook mit Standardauflösung um 860 px. Die
+  Breite spielt keine Rolle, ein Fenster mit 2000 × 1100 bleibt normal. Die Höhe wird bei jeder
+  Größenänderung neu gelesen. Gemessen am Inhalt wird bewusst nicht, weil kompakt den Inhalt
+  kleiner macht und die Entscheidung sonst hin- und herspringen könnte.
+- **Umsetzung:** `data-density="compact"` am Root, Komponenten reagieren in ihrem CSS darauf.
+  Kompakt bedeutet:
+  - Innenabstand der Panels 14 statt 20 px (`--panel-pad`), Abstand zwischen Panels ein Drittel
+    kleiner (aus `panelGap`, Standard 24 → 16 px). Der Spaltenabstand bleibt, er kostet keine
+    Höhe.
+  - Uhr: Uhrzeit höchstens 3,75 statt 4,75 rem, weniger Luft um Datum, Sonnenbogen (höchstens
+    18 statt 22 rem breit, damit flacher) und Mond (Scheibe 44 statt 52 px).
+  - Kalender: Tageszeilen 1,95 em, Legende nur als Muster (Name im Tooltip und für
+    Screenreader), damit sie mit dem gewählten Tag und den Knöpfen in eine Zeile passt. Ohne
+    Einträge am gewählten Tag entfällt der Bereich „Keine Termine“. Die Höhe des Kalenders ändert
+    sich dadurch, wenn ein Tag mit Einträgen gewählt wird; in normaler Dichte bleibt sie fest.
+  - Kacheln: Icon-Fläche eine Stufe kleiner (8 px), weniger Innenabstand, und kurze Namen
+    reservieren keine zweite Zeile mehr.
+  - Suche: über den kleineren Innenabstand des Panels.
+- **Keine Skalierung:** Der Vorschlag sah zusätzlich eine leichte Skalierung (≥ 90 %) vor, wenn
+  die Abstände nicht reichen. Eine kleinere Grundschrift (90 %) brachte bei 1280 × 720 nur
+  21 px, eine echte Skalierung per CSS `zoom` würde Menüs, Ziehen und andere per Skript
+  positionierte Elemente verschieben. Beides ist deshalb nicht gebaut.
+- **Bearbeiten-Knopf verdeckt nichts:** Er ist rund und zeigt nur das Stift-Icon (Name als
+  `aria-label`, Tooltip „Bearbeiten (E)“) und steht im rechten Seitenrand. Dieser ist dafür
+  mindestens 56 px breit (`max(4vw, 56px)` rechts). Unter den Spalten gibt es nur noch im
+  Edit-Modus 96 px Platz für die Edit-Leiste, sonst den normalen Seitenrand.
+- **Kontrast:** Farben, Schriftgrößen und Glas ändern sich in kompakter Dichte nicht; die
+  bisherigen Prüfungen gelten weiter. Die Legende ohne Text ist am Muster und per Tooltip
+  erkennbar.
+- **Geprüft** im Vorschau-Browser mit 22 Links in der Mitte:
+  - Uhr und Kalender links, Suche und Links in der Mitte: 1440 × 800 (drei Spalten) und
+    1280 × 720 (Sidebar) passen ohne Scrollen.
+  - Uhr und Kalender nebeneinander über Suche und Links in der Mitte (wie auf dem Laptop der
+    nutzenden Person): 1440 × 800 passt, 1280 × 720 scrollt noch um gut 50 px.
+  - 2000 × 1100 mit „Automatisch“: normal, Abstände und Kacheln unverändert.

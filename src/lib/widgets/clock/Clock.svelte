@@ -149,4 +149,15 @@
 		font-weight: 500;
 		color: var(--text-secondary);
 	}
+
+	/* Kompakt: weniger Luft und eine etwas kleinere Uhrzeit, das Datum bleibt gleich groß */
+	:global(:root[data-density='compact']) {
+		.clock {
+			padding-block: 0;
+		}
+
+		.time {
+			font-size: clamp(1.75rem, calc(100cqi / var(--width-em)), 3.75rem);
+		}
+	}
 </style>

@@ -133,6 +133,8 @@
 	--duration: 220ms;
 	--duration-slow: 420ms;
 
+	/* Innenabstand der Panels; in kompakter Dichte kleiner */
+	--panel-pad: var(--space-5);
 	--focus-ring: 0 0 0 2px var(--focus-gap), 0 0 0 4px var(--accent);
 	--focus-gap: rgb(255 255 255 / 0.9);
 
@@ -194,6 +196,11 @@
 	transition:
 		--text 1.2s ease,
 		--text-secondary 1.2s ease;
+}
+
+/* Kompakte Dichte für niedrige Fenster: weniger Luft, gleiche Schrift */
+:root[data-density='compact'] {
+	--panel-pad: 14px;
 }
 
 @media (prefers-reduced-motion: reduce) {

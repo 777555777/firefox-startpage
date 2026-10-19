@@ -153,29 +153,32 @@
 		class="edit-toggle glass"
 		aria-pressed="false"
 		aria-keyshortcuts="E"
+		aria-label={t('edit.enter')}
+		title="{t('edit.enter')} (E)"
 		onclick={() => (ui.editing = true)}
 	>
 		<Icon name="pencil" size={16} />
-		<span>{t('edit.enter')}</span>
 	</button>
 {/if}
 
 <style>
+	/*
+	 * Rund und nur mit Icon im rechten Seitenrand der Page, der dafür mindestens 56 px breit ist
+	 * (App.svelte). So liegt der Knopf nie über Inhalt, auch nicht beim Scrollen.
+	 */
 	.edit-toggle {
 		position: fixed;
-		right: var(--space-5);
-		bottom: var(--space-5);
+		right: var(--space-2);
+		bottom: var(--space-4);
 		z-index: 20;
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-2);
+		display: grid;
+		place-items: center;
+		width: 40px;
 		height: 40px;
-		padding: 0 var(--space-4);
+		padding: 0;
 		border: none;
 		border-radius: var(--radius-full);
 		color: var(--text);
-		font-size: var(--text-sm);
-		font-weight: 600;
 		--glass-alpha: 0.32;
 		opacity: 0.72;
 		transition:

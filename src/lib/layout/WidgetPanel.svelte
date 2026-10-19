@@ -153,7 +153,7 @@
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
-		padding: var(--space-5);
+		padding: var(--panel-pad);
 		transition:
 			opacity var(--duration) ease,
 			box-shadow var(--duration) ease;

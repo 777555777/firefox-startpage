@@ -7,6 +7,7 @@
 	import { i18n, t } from '$lib/i18n/index.svelte';
 	import { getApp } from '$lib/state/context';
 	import { toasts } from '$lib/state/toasts.svelte';
+	import { density } from '$lib/state/density.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import { announcer } from '$lib/ui/announcer.svelte';
 	import Dialog from '$lib/ui/Dialog.svelte';
@@ -110,6 +111,11 @@
 		})
 	);
 	const { sideBySide, width, offset, columns, template, order } = $derived(arrangement);
+
+	/** Abstand zwischen Panels; in kompakter Dichte ein Drittel kleiner */
+	const panelGap = $derived(
+		density.compact ? Math.round((layout.panelGap * 2) / 3) : layout.panelGap
+	);
 
 	const listFormat = $derived(new Intl.ListFormat(i18n.lang, { type: 'conjunction' }));
 
@@ -585,7 +591,7 @@
 {/snippet}
 
 <!-- Der Abstand gilt auch für die Seiten in der Sidebar, deshalb am Rahmen -->
-<div class="frame" style:--gap="{layout.panelGap}px" bind:clientWidth={available} bind:this={frame}>
+<div class="frame" style:--gap="{panelGap}px" bind:clientWidth={available} bind:this={frame}>
 	<div
 		class="board"
 		class:editing={ui.editing}
@@ -707,12 +713,20 @@
 		grid-row: 1;
 	}
 
-	/* Die Spalten scrollen nicht selbst, sondern mit der ganzen Page */
+	/*
+	 * Die Spalten scrollen nicht selbst, sondern mit der ganzen Page. Unten nur der Seitenrand;
+	 * Platz für die Edit-Leiste braucht es nur im Edit-Modus, der Bearbeiten-Knopf steht im
+	 * rechten Seitenrand.
+	 */
 	.column {
 		display: flex;
 		flex-direction: column;
 		gap: var(--gap);
-		padding-bottom: 96px;
+		padding-bottom: var(--page-pad-block);
+
+		.editing & {
+			padding-bottom: 96px;
+		}
 	}
 
 	.segment {

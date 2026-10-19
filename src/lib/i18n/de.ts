@@ -180,6 +180,12 @@ export const de = {
 	'settings.frostMilky': 'Matt',
 	'settings.frostHint':
 		'Klares Glas zeigt den Hintergrund scharf. Auf unruhigen Bildern ist Text mit etwas Frost besser lesbar.',
+	'settings.density': 'Dichte',
+	'settings.densityAuto': 'Automatisch',
+	'settings.densityNormal': 'Normal',
+	'settings.densityCompact': 'Kompakt',
+	'settings.densityHint':
+		'Kompakt verringert Abstände, nicht die Schrift, damit auf niedrigen Bildschirmen mehr ohne Scrollen passt. „Automatisch“ wählt Kompakt bei Fenstern unter {height} px Höhe. Gilt nur für diesen Rechner.',
 
 	'background.main': 'Haupt-Hintergrund',
 	'background.mainHint':

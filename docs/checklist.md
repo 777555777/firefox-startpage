@@ -58,6 +58,15 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
 - [ ] Edit-Modus: leere Seite hat einen Tab mit `+`, Panel auf einen Tab ziehen (öffnet nach kurzem
       Verweilen, Loslassen legt ans Ende), Pfeiltasten wechseln zwischen Seiten und Mitte
 
+## Kompakte Dichte
+
+- [ ] Laptop: „Automatisch“ ist kompakt, Uhr, Kalender, Suche und drei Kachelzeilen passen ohne Scrollen
+- [ ] Großer Monitor (Fensterhöhe ab 900 px): „Automatisch“ bleibt normal, nichts ändert sich
+- [ ] Einstellungen → Darstellung → Dichte: Normal/Kompakt wirken sofort und bleiben nach Neuladen
+- [ ] Kalender kompakt: Legende als Muster mit Tooltip, Knöpfe in derselben Zeile, ohne Termine kein leerer Bereich
+- [ ] Bearbeiten-Knopf liegt im rechten Rand und verdeckt keine Kachel, auch beim Scrollen
+- [ ] Kontrast bei Tag und Nacht in kompakter Dichte (WebGL und Static)
+
 ## Ab M3
 
 - [ ] Uhr tickt auf die Sekunde, Kalender blättert, Feiertage mit Tooltip

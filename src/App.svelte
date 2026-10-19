@@ -14,6 +14,7 @@
 	import SettingsDialog from '$lib/settings/SettingsDialog.svelte';
 	import type { AppState } from '$lib/state/app.svelte';
 	import { setApp } from '$lib/state/context';
+	import { density } from '$lib/state/density.svelte';
 	import { ui } from '$lib/state/ui.svelte';
 	import { accentPalette } from '$lib/theme/accent';
 	import { rgbCss } from '$lib/theme/palette';
@@ -78,6 +79,11 @@
 
 	$effect(() => {
 		document.documentElement.dataset.renderer = renderState.mode;
+	});
+
+	// Kompakte Dichte: Komponenten lesen das Attribut in ihrem CSS
+	$effect(() => {
+		document.documentElement.dataset.density = density.value;
 	});
 
 	/** Die Static-Darstellung bleibt, bis das Canvas vollständig eingeblendet ist */
@@ -177,6 +183,7 @@
 		/* Seitenrand; die Sidebar richtet sich danach */
 		--page-pad-block: clamp(16px, 4vh, 48px);
 		--page-pad-inline: clamp(16px, 4vw, 56px);
-		padding: var(--page-pad-block) var(--page-pad-inline) 0;
+		/* Rechts mindestens 56 px: Dort steht der Bearbeiten-Knopf, ohne Inhalt zu verdecken */
+		padding: var(--page-pad-block) max(var(--page-pad-inline), 56px) 0 var(--page-pad-inline);
 	}
 </style>

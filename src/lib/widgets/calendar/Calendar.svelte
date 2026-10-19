@@ -410,12 +410,25 @@
 	<div class="footer">
 		<!-- Alle Einträge immer zeigen, damit die Zeile beim Blättern nicht umbricht -->
 		<ul class="legend" aria-label={t('calendar.legend')}>
-			<li><span class="swatch weekend"></span>{t('calendar.weekend')}</li>
+			<!-- Kompakt stehen nur die Muster da, der Name im Tooltip und für Screenreader -->
+			<li title={t('calendar.weekend')}>
+				<span class="swatch weekend"></span><span class="legend-name">{t('calendar.weekend')}</span>
+			</li>
 			{#if settings.holidays}
-				<li><span class="swatch holiday"></span>{t('calendar.holiday')}</li>
+				<li title={t('calendar.holiday')}>
+					<span class="swatch holiday"></span><span class="legend-name"
+						>{t('calendar.holiday')}</span
+					>
+				</li>
 			{/if}
-			<li><span class="swatch off"></span>{t('calendar.off')}</li>
-			<li><span class="swatch event"><i></i></span>{t('calendar.event')}</li>
+			<li title={t('calendar.off')}>
+				<span class="swatch off"></span><span class="legend-name">{t('calendar.off')}</span>
+			</li>
+			<li title={t('calendar.event')}>
+				<span class="swatch event"><i></i></span><span class="legend-name"
+					>{t('calendar.event')}</span
+				>
+			</li>
 		</ul>
 		<div class="day-head">
 			<!-- Feste Breite und Kurzform, damit die Zeile nicht von der Länge des Datums abhängt -->
@@ -941,5 +954,55 @@
 		height: var(--entry-height);
 		font-size: var(--text-sm);
 		color: var(--text-secondary);
+	}
+
+	/*
+	 * Kompakt: flachere Zeilen, die Legende nur als Muster, damit sie mit dem gewählten Tag in
+	 * eine Zeile passt, und ohne Einträge kein eigener Bereich „Keine Termine“. Die Höhe ändert
+	 * sich dadurch beim Wählen eines Tags mit Einträgen; das ist der Preis für den Platz.
+	 */
+	:global(:root[data-density='compact']) {
+		.calendar {
+			gap: 6px;
+		}
+
+		thead th {
+			padding-bottom: 2px;
+		}
+
+		.day {
+			height: 1.95em;
+		}
+
+		.number {
+			width: 1.75em;
+			height: 1.75em;
+		}
+
+		.legend {
+			gap: var(--space-2);
+		}
+
+		.legend-name {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			overflow: hidden;
+			clip-path: inset(50%);
+			white-space: nowrap;
+		}
+
+		.footer {
+			gap: var(--space-2);
+		}
+
+		.day-title {
+			width: auto;
+			min-width: 4.5rem;
+		}
+
+		.agenda:has(> .empty) {
+			display: none;
+		}
 	}
 </style>

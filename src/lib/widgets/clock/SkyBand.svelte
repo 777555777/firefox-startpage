@@ -338,6 +338,20 @@
 		gap: 0 var(--space-3);
 	}
 
+	/* Kompakt: weniger Abstand, ein kleinerer Bogen (er hat ein festes Seitenverhältnis) */
+	:global(:root[data-density='compact']) {
+		.sky {
+			gap: var(--space-2);
+			max-width: 18rem;
+			margin-top: var(--space-2);
+		}
+
+		.disc {
+			width: 44px;
+			height: 44px;
+		}
+	}
+
 	.other-day {
 		font-size: var(--text-xs);
 		color: var(--text-tertiary);

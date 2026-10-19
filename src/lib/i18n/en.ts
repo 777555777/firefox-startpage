@@ -177,6 +177,12 @@ export const en: Dictionary = {
 	'settings.frostMilky': 'Frosted',
 	'settings.frostHint':
 		'Clear glass shows the background sharply. On busy images, a little frost keeps text easier to read.',
+	'settings.density': 'Density',
+	'settings.densityAuto': 'Automatic',
+	'settings.densityNormal': 'Normal',
+	'settings.densityCompact': 'Compact',
+	'settings.densityHint':
+		'Compact reduces spacing, not text size, so more fits without scrolling on short screens. “Automatic” picks Compact for windows under {height} px tall. Applies to this computer only.',
 
 	'background.main': 'Main background',
 	'background.mainHint':
