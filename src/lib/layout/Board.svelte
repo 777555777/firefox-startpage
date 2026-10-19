@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { createId } from '$lib/config/parse';
 	import type { WidgetInstance, WidgetType } from '$lib/config/types';
 	import { Sortable, type Point } from '$lib/dnd/sortable.svelte';
@@ -150,6 +151,8 @@
 	};
 
 	const areaName = (area: number) => t(`area.${LAYOUT_AREAS[area]}`);
+	const sideOfArea = (area: number): Side | null =>
+		area === LEFT ? 'left' : area === RIGHT ? 'right' : null;
 
 	/** Position als Ansage, z. B. „Mitte, Zeile 2, Platz 1 von 2“ */
 	function positionText(id: string): string {
@@ -264,8 +267,29 @@
 	async function moveTo(id: string, next: Rows) {
 		keyboardMoving = true;
 		await sortable.animate(() => setRows(next));
+		// Wandert das Widget in eine Seite der Sidebar, die gerade nicht offen ist, öffnet sie sich
+		if (revealArea(id)) await tick();
 		focusGrip(id);
 		keyboardMoving = false;
+	}
+
+	/** Öffnet die Seite der Sidebar, in der das Widget steht; true, wenn sich etwas ändert */
+	function revealArea(id: string): boolean {
+		const position = findWidget(app.config.value.layout.columnRows, id);
+		const side = position ? sideOfArea(position.column) : null;
+		if (!side || sidebar.open === side || !sidebar.tabs.includes(side)) return false;
+		sidebar.show(side);
+		return true;
+	}
+
+	/** Panel auf einem Tab losgelassen: als eigene Zeile ans Ende dieser Seite */
+	function dropOnTab(side: Side, id: string) {
+		const live = app.config.value.layout;
+		const area = side === 'left' ? LEFT : RIGHT;
+		const index = rowIndexWithout(live.columnRows, id, area, live.columnRows[area].length);
+		setRows(placeWidget(live.columnRows, id, { kind: 'row', column: area, index }, liveWidths()));
+		sidebar.show(side);
+		announcer.say(t('dnd.dropped', { name: nameOf(id), position: positionText(id) }));
 	}
 
 	const DIRECTIONS = {
@@ -562,13 +586,13 @@
 	</div>
 {/snippet}
 
-<div class="frame" bind:clientWidth={available} bind:this={frame}>
+<!-- Der Abstand gilt auch für die Seiten in der Sidebar, deshalb am Rahmen -->
+<div class="frame" style:--gap="{layout.panelGap}px" bind:clientWidth={available} bind:this={frame}>
 	<div
 		class="board"
 		class:editing={ui.editing}
 		class:resizing={resizing !== null}
 		style:grid-template-columns={template}
-		style:--gap="{layout.panelGap}px"
 		style:max-width={Number.isFinite(width) ? `${width}px` : undefined}
 		style:margin-left={offset !== null ? `${offset}px` : undefined}
 	>
@@ -630,7 +654,14 @@
 			open={wanted}
 			tabs={tabInfo}
 			{segment}
+			{sortable}
 			ontoggle={(side) => sidebar.toggle(side)}
+			onclose={() => sidebar.close()}
+			ondroptab={dropOnTab}
+			onspring={(side) => {
+				sidebar.show(side);
+				announcer.say(t('sidebar.opened', { area: t(`area.${side}`) }));
+			}}
 			onclosed={() => {
 				if (!wanted) lastOpen = null;
 			}}

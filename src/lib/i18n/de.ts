@@ -58,6 +58,9 @@ export const de = {
 	'sidebar.tabs': 'Seitenleiste',
 	'sidebar.contents': '{area}: {widgets}',
 	'sidebar.empty': '{area} (leer)',
+	'sidebar.hint': 'S öffnet und schließt, Umschalt+S wechselt die Seite',
+	'sidebar.opened': '{area} geöffnet',
+	'sidebar.closed': 'Seitenleiste geschlossen',
 	'dnd.dropped': '{name} abgelegt: {position}',
 	'dnd.cancelled': 'Verschieben abgebrochen',
 

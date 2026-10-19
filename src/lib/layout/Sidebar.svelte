@@ -1,9 +1,11 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import type { Sortable } from '$lib/dnd/sortable.svelte';
 	import { glassLayer } from '$lib/glass/layer';
 	import { t } from '$lib/i18n/index.svelte';
 	import Icon from '$lib/ui/Icon.svelte';
 	import type { IconName } from '$lib/ui/icons';
+	import { isOverlayOpen } from '$lib/utils/keyboard';
 	import type { SidebarArrangement } from './arrangement';
 	import { LAYOUT_AREAS, type Side } from './operations';
 
@@ -14,8 +16,12 @@
 		open,
 		tabs,
 		segment,
+		sortable,
 		ontoggle,
-		onclosed
+		onclose,
+		onclosed,
+		ondroptab,
+		onspring
 	}: {
 		/** Lage und Inhalt; `arrangement.open` ist die Seite, für die die Mitte Platz macht */
 		arrangement: SidebarArrangement;
@@ -25,10 +31,22 @@
 		tabs: Record<Side, TabInfo>;
 		/** Ein Bereich mit seinen Zeilen (aus dem Board, dort hängen DnD und Glas) */
 		segment: Snippet<[number]>;
+		/** DnD der Panels: Tabs sind Ablageziele */
+		sortable: Sortable;
 		ontoggle: (side: Side) => void;
+		/** `Esc` in der Sidebar oder auf einem Tab */
+		onclose: () => void;
 		/** Die Sidebar ist fertig hinausgefahren; erst jetzt darf die Mitte breiter werden */
 		onclosed: () => void;
+		/** Ein Panel wurde auf einem Tab losgelassen */
+		ondroptab: (side: Side, id: string) => void;
+		/** Ein gezogenes Panel verweilt über einem Tab: dessen Seite öffnen */
+		onspring: (side: Side) => void;
 	} = $props();
+
+	/** So lange muss ein gezogenes Panel über einem Tab verweilen, bis sich die Seite öffnet */
+	const SPRING_MS = 400;
+	const TARGET_PREFIX = 'sidebar:';
 
 	/** Dauer der Fahrt in ms; bei Reduced Motion blendet der Inhalt in 150 ms aus */
 	const SLIDE_MS = 260;
@@ -38,6 +56,7 @@
 	const content = $derived(open ?? arrangement.open);
 
 	let drawer: HTMLElement;
+	let contentElement: HTMLElement;
 	/** Transitionen erst nach dem ersten Frame, damit beim Laden nichts fährt */
 	let ready = $state(false);
 
@@ -51,6 +70,32 @@
 		void open;
 		if (ready) glassLayer.animateFor(SLIDE_MS + 100);
 	});
+
+	// Schließt die Sidebar mit dem Fokus darin, geht er vorher auf den Tab der Seite. Mit `inert`
+	// fiele er sonst auf <body>.
+	$effect.pre(() => {
+		if (open || !arrangement.open) return;
+		if (!contentElement?.contains(document.activeElement)) return;
+		drawer.querySelector<HTMLElement>(`[data-sidebar-tab="${arrangement.open}"]`)?.focus();
+	});
+
+	// Verweilt ein gezogenes Panel über einem Tab, öffnet sich dessen Seite
+	$effect(() => {
+		const over = sortable.overTarget;
+		if (!over?.startsWith(TARGET_PREFIX)) return;
+		const side = over.slice(TARGET_PREFIX.length) as Side;
+		if (side === open) return;
+		const timer = setTimeout(() => onspring(side), SPRING_MS);
+		return () => clearTimeout(timer);
+	});
+
+	function onkeydown(event: KeyboardEvent) {
+		if (event.key !== 'Escape' || event.defaultPrevented || !open || isOverlayOpen()) return;
+		// Vor dem Edit-Modus: das erste `Esc` schließt nur die Sidebar
+		event.preventDefault();
+		event.stopPropagation();
+		onclose();
+	}
 
 	// Hinausfahren abwarten, dann darf die Mitte springen; das Zeitlimit greift, wenn keine
 	// Transition läuft (Laden, verborgener Tab)
@@ -69,6 +114,8 @@
 	});
 </script>
 
+<!-- Fängt `Esc` aus Tabs und Inhalt ab, bevor es den Edit-Modus beendet -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class="drawer"
 	class:open={open !== null}
@@ -77,6 +124,7 @@
 	style:--sidebar-width="{arrangement.width}px"
 	style:--slide="{SLIDE_MS}ms"
 	bind:this={drawer}
+	{onkeydown}
 >
 	<div class="tabs" role="group" aria-label={t('sidebar.tabs')}>
 		{#each arrangement.tabs as side (side)}
@@ -85,12 +133,17 @@
 				type="button"
 				class="tab glass"
 				class:active={open === side}
+				class:over={sortable.overTarget === TARGET_PREFIX + side}
 				aria-expanded={open === side}
 				aria-controls="sidebar-content"
 				aria-label={info.label}
-				title={info.label}
+				title={`${info.label}\n${t('sidebar.hint')}`}
 				data-sidebar-tab={side}
 				onclick={() => ontoggle(side)}
+				{@attach sortable.target({
+					id: TARGET_PREFIX + side,
+					ondrop: (id) => ondroptab(side, id)
+				})}
 			>
 				<Icon name={info.icon} size={18} />
 			</button>
@@ -102,6 +155,7 @@
 		class="content"
 		aria-label={content ? t(`area.${content}`) : undefined}
 		inert={open === null}
+		bind:this={contentElement}
 	>
 		{#each arrangement.areas as area (area)}
 			<div class="side" data-sidebar-side={sideOf(area)} hidden={sideOf(area) !== content}>
@@ -164,7 +218,8 @@
 			color: var(--text);
 		}
 
-		&.active {
+		&.active,
+		&.over {
 			color: var(--accent-text);
 			box-shadow:
 				inset -3px 0 0 var(--accent),

@@ -57,6 +57,9 @@ export const en: Dictionary = {
 	'sidebar.tabs': 'Sidebar',
 	'sidebar.contents': '{area}: {widgets}',
 	'sidebar.empty': '{area} (empty)',
+	'sidebar.hint': 'S opens and closes, Shift+S switches sides',
+	'sidebar.opened': '{area} opened',
+	'sidebar.closed': 'Sidebar closed',
 	'dnd.dropped': '{name} dropped: {position}',
 	'dnd.cancelled': 'Move cancelled',
 

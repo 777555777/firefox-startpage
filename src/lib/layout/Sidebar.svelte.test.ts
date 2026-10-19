@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { Sortable } from '$lib/dnd/sortable.svelte';
 import { t } from '$lib/i18n/index.svelte';
 import type { SidebarArrangement } from './arrangement';
 import type { Side } from './operations';
@@ -17,7 +18,11 @@ const tabs = {
 
 function setup(open: Side | null, overrides: Partial<SidebarArrangement> = {}) {
 	const ontoggle = vi.fn();
+	const onclose = vi.fn();
 	const onclosed = vi.fn();
+	const ondroptab = vi.fn();
+	const onspring = vi.fn();
+	const sortable = new Sortable({ group: 'panels', onmove: () => {} });
 	const arrangement: SidebarArrangement = {
 		areas: [2, 1],
 		tabs: ['left', 'right'],
@@ -27,11 +32,22 @@ function setup(open: Side | null, overrides: Partial<SidebarArrangement> = {}) {
 		...overrides
 	};
 	const result = render(Sidebar, {
-		props: { arrangement, open, tabs, segment, ontoggle, onclosed }
+		props: {
+			arrangement,
+			open,
+			tabs,
+			segment,
+			sortable,
+			ontoggle,
+			onclose,
+			onclosed,
+			ondroptab,
+			onspring
+		}
 	});
 	const tab = (name: string) => screen.getByRole('button', { name });
 	const content = () => document.getElementById('sidebar-content') as HTMLElement;
-	return { ...result, ontoggle, onclosed, tab, content, arrangement };
+	return { ...result, ontoggle, onclose, onclosed, tab, content, arrangement };
 }
 
 afterEach(() => {
@@ -83,5 +99,29 @@ describe('Sidebar mit Tabs am Rand', () => {
 		setup(null, { tabs: ['right'], areas: [1] });
 		expect(screen.queryByRole('button', { name: 'Linke Spalte: Uhr' })).toBeNull();
 		expect(screen.getByRole('button', { name: 'Rechte Spalte: RSS' })).toBeInTheDocument();
+	});
+
+	it('schließt mit Esc aus Inhalt und Tabs', async () => {
+		const { onclose, tab, content } = setup('left');
+		const inner = content().querySelector('button') as HTMLElement;
+		await fireEvent.keyDown(inner, { key: 'Escape' });
+		await fireEvent.keyDown(tab('Linke Spalte: Uhr'), { key: 'Escape' });
+		expect(onclose).toHaveBeenCalledTimes(2);
+	});
+
+	it('lässt Esc bei geschlossener Sidebar durch', async () => {
+		const { onclose, tab } = setup(null);
+		const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+		tab('Linke Spalte: Uhr').dispatchEvent(event);
+		expect(event.defaultPrevented).toBe(false);
+		expect(onclose).not.toHaveBeenCalled();
+	});
+
+	it('setzt den Fokus beim Schließen auf den Tab der Seite', async () => {
+		const { rerender, content, tab, arrangement } = setup('right');
+		const inner = content().querySelector('[data-sidebar-side="right"] button') as HTMLElement;
+		inner.focus();
+		await rerender({ open: null, arrangement: { ...arrangement, open: 'right' } });
+		expect(tab('Rechte Spalte: RSS')).toHaveFocus();
 	});
 });

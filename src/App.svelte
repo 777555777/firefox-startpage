@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { activeRef } from '$lib/background/media-utils';
 	import { clearPoster } from '$lib/background/poster';
 	import StaticBackground from '$lib/background/StaticBackground.svelte';
@@ -7,6 +8,8 @@
 	import { renderState } from '$lib/glass/render-state.svelte';
 	import { i18n, t } from '$lib/i18n/index.svelte';
 	import Board from '$lib/layout/Board.svelte';
+	import { sidebar } from '$lib/layout/sidebar-store.svelte';
+	import type { Side } from '$lib/layout/operations';
 	import EditControls from '$lib/layout/EditControls.svelte';
 	import SettingsDialog from '$lib/settings/SettingsDialog.svelte';
 	import type { AppState } from '$lib/state/app.svelte';
@@ -97,6 +100,16 @@
 		if (!activeRef(config.appearance.background, app.timeOfDay.phase)) clearPoster();
 	});
 
+	/** Liegt die Suche in einer geschlossenen Seite der Sidebar, öffnet sich diese zuerst */
+	async function focusSearch(search: HTMLInputElement) {
+		const side = search.closest<HTMLElement>('[data-sidebar-side]')?.dataset.sidebarSide;
+		if ((side === 'left' || side === 'right') && sidebar.open !== side) {
+			sidebar.show(side as Side);
+			await tick();
+		}
+		search.focus();
+	}
+
 	function onkeydown(event: KeyboardEvent) {
 		if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
 		if (isTypingTarget(event.target) || isOverlayOpen()) return;
@@ -110,8 +123,15 @@
 			const search = document.querySelector<HTMLInputElement>('[data-search-input]');
 			if (search) {
 				event.preventDefault();
-				search.focus();
+				void focusSearch(search);
 			}
+		} else if ((event.key === 's' || event.key === 'S') && sidebar.available) {
+			// S öffnet bzw. schließt die Sidebar, Umschalt+S wechselt die Seite
+			event.preventDefault();
+			if (event.shiftKey) sidebar.switchSide();
+			else sidebar.toggleLast();
+			const open = sidebar.open;
+			announcer.say(open ? t('sidebar.opened', { area: t(`area.${open}`) }) : t('sidebar.closed'));
 		} else if (!event.shiftKey) {
 			// 1…9 ohne Fokus auf einem Board öffnet Links des ersten Boards
 			const digit = digitOf(event);
