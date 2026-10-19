@@ -39,9 +39,24 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
 - [ ] Trenner links oder rechts ziehen: Mitte ändert sich in 2er-Schritten, beide Seiten gleich
 - [ ] Pfeiltasten auf dem Trenner, Doppelklick und „Standardbreite“ setzen auf 6 · 12 · 6
 - [ ] Seite ausschalten: Widgets stehen am Ende der Mitte, „Rückgängig“ stellt alles wieder her
-- [ ] Schmales Fenster: alles in einer Spalte (mittig, max. 48 rem) in der Reihenfolge Mitte,
+- [ ] Sehr schmales Fenster: alles in einer Spalte (mittig, max. 48 rem) in der Reihenfolge Mitte,
       rechts, links; Tab-Reihenfolge ebenso
 - [ ] Ohne Seiten nimmt die Mitte die ganze Breite (bis zur Maximalbreite) ein
+
+## Sidebar auf mittleren Bildschirmen
+
+- [ ] Fenster über die Schwellen ziehen: breit (drei Spalten) → Sidebar → eine Spalte, ohne Pendeln
+- [ ] Laptop (1512 px): Mitte 12/24 bleibt breit, ab 14/24 erscheint die Sidebar
+- [ ] Tabs nur für Seiten mit Widgets, Icon des ersten Widgets, Tooltip mit Seite und Widgets
+- [ ] Öffnen: Mitte springt sofort, Sidebar fährt herein; Schließen: erst Fahrt, dann Mitte
+- [ ] WebGL-Glas folgt der Fahrt ohne Nachziehen, keine Schatten am Rand bei geschlossener Sidebar
+- [ ] Reduced Motion: kein Fahren, nur Ein- und Ausblenden; Static-Stufe sieht stimmig aus
+- [ ] Zustand bleibt nach Neuladen und in neuen Tabs erhalten
+- [ ] Hohe Seite in der Sidebar scrollt selbst, das Mausrad gibt am Ende an die Page weiter
+- [ ] Tastatur: `S`, `Umschalt+S`, `Esc` (Fokus zurück auf den Tab), `/` öffnet die Seite mit der Suche
+- [ ] Geschlossene Sidebar ist per `Tab` nicht erreichbar, Screenreader nennt Tabs und Zustand
+- [ ] Edit-Modus: leere Seite hat einen Tab mit `+`, Panel auf einen Tab ziehen (öffnet nach kurzem
+      Verweilen, Loslassen legt ans Ende), Pfeiltasten wechseln zwischen Seiten und Mitte
 
 ## Ab M3
 

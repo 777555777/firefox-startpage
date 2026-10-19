@@ -762,3 +762,68 @@ abgestimmt und ist in den folgenden Abschnitten aufgegangen. Die Wahl in Kürze:
 - **Keine Überschrift mehr:** Die frei wählbare Überschrift des Widgets (`RssSettings.title`)
   entfällt, weil die benannten Tabs schon sagen, worum es geht. Ein gespeicherter Titel wird beim
   Einlesen einfach verworfen; die Liste heißt für Screenreader weiter „Einträge“.
+
+## Nach v1 – Sidebar auf mittleren Bildschirmen
+
+Der Plan dazu wurde mit der nutzenden Person abgestimmt. Er ersetzt „Untereinander ohne
+Zwischenstufe“ aus Schema v3: Statt zwei gibt es drei Stufen.
+
+| Stufe  | Wann                                                                    | Darstellung                                    |
+| ------ | ----------------------------------------------------------------------- | ---------------------------------------------- |
+| Breit  | Seiten nebeneinander mindestens 20 rem (bisher 14), Mitte mindestens 20 | links · Mitte · rechts wie bisher              |
+| Mittel | sonst, solange die Mitte neben der **offenen** Sidebar 20 rem breit ist | Mitte + eine Sidebar am linken Rand, Tabs dran |
+| Schmal | darunter (bei Standardwerten unter ~780 px Fensterbreite)               | eine Spalte, Mitte · rechts · links wie bisher |
+
+- **Schwelle über die echte Spaltenbreite:** `layoutStage` rechnet wie `fitsSideBySide` aus
+  verfügbarer Breite, Maximalbreite, `columnGap` und `centerSpan`, keine festen Breakpoints. Bei
+  Standardmitte (12/24) ist die Page ab ~1440 px Fensterbreite breit, mit 14/24 ab ~1700 px.
+  Weil immer vom offenen Zustand aus gerechnet wird und `available` am `.frame` ohne Sidebar
+  gemessen wird, wechselt Öffnen oder Schließen nie die Stufe.
+- **Eine Sidebar für beide Seiten, verschieben statt überlagern:** Das WebGL-Glas bricht nur die
+  Szene, eine überlagernde Sidebar ließe den Text der Mitte durchscheinen, und `backdrop-filter`
+  passt optisch und von der Leistung her nicht. Die Mitte nutzt den Rest: bei geschlossener
+  Sidebar die volle Breite bis zur Maximalbreite, bei offener von der Sidebar bis zum rechten
+  Rand, jeweils mittig. Die Sidebar ist 22 rem breit und hat kein eigenes Glas (sonst doppeltes
+  Glas), sie ist die Seitenspalte an anderer Stelle.
+- **Tabs:** einer pro eingeschalteter Seite mit Widgets, im Edit-Modus auch für leere (Icon
+  `plus`), links vor rechts. Beschriftet mit dem Icon des ersten Widgets, Name der Seite und
+  Widgets im Tooltip und für Screenreader (`Intl.ListFormat`). Ein Klick öffnet, der aktive Tab
+  schließt. Die Tabs hängen an der Kante der Sidebar und fahren mit; der Abstand zur Mitte ist
+  mindestens Tab-Breite plus 8 px, reicht der Seitenrand nicht, rückt die geschlossene Mitte ein.
+  **Abweichung vom Plan:** Die Tabs sind CSS-Glas wie der Bearbeiten-Knopf, nicht WebGL-Glas
+  (Variante `button`). Für so kleine Flächen fällt der Unterschied nicht auf, und die Variante
+  bleibt ungenutzt.
+- **Lage:** `position: fixed` am linken Rand, so hoch wie das Fenster, damit sie beim Öffnen auch
+  auf einer weit gescrollten Page sichtbar ist. Ist ihr Inhalt höher, scrollt sie selbst
+  (bewusste Ausnahme von „die ganze Page scrollt“); das Glas wird an ihr abgeschnitten, ein
+  Innenabstand hält Platz für Schatten. Beide Seiten bleiben gemountet, die gerade nicht
+  gezeigte ist `hidden`; der Glas-Layer überspringt dafür Flächen ohne Rechteck.
+- **Bewegung:** Beim Öffnen springt die Mitte im selben Frame, die Sidebar fährt 260 ms herein.
+  Beim Schließen fährt sie erst hinaus (`transitionend`, sonst Zeitlimit), dann springt die
+  Mitte. Eine Breite pro Frame hätte das Link-Raster ständig umbrechen lassen. Der Glas-Layer
+  liest währenddessen jeden Frame (`animateFor` und wie bisher `transitionrun`). Nach dem
+  Hinausfahren ist der Inhalt `display: none`, damit keine Schatten am Rand stehen; seine
+  Scrollposition geht dabei verloren. Ein Wechsel der Seite blendet nur kurz ein. Reduced
+  Motion: kein Fahren, der Inhalt blendet ein und aus, die Lage springt.
+- **Zustand pro Rechner** in `localStorage` (`startpage:sidebar`, `{ open, last }`), nicht in der
+  Config und ohne Abgleich zwischen Tabs. Standard ist zu. Hat die gespeicherte Seite keinen Tab
+  mehr, ist die Sidebar zu, der Wert bleibt stehen. Er gilt nur in der mittleren Stufe.
+- **Tastatur und Fokus:** Tabs sind Disclosure-Buttons (`aria-expanded`, `aria-controls`) in
+  einer Gruppe „Seitenleiste“, die Sidebar ist ein `<aside>` mit dem Namen der Seite und im DOM
+  nach der Mitte (Mitte → Tabs → Inhalt). Geschlossen ist der Inhalt `inert`; schließt sie mit
+  dem Fokus darin, geht er vorher auf den Tab. `Esc` mit Fokus in der Sidebar oder auf einem Tab
+  schließt sie, vor dem Verlassen des Edit-Modus und nach Verschieben-Abbrechen, Menüs und
+  Dialogen. `S` öffnet bzw. schließt die zuletzt offene Seite, `Umschalt+S` wechselt die Seite
+  (`[`/`]` lägen auf deutschen Tastaturen auf `Alt`/`AltGr`), mit Ansage. `/` öffnet die Seite,
+  in der die erste Suche liegt.
+- **Edit-Modus:** ändert das Layout nicht. Ein gezogenes Panel öffnet nach 400 ms über einem Tab
+  dessen Seite; losgelassen auf dem Tab landet es als eigene Zeile am Ende. Pfeiltasten beim
+  Verschieben folgen `[links, rechts, Mitte]` und öffnen die Zielseite. Breiten-Trenner gibt es
+  nur in der breiten Stufe; eine Breite, die die Stufe wechseln würde, wird beim Ziehen nicht
+  übernommen.
+- **Kein Schema-Sprung:** Alles liegt in der Darstellung und in `localStorage`, `CONFIG_VERSION`
+  bleibt 4.
+- **Geprüft** im Vorschau-Browser (Chromium) bei 760, 1280 und 1600 px: drei Stufen, Reihenfolge
+  von Sprung und Fahrt, `S`/`Umschalt+S`, `Esc` mit Fokus-Rückgabe, `/`, Ablegen auf einem Tab
+  und Verschieben per Tastatur. In Firefox, mit Reduced Motion und in der Static-Stufe steht die
+  Prüfung noch aus (`docs/checklist.md`).
