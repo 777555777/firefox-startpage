@@ -653,6 +653,7 @@
 			tabs={tabInfo}
 			{segment}
 			{sortable}
+			editing={ui.editing}
 			ontoggle={(side) => sidebar.toggle(side)}
 			onclose={() => sidebar.close()}
 			ondroptab={dropOnTab}
@@ -683,7 +684,9 @@
 </Dialog>
 
 <style>
+	/* Bezugsrahmen für die Sidebar, die mit der Page scrollt */
 	.frame {
+		position: relative;
 		width: 100%;
 	}
 

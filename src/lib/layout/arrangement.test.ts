@@ -45,10 +45,13 @@ describe('Anordnung von Mitte und Seiten', () => {
 		expect(arrange(layout({ maxWidth: 80 }), 2400, 16, noSidebar).sideBySide).toBe(false);
 	});
 
-	it('gibt der Mitte ohne Seiten die ganze Breite', () => {
+	it('bemisst die Mitte ohne Seiten nach dem Inhalt (62 rem), nicht nach dem Fenster', () => {
 		const result = arrange(layout({ sides: { left: false, right: false } }), 2000, 16, noSidebar);
 		expect(result.sideBySide).toBe(false);
-		expect(result.width).toBe(2000);
+		expect(result.width).toBe(992);
+		expect(
+			arrange(layout({ sides: { left: false, right: false } }), 700, 16, noSidebar).width
+		).toBe(700);
 		expect(result.columns).toEqual([{ areas: [0], track: 1 }]);
 	});
 
@@ -108,12 +111,17 @@ describe('Anordnung mit Sidebar', () => {
 		...overrides
 	});
 
-	it('gibt der Mitte bei geschlossener Sidebar die ganze Breite bis auf die Tabs', () => {
+	it('stellt die Mitte bei geschlossener Sidebar mittig, höchstens 62 rem breit', () => {
 		const result = arrange(layout(), 1200, 16, sidebar(null, { edgePx: 10 }));
 		expect(result.stage).toBe('sidebar');
 		expect(result.sideBySide).toBe(false);
-		expect(result.width).toBe(1190);
-		expect(result.offset).toBe(10);
+		expect(result.width).toBe(992);
+		// mittig im Bereich rechts der Tabs
+		expect(result.offset).toBe(10 + (1190 - 992) / 2);
+		// Ist weniger Platz, nimmt sie alles bis auf die Tabs
+		const narrow = arrange(layout(), 900, 16, sidebar(null, { edgePx: 10 }));
+		expect(narrow.width).toBe(890);
+		expect(narrow.offset).toBe(10);
 		expect(result.columns).toEqual([{ areas: [0], track: 1 }]);
 		expect(result.template).toBe('minmax(0, 1fr)');
 		expect(result.sidebar).toEqual({
@@ -133,11 +141,13 @@ describe('Anordnung mit Sidebar', () => {
 	});
 
 	it('stellt die Mitte im freien Bereich mittig, begrenzt durch die Maximalbreite', () => {
-		const open = arrange(layout({ maxWidth: 80 }), 2000, 16, sidebar('left'));
-		expect(open.width).toBe(1280);
-		expect(open.offset).toBe(412 + (2000 - 412 - 1280) / 2);
-		const closed = arrange(layout({ maxWidth: 80 }), 2000, 16, sidebar(null));
-		expect(closed.offset).toBe((2000 - 1280) / 2);
+		const open = arrange(layout({ maxWidth: 56 }), 2000, 16, sidebar('left'));
+		expect(open.width).toBe(896);
+		expect(open.offset).toBe(412 + (2000 - 412 - 896) / 2);
+		const closed = arrange(layout({ maxWidth: 56 }), 2000, 16, sidebar(null));
+		expect(closed.offset).toBe((2000 - 896) / 2);
+		// Eine größere Maximalbreite macht die Mitte nicht breiter als ihr Inhalt
+		expect(arrange(layout({ maxWidth: 80 }), 2000, 16, sidebar('left')).width).toBe(992);
 	});
 
 	it('wechselt die Stufe nicht durch Öffnen oder Schließen', () => {
@@ -158,11 +168,11 @@ describe('Anordnung mit Sidebar', () => {
 		expect(off.sidebar?.open).toBeNull();
 	});
 
-	it('lässt die Sidebar ohne Tabs weg, die Mitte wird voll breit', () => {
-		const result = arrange(layout({ maxWidth: 64 }), 1200, 16, { tabs: [], open: 'left' });
+	it('lässt die Sidebar ohne Tabs weg, die Mitte steht allein', () => {
+		const result = arrange(layout({ maxWidth: 56 }), 1200, 16, { tabs: [], open: 'left' });
 		expect(result.stage).toBe('sidebar');
 		expect(result.sidebar).toBeNull();
-		expect(result.width).toBe(1024);
+		expect(result.width).toBe(896);
 		expect(result.offset).toBeNull();
 		expect(result.order).toEqual([0]);
 	});

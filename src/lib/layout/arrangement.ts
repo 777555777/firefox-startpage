@@ -13,6 +13,7 @@ import {
 	SIDEBAR_REM,
 	sideSpan,
 	SINGLE_COLUMN_MAX_REM,
+	CENTER_MAX_REM,
 	visualOrder,
 	type Side
 } from './operations';
@@ -145,7 +146,10 @@ function stacked(layout: LayoutInput, width: number, remPx: number): Arrangement
 	return {
 		stage: 'stacked',
 		sideBySide: false,
-		width: Math.min(width, hasSides(layout.sides) ? SINGLE_COLUMN_MAX_REM * remPx : Infinity),
+		width: Math.min(
+			width,
+			(hasSides(layout.sides) ? SINGLE_COLUMN_MAX_REM : CENTER_MAX_REM) * remPx
+		),
 		offset: null,
 		columns: [{ areas: enabledAreas(layout.sides), track: 1 }],
 		template: 'minmax(0, 1fr)',
@@ -155,9 +159,9 @@ function stacked(layout: LayoutInput, width: number, remPx: number): Arrangement
 }
 
 /**
- * Mitte neben der Sidebar. Die Mitte nutzt den verbleibenden Platz bis zur Maximalbreite und
- * steht darin mittig: bei geschlossener Sidebar fast die ganze Breite (nur die Tabs brauchen
- * links Platz), bei offener von der Sidebar bis zum rechten Rand.
+ * Mitte neben der Sidebar. Sie ist höchstens `CENTER_MAX_REM` (und die Maximalbreite) breit und
+ * steht mittig im verbleibenden Platz: bei geschlossener Sidebar fast die ganze Breite (nur die
+ * Tabs brauchen links Platz), bei offener von der Sidebar bis zum rechten Rand.
  */
 function withSidebar(
 	layout: LayoutInput,
@@ -173,11 +177,11 @@ function withSidebar(
 		columns: [{ areas: [CENTER], track: 1 }],
 		template: 'minmax(0, 1fr)'
 	};
-	// Ohne Tab keine Sidebar: Die Mitte nimmt die ganze Breite ein wie ohne Seiten
+	// Ohne Tab keine Sidebar: Die Mitte steht allein wie ohne Seiten
 	if (tabs.length === 0) {
 		return {
 			...base,
-			width: Math.min(availablePx, limit),
+			width: Math.min(availablePx, limit, CENTER_MAX_REM * remPx),
 			offset: null,
 			order: [CENTER],
 			sidebar: null
@@ -187,7 +191,7 @@ function withSidebar(
 	const sidebarWidth = SIDEBAR_REM * remPx;
 	const gap = sidebarGap(layout.columnGap);
 	const start = open ? sidebarWidth + gap : (input.edgePx ?? 0);
-	const width = Math.min(limit, availablePx - start);
+	const width = Math.min(limit, CENTER_MAX_REM * remPx, availablePx - start);
 	const areas = tabs.map((side) => SIDE_AREA[side]);
 	return {
 		...base,

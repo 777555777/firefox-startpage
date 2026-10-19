@@ -536,7 +536,7 @@
 <style>
 	.calendar {
 		display: grid;
-		gap: var(--space-3);
+		gap: var(--space-2);
 		--weekend-text: var(--accent-text);
 	}
 
@@ -580,7 +580,7 @@
 
 	/* Wochentage: klar als Überschrift, Wochenende farblich abgesetzt */
 	thead th {
-		padding-bottom: var(--space-2);
+		padding-bottom: var(--space-1);
 		border-bottom: 1px solid var(--line);
 		font-size: var(--text-xs);
 		font-weight: 700;
@@ -635,7 +635,7 @@
 	 * frei, frei vor Wochenende.
 	 */
 	.day {
-		height: 2.3em;
+		height: 2.1em;
 		padding: 0;
 		border-radius: var(--radius-xs);
 		text-align: center;
@@ -701,8 +701,8 @@
 		position: relative;
 		display: inline-grid;
 		place-items: center;
-		width: 2em;
-		height: 2em;
+		width: 1.9em;
+		height: 1.9em;
 		border-radius: 50%;
 		transition: box-shadow var(--duration-fast) ease;
 	}

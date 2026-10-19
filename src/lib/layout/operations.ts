@@ -55,6 +55,11 @@ export const EDGE_TAB_CLEARANCE_PX = 8;
 export const MIN_ITEM_REM = 13;
 /** Größte Breite, wenn alle Spalten untereinander stehen */
 export const SINGLE_COLUMN_MAX_REM = 48;
+/**
+ * Größte Breite der Mitte, wenn sie allein steht oder neben der Sidebar: nach dem Inhalt
+ * bemessen (Suche, höchstens 8 Link-Kacheln), nicht nach dem Fenster. Breiter wird nur der Rand.
+ */
+export const CENTER_MAX_REM = 62;
 
 export type Rows = LayoutRow[][];
 export type Sides = LayoutConfig['sides'];

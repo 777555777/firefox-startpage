@@ -38,6 +38,7 @@ function setup(open: Side | null, overrides: Partial<SidebarArrangement> = {}) {
 			tabs,
 			segment,
 			sortable,
+			editing: false,
 			ontoggle,
 			onclose,
 			onclosed,

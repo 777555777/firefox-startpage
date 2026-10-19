@@ -526,9 +526,24 @@
 
 	/* --- Ansichten --- */
 
+	/*
+	 * Kacheln mindestens eine Spaltenbreite, höchstens 8 pro Zeile: Jede Spalte ist mindestens
+	 * ein Achtel der Zeile, so passen nie mehr hinein. Die Kachel selbst bleibt gleich groß, nur
+	 * der Abstand wächst.
+	 */
 	.links.tiles {
+		--tiles-max: 8;
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(var(--tile-column), 1fr));
+		grid-template-columns: repeat(
+			auto-fill,
+			minmax(
+				max(
+					var(--tile-column),
+					(100% - (var(--tiles-max) - 1) * var(--space-1)) / var(--tiles-max)
+				),
+				1fr
+			)
+		);
 		gap: var(--space-1);
 	}
 

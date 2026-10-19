@@ -831,3 +831,47 @@ Zwischenstufe“ aus Schema v3: Statt zwei gibt es drei Stufen.
   von Sprung und Fahrt, `S`/`Umschalt+S`, `Esc` mit Fokus-Rückgabe, `/`, Ablegen auf einem Tab
   und Verschieben per Tastatur. In Firefox, mit Reduced Motion und in der Static-Stufe steht die
   Prüfung noch aus (`docs/checklist.md`).
+
+## Nach v1 – Größe nach Inhalt, Sidebar ohne eigene Scrollleiste
+
+Anlass: Auf dem Laptop füllte die Mitte neben der geschlossenen Sidebar die ganze Breite, mit
+12 Kacheln pro Zeile und einer bildschirmbreiten Suche. Vorbild ist die Firefox-Startseite:
+Kacheln in fester Größe, höchstens 8 pro Zeile, alles mittig; auf breiteren Bildschirmen wächst
+nur der Rand. Freigegeben sind davon „Größe nach Inhalt“ und „Sidebar ohne Scrollleiste“; ein
+Höhenbudget und eine Stufe „Mitte + eine Seitenspalte“ sind zurückgestellt.
+
+- **Mitte höchstens 62 rem** (`CENTER_MAX_REM`), wenn sie allein steht (ohne Seiten, ohne Tabs)
+  oder neben der Sidebar, mittig im freien Platz (bei offener Sidebar rechts von ihr). Die
+  Maximalbreite aus der Edit-Leiste begrenzt weiter, macht sie aber nicht breiter. 62 rem fassen
+  Suche und 8 Kacheln in Standardgröße mit etwas Luft. Ersetzt „Ohne Seiten nimmt die Mitte die
+  ganze Breite ein“ (Schema v3).
+- **Breite Stufe unverändert:** Drei Spalten folgen weiter dem einstellbaren Raster (`6·12·6`)
+  innerhalb der Maximalbreite, die Seiten sind dort mindestens 20 rem. Das Raster gilt nur in
+  dieser Stufe, deshalb beißt sich die Begrenzung nicht mit ihm. Feste Seitenbreite gibt es nur
+  in der Sidebar (22 rem).
+- **Kacheln höchstens 8 pro Zeile:** Jede Spalte des Rasters ist mindestens ein Achtel der Zeile
+  (`minmax(max(Spaltenbreite, (100% − 7 · Abstand) / 8), 1fr)`), mehr passen nie hinein. Die
+  Kachel selbst behält ihre Größe, nur der Abstand wächst. Die Suche ist so breit wie die Mitte,
+  dafür war nichts zu ändern.
+- **Sidebar scrollt mit der Page** (ersetzt „Lage“ im Abschnitt zur Sidebar): Ihr Inhalt liegt
+  absolut im Rahmen des Boards, oben bündig mit der Mitte, und verlängert die Page, wenn er höher
+  ist. Damit gibt es keine eigene Scrollleiste mehr mitten im Bild und keinen Clip des Glases.
+  Die Tab-Leiste steht fest am Fensterrand und fährt im Gleichtakt mit (gleiche Dauer und
+  Kurve), damit sie auf einer gescrollten Page erreichbar bleibt. Folge: Öffnet man die Sidebar
+  weit unten auf einer langen Page, steht ihr Anfang oberhalb des Sichtbaren.
+- **Unten nur der Seitenrand:** Außerhalb des Edit-Modus endet die Sidebar mit dem normalen
+  Seitenrand statt mit 96 px; der Bearbeiten-Knopf steht rechts, nicht über ihr. Im Edit-Modus
+  bleibt Platz für die Edit-Leiste.
+- **Kalender etwas flacher:** Tageszellen 2,1 statt 2,3 em (Kreis 1,9 em), Abstand im Widget
+  8 statt 12 px, unter den Wochentagen 4 statt 8 px. Das spart gut 30 px.
+- **Geprüft** im Vorschau-Browser mit 22 Links in der Mitte, Uhr mit Sonne und Mond und dem
+  Kalender in der linken Seite:
+  - 1512 × 860, Mitte 14/24 (Sidebar): Mitte 62 rem mit 8 Kacheln pro Zeile, linke Seite offen
+    passt ohne Scrollen.
+  - 2000 × 1100, Mitte 12/24 (breit): unverändert drei Spalten, kein Scrollen.
+  - 1280 × 800 (Sidebar): Uhr (327 px) und Kalender (395 px) brauchen mit Rändern 810 px, die
+    Page scrollt um 10 px.
+  - Offen für die zurückgestellten Punkte: Bei 1512 px und Mitte 12/24 bleibt es dreispaltig,
+    die Mitte hat dann nur 5 Kacheln pro Zeile und die Page scrollt. Mit Mitte 14/24 und
+    Maximalbreite 96 rem kommt die Sidebar auch auf 2000 px, weil die Schwelle innerhalb der
+    Maximalbreite rechnet.

@@ -17,6 +17,7 @@
 		tabs,
 		segment,
 		sortable,
+		editing,
 		ontoggle,
 		onclose,
 		onclosed,
@@ -33,6 +34,8 @@
 		segment: Snippet<[number]>;
 		/** DnD der Panels: Tabs sind Ablageziele */
 		sortable: Sortable;
+		/** Im Edit-Modus braucht die Edit-Leiste unten Platz */
+		editing: boolean;
 		ontoggle: (side: Side) => void;
 		/** `Esc` in der Sidebar oder auf einem Tab */
 		onclose: () => void;
@@ -55,8 +58,8 @@
 	/** Gezeigter Inhalt: beim Hinausfahren bleibt die zuletzt offene Seite stehen */
 	const content = $derived(open ?? arrangement.open);
 
+	let rail: HTMLElement;
 	let drawer: HTMLElement;
-	let contentElement: HTMLElement;
 	/** Transitionen erst nach dem ersten Frame, damit beim Laden nichts fährt */
 	let ready = $state(false);
 
@@ -75,8 +78,8 @@
 	// fiele er sonst auf <body>.
 	$effect.pre(() => {
 		if (open || !arrangement.open) return;
-		if (!contentElement?.contains(document.activeElement)) return;
-		drawer.querySelector<HTMLElement>(`[data-sidebar-tab="${arrangement.open}"]`)?.focus();
+		if (!drawer?.contains(document.activeElement)) return;
+		rail.querySelector<HTMLElement>(`[data-sidebar-tab="${arrangement.open}"]`)?.focus();
 	});
 
 	// Verweilt ein gezogenes Panel über einem Tab, öffnet sich dessen Seite
@@ -117,13 +120,15 @@
 <!-- Fängt `Esc` aus Tabs und Inhalt ab, bevor es den Edit-Modus beendet -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-	class="drawer"
+	class="sidebar"
 	class:open={open !== null}
 	class:ready
 	class:closed={!content}
+	class:editing
 	style:--sidebar-width="{arrangement.width}px"
 	style:--slide="{SLIDE_MS}ms"
-	bind:this={drawer}
+	style:--rail-width="{EDGE_TAB_PX}px"
+	style:--rail-offset="{EDGE_TAB_CLEARANCE_PX}px"
 	{onkeydown}
 >
 	<!--
@@ -134,8 +139,7 @@
 		class="rail glass"
 		role="group"
 		aria-label={t('sidebar.tabs')}
-		style:--rail-width="{EDGE_TAB_PX}px"
-		style:--rail-offset="{EDGE_TAB_CLEARANCE_PX}px"
+		bind:this={rail}
 		{@attach glass({ radius: EDGE_TAB_PX / 2, depth: 0.6, variant: 'button' })}
 	>
 		{#each arrangement.tabs as side (side)}
@@ -163,10 +167,10 @@
 
 	<aside
 		id="sidebar-content"
-		class="content"
+		class="drawer"
 		aria-label={content ? t(`area.${content}`) : undefined}
 		inert={open === null}
-		bind:this={contentElement}
+		bind:this={drawer}
 	>
 		{#each arrangement.areas as area (area)}
 			<div class="side" data-sidebar-side={sideOf(area)} hidden={sideOf(area) !== content}>
@@ -177,38 +181,45 @@
 </div>
 
 <style>
-	/*
-	 * Fest am linken Rand, so hoch wie das Fenster: Beim Öffnen ist die Sidebar immer dort, wo man
-	 * gerade ist, auch wenn die Page weit gescrollt ist. Geschlossen liegt sie links außerhalb, nur
-	 * die Tabs ragen heraus.
-	 */
-	.drawer {
-		--sidebar-pad: var(--space-4);
-		position: fixed;
-		z-index: 5;
-		inset-block: 0;
-		left: var(--page-pad-inline);
-		width: var(--sidebar-width);
-		transform: translateX(calc(-100% - var(--page-pad-inline)));
-
-		&.open {
-			transform: none;
-		}
-
-		&.ready {
-			transition: transform var(--slide) var(--ease-out);
-		}
+	/* Nur Träger für Zustand und Variablen; Leiste und Inhalt liegen unabhängig voneinander */
+	.sidebar {
+		display: contents;
 	}
 
 	/*
-	 * Die Leiste hängt mit etwas Abstand an der Kante der Sidebar und fährt mit ihr. Geschlossen
-	 * schwebt sie am Fensterrand, offen im Abstand zwischen Sidebar und Mitte.
+	 * Der Inhalt liegt im Fluss der Page (am Rahmen des Boards) und scrollt mit ihr, ohne eigene
+	 * Scrollleiste. Ist er höher als die Mitte, wird die Page entsprechend länger. Geschlossen
+	 * liegt er links außerhalb des Fensters.
+	 */
+	.drawer {
+		position: absolute;
+		z-index: 5;
+		top: 0;
+		left: 0;
+		width: var(--sidebar-width);
+		/* Unten nur der Seitenrand: Der Bearbeiten-Knopf steht rechts, nicht über der Sidebar */
+		padding-bottom: var(--page-pad-block);
+		transform: translateX(calc(-100% - var(--page-pad-inline)));
+	}
+
+	.editing .drawer {
+		padding-bottom: 96px;
+	}
+
+	.open .drawer {
+		transform: none;
+	}
+
+	/*
+	 * Die Leiste steht fest am Fensterrand, damit sie auch auf einer gescrollten Page erreichbar
+	 * bleibt, und fährt im Gleichtakt mit dem Inhalt: geschlossen schwebt sie am Rand, offen mit
+	 * etwas Abstand neben der Sidebar.
 	 */
 	.rail {
-		position: absolute;
-		z-index: 1;
+		position: fixed;
+		z-index: 5;
 		top: var(--page-pad-block);
-		left: calc(100% + var(--rail-offset));
+		left: var(--rail-offset);
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
@@ -216,6 +227,14 @@
 		padding: var(--space-1);
 		border-radius: var(--radius-full);
 		--glass-alpha: 0.32;
+	}
+
+	.open .rail {
+		transform: translateX(calc(var(--page-pad-inline) + var(--sidebar-width)));
+	}
+
+	.ready :is(.drawer, .rail) {
+		transition: transform var(--slide) var(--ease-out);
 	}
 
 	/* Wie die Reiter im Link-Board: aktiv ist eine erhabene Fläche */
@@ -258,20 +277,8 @@
 		}
 	}
 
-	/*
-	 * Scrollt nur, wenn der Inhalt höher als das Fenster ist; das Mausrad gibt dann am Ende an die
-	 * Page weiter. Der Innenabstand hält Platz für Schatten und Fokusringe, weil das Glas am
-	 * Scroll-Container abgeschnitten wird.
-	 */
-	.content {
-		position: absolute;
-		inset: 0 calc(-1 * var(--sidebar-pad));
-		overflow-y: auto;
-		padding: var(--page-pad-block) var(--sidebar-pad) 96px;
-	}
-
-	/* Ganz zu: Panels zählen nicht mehr fürs Glas und werfen keinen Schatten an den Rand */
-	.closed .content {
+	/* Ganz zu: Panels zählen nicht mehr fürs Glas und verlängern die Page nicht */
+	.closed .drawer {
 		display: none;
 	}
 
@@ -288,19 +295,17 @@
 
 	@media (prefers-reduced-motion: reduce) {
 		/* Statt zu fahren blendet der Inhalt; die Lage springt erst nach dem Ausblenden */
-		.drawer.ready {
-			transition: transform 0s linear 150ms;
+		.ready :is(.drawer, .rail) {
+			transition:
+				transform 0s linear 150ms,
+				opacity 150ms ease;
 		}
 
-		.drawer.ready.open {
-			transition: none;
-		}
-
-		.ready .content {
+		.ready.open :is(.drawer, .rail) {
 			transition: opacity 150ms ease;
 		}
 
-		.drawer:not(.open) .content {
+		.sidebar:not(.open) .drawer {
 			opacity: 0;
 		}
 	}
