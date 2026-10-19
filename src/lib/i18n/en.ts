@@ -305,6 +305,8 @@ export const en: Dictionary = {
 	'clock.moonset': 'Moonset',
 	'clock.noMoonrise': 'No moonrise today',
 	'clock.noMoonset': 'No moonset today',
+	'clock.yesterday': 'yesterday',
+	'clock.tomorrow': 'tomorrow',
 	'clock.moonAlwaysUp': 'The moon does not set today',
 	'clock.moonAlwaysDown': 'The moon does not rise today',
 	'clock.illumination': '{percent} illuminated',

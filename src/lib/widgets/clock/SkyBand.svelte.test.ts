@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { t } from '$lib/i18n/index.svelte';
+import { moonTimes } from './moon';
 import SkyBand from './SkyBand.svelte';
 
 const BERLIN = { latitude: 52.52, longitude: 13.405 };
@@ -61,6 +62,18 @@ describe('Sonne und Mond in der Uhr', () => {
 		// Datum des nächsten Vollmonds hängt von der Zeitzone ab; geprüft wird nur, dass er genannt ist
 		const fullMoon = t('clock.nextFull', { date: '' }).trim();
 		expect(screen.getByText(new RegExp(fullMoon))).toBeInTheDocument();
+	});
+
+	it('ohne Monduntergang heute steht der von morgen da', () => {
+		// Den Tag ohne Untergang in der Zeitzone des Testrechners suchen (Oktober 2026)
+		const date = Array.from({ length: 31 }, (_, i) => new Date(2026, 9, i + 1, 12)).find(
+			(d) => !moonTimes(d, BERLIN.latitude, BERLIN.longitude).set
+		)!;
+		setup(date, { showSun: false });
+		const set = screen.getByTitle(t('clock.moonset'));
+		expect(set).toHaveTextContent(t('clock.tomorrow'));
+		expect(set).not.toHaveTextContent('–');
+		expect(set.querySelector('time')).not.toBeNull();
 	});
 
 	it('Sonne und Mond lassen sich einzeln abschalten', () => {

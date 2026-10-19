@@ -312,6 +312,8 @@ export const de = {
 	'clock.moonset': 'Monduntergang',
 	'clock.noMoonrise': 'Heute kein Mondaufgang',
 	'clock.noMoonset': 'Heute kein Monduntergang',
+	'clock.yesterday': 'gestern',
+	'clock.tomorrow': 'morgen',
 	'clock.moonAlwaysUp': 'Der Mond geht heute nicht unter',
 	'clock.moonAlwaysDown': 'Der Mond geht heute nicht auf',
 	'clock.illumination': '{percent} beleuchtet',

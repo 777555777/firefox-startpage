@@ -468,7 +468,10 @@ Abweichungen von bzw. Präzisierungen zu `SPEC.md`. Neueste Einträge unten.
 - **Mond (neu, Schalter „Mond anzeigen“, Default aus):** Mondscheibe mit der richtigen
   Schattengrenze (auf der Südhalbkugel gespiegelt), Name der Phase, beleuchteter Anteil,
   Mondauf- und -untergang des Tags und der nächste Voll- oder Neumond. Fällt ein Auf- oder
-  Untergang aus (etwa einmal im Monat), steht „–“ mit Erklärung im Tooltip; bleibt der Mond den
+  Untergang aus (etwa einmal im Monat), steht der vom nächsten Tag mit „morgen“ bzw. der Aufgang
+  vom Vortag mit „gestern“ da, Erklärung im Tooltip. Eine erste Fassung zeigte „–“, das wirkte
+  wie eine fehlende Zeit. So bleibt die Spanne sichtbar, in der der Mond heute am Himmel steht;
+  „–“ bleibt nur, wenn auch der Nachbartag kein Ereignis hat. Bleibt der Mond den
   ganzen Tag über bzw. unter dem Horizont (hohe Breiten, z. B. Tromsø zur großen Mondwende),
   steht das als Text da.
 - **Sonne und Mond als eigene Abschnitte:** Uhr, Sonne und Mond stehen untereinander, Sonne und

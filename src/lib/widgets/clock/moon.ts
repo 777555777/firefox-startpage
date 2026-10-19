@@ -250,3 +250,42 @@ export function moonTimes(date: Date, latitude: number, longitude: number): Moon
 		alwaysDown: noCrossing && first < 0
 	};
 }
+
+export type MoonEvent = {
+	at: Date;
+	/** Kalendertag relativ zu `date`: −1 gestern, 0 heute, 1 morgen */
+	day: -1 | 0 | 1;
+};
+
+export type MoonEvents = {
+	rise: MoonEvent | null;
+	set: MoonEvent | null;
+	alwaysUp: boolean;
+	alwaysDown: boolean;
+};
+
+/**
+ * Auf- und Untergang zur Anzeige: Fällt am Tag von `date` der Untergang aus, gilt der vom
+ * nächsten Tag (der Mond ist bis nach Mitternacht zu sehen); fällt der Aufgang aus, der vom
+ * Vortag. So bleibt immer die Zeitspanne sichtbar, in der der Mond heute am Himmel steht.
+ * Nur ohne Ereignis an beiden Tagen (hohe Breiten) bleibt der Wert `null`.
+ */
+export function moonEvents(date: Date, latitude: number, longitude: number): MoonEvents {
+	const today = moonTimes(date, latitude, longitude);
+	if (today.alwaysUp || today.alwaysDown) return { ...today, rise: null, set: null };
+
+	const neighbour = (offset: -1 | 1) =>
+		moonTimes(
+			new Date(date.getFullYear(), date.getMonth(), date.getDate() + offset, 12),
+			latitude,
+			longitude
+		);
+	const event = (at: Date | null, day: -1 | 0 | 1): MoonEvent | null => (at ? { at, day } : null);
+
+	return {
+		rise: event(today.rise, 0) ?? event(neighbour(-1).rise, -1),
+		set: event(today.set, 0) ?? event(neighbour(1).set, 1),
+		alwaysUp: false,
+		alwaysDown: false
+	};
+}

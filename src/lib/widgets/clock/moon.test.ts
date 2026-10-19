@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { litPath, moonPhase, moonTimes, nextMajorPhase, nextPhase } from './moon';
+import { litPath, moonEvents, moonPhase, moonTimes, nextMajorPhase, nextPhase } from './moon';
 import { sunTimes } from './sun';
 
 const BERLIN = [52.52, 13.405] as const;
@@ -129,6 +129,42 @@ describe('Mondauf- und -untergang', () => {
 		expect(days.some((d) => d.alwaysDown && !d.rise && !d.set)).toBe(true);
 		// Nie beides zugleich
 		expect(days.every((d) => !(d.alwaysUp && d.alwaysDown))).toBe(true);
+	});
+});
+
+describe('Mondauf- und -untergang zur Anzeige', () => {
+	it('ohne Untergang heute gilt der von morgen, ohne Aufgang der von gestern', () => {
+		let shiftedSet = 0;
+		let shiftedRise = 0;
+		for (let date = 1; date <= 30; date++) {
+			const today = day(2025, 9, date);
+			const times = moonTimes(today, ...BERLIN);
+			const events = moonEvents(today, ...BERLIN);
+			const next = moonTimes(day(2025, 9, date + 1), ...BERLIN);
+			const previous = moonTimes(day(2025, 9, date - 1), ...BERLIN);
+
+			expect(events.rise).not.toBeNull();
+			expect(events.set).not.toBeNull();
+			if (times.set) expect(events.set).toEqual({ at: times.set, day: 0 });
+			else {
+				expect(events.set).toEqual({ at: next.set, day: 1 });
+				shiftedSet++;
+			}
+			if (times.rise) expect(events.rise).toEqual({ at: times.rise, day: 0 });
+			else {
+				expect(events.rise).toEqual({ at: previous.rise, day: -1 });
+				shiftedRise++;
+			}
+		}
+		expect(shiftedSet).toBeGreaterThanOrEqual(1);
+		expect(shiftedRise).toBeGreaterThanOrEqual(1);
+	});
+
+	it('zirkumpolare Tage bleiben ohne Zeiten', () => {
+		const days = Array.from({ length: 31 }, (_, i) => moonEvents(day(2025, 1, i + 1), ...TROMSO));
+		const circumpolar = days.filter((d) => d.alwaysUp || d.alwaysDown);
+		expect(circumpolar.length).toBeGreaterThan(0);
+		expect(circumpolar.every((d) => !d.rise && !d.set)).toBe(true);
 	});
 });
 

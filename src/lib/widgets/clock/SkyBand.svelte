@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { i18n, t } from '$lib/i18n/index.svelte';
 	import Icon from '$lib/ui/Icon.svelte';
-	import { litPath, moonPhase, moonTimes, nextMajorPhase } from './moon';
+	import { litPath, moonEvents, moonPhase, nextMajorPhase } from './moon';
 	import { CIVIL_ZENITH, dayLength, dayProgress, sunDay, sunTimes } from './sun';
 
 	let {
@@ -36,7 +36,7 @@
 		return length - dayLength(sunTimes(yesterday, latitude, longitude));
 	});
 
-	const moon = $derived(showMoon ? moonTimes(new Date(today), latitude, longitude) : null);
+	const moon = $derived(showMoon ? moonEvents(new Date(today), latitude, longitude) : null);
 	const phase = $derived(moonPhase(now));
 	const next = $derived(nextMajorPhase(now));
 
@@ -154,12 +154,20 @@
 					{#if moon.alwaysUp || moon.alwaysDown}
 						{t(moon.alwaysUp ? 'clock.moonAlwaysUp' : 'clock.moonAlwaysDown')}
 					{:else}
-						{#each [{ icon: 'rise', label: 'clock.moonrise', none: 'clock.noMoonrise', at: moon.rise }, { icon: 'set', label: 'clock.moonset', none: 'clock.noMoonset', at: moon.set }] as const as event (event.icon)}
+						{#each [{ icon: 'rise', label: 'clock.moonrise', none: 'clock.noMoonrise', value: moon.rise }, { icon: 'set', label: 'clock.moonset', none: 'clock.noMoonset', value: moon.set }] as const as event (event.icon)}
 							<span class="event" title={t(event.label)}>
 								<Icon name={event.icon} size={15} />
 								<span class="visually-hidden">{t(event.label)}</span>
-								{#if event.at}
-									<time datetime={event.at.toISOString()}>{timeFormat.format(event.at)}</time>
+								{#if event.value}
+									<!-- Fällt das Ereignis heute aus, steht das von gestern bzw. morgen da -->
+									<time datetime={event.value.at.toISOString()}
+										>{timeFormat.format(event.value.at)}</time
+									>
+									{#if event.value.day !== 0}
+										<span class="other-day" title={t(event.none)}>
+											{t(event.value.day < 0 ? 'clock.yesterday' : 'clock.tomorrow')}
+										</span>
+									{/if}
 								{:else}
 									<span title={t(event.none)}>–</span>
 									<span class="visually-hidden">{t(event.none)}</span>
@@ -328,6 +336,11 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0 var(--space-3);
+	}
+
+	.other-day {
+		font-size: var(--text-xs);
+		color: var(--text-tertiary);
 	}
 
 	.meta {
