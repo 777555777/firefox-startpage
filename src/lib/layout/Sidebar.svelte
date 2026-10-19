@@ -1,13 +1,13 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import type { Sortable } from '$lib/dnd/sortable.svelte';
-	import { glassLayer } from '$lib/glass/layer';
+	import { glass, glassLayer } from '$lib/glass/layer';
 	import { t } from '$lib/i18n/index.svelte';
 	import Icon from '$lib/ui/Icon.svelte';
 	import type { IconName } from '$lib/ui/icons';
 	import { isOverlayOpen } from '$lib/utils/keyboard';
 	import type { SidebarArrangement } from './arrangement';
-	import { LAYOUT_AREAS, type Side } from './operations';
+	import { EDGE_TAB_CLEARANCE_PX, EDGE_TAB_PX, LAYOUT_AREAS, type Side } from './operations';
 
 	export type TabInfo = { icon: IconName; label: string };
 
@@ -126,12 +126,23 @@
 	bind:this={drawer}
 	{onkeydown}
 >
-	<div class="tabs" role="group" aria-label={t('sidebar.tabs')}>
+	<!--
+		Eine Glas-Leiste für alle Tabs, im selben WebGL-Glas wie die Panels. Sie überlappt keinen
+		DOM-Inhalt, deshalb scheint nichts durch.
+	-->
+	<div
+		class="rail glass"
+		role="group"
+		aria-label={t('sidebar.tabs')}
+		style:--rail-width="{EDGE_TAB_PX}px"
+		style:--rail-offset="{EDGE_TAB_CLEARANCE_PX}px"
+		{@attach glass({ radius: EDGE_TAB_PX / 2, depth: 0.6, variant: 'button' })}
+	>
 		{#each arrangement.tabs as side (side)}
 			{@const info = tabs[side]}
 			<button
 				type="button"
-				class="tab glass"
+				class="tab"
 				class:active={open === side}
 				class:over={sortable.overTarget === TARGET_PREFIX + side}
 				aria-expanded={open === side}
@@ -189,45 +200,61 @@
 		}
 	}
 
-	.tabs {
+	/*
+	 * Die Leiste hängt mit etwas Abstand an der Kante der Sidebar und fährt mit ihr. Geschlossen
+	 * schwebt sie am Fensterrand, offen im Abstand zwischen Sidebar und Mitte.
+	 */
+	.rail {
 		position: absolute;
 		z-index: 1;
 		top: var(--page-pad-block);
-		left: 100%;
+		left: calc(100% + var(--rail-offset));
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-2);
+		gap: var(--space-1);
+		width: var(--rail-width);
+		padding: var(--space-1);
+		border-radius: var(--radius-full);
+		--glass-alpha: 0.32;
 	}
 
-	/* Zur Mitte hin rund, zum Rand hin eckig, wie ein Reiter */
+	/* Wie die Reiter im Link-Board: aktiv ist eine erhabene Fläche */
 	.tab {
 		display: grid;
 		place-items: center;
-		width: 36px;
-		height: 44px;
+		width: 100%;
+		aspect-ratio: 1;
 		padding: 0;
 		border: none;
-		border-radius: 0 var(--radius-md) var(--radius-md) 0;
+		border-radius: var(--radius-full);
+		background: transparent;
 		color: var(--text-secondary);
-		--glass-alpha: 0.32;
 		transition:
+			background-color var(--duration-fast) ease,
 			color var(--duration-fast) ease,
 			box-shadow var(--duration-fast) ease;
 
 		&:hover {
+			background: var(--fill);
 			color: var(--text);
 		}
 
-		&.active,
-		&.over {
-			color: var(--accent-text);
+		&.active {
+			background: var(--raised);
+			color: var(--text);
 			box-shadow:
-				inset -3px 0 0 var(--accent),
-				var(--glass-shadow);
+				0 1px 3px rgb(var(--shade) / 0.16),
+				inset 0 1px 0 var(--highlight);
+		}
+
+		&.over {
+			background: var(--accent);
+			color: var(--on-accent);
+			box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent);
 		}
 
 		&:focus-visible {
-			box-shadow: var(--focus-ring), var(--glass-shadow);
+			box-shadow: var(--focus-ring);
 		}
 	}
 

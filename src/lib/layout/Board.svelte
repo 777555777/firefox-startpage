@@ -12,7 +12,7 @@
 	import Dialog from '$lib/ui/Dialog.svelte';
 	import { definitionOf } from '$lib/widgets/registry';
 	import AddWidget from './AddWidget.svelte';
-	import { arrange, areaPx, layoutStage, sidebarTabs } from './arrangement';
+	import { arrange, areaPx, EDGE_RESERVE_PX, layoutStage, sidebarTabs } from './arrangement';
 	import {
 		areaWidths,
 		canJoin,
@@ -20,8 +20,6 @@
 		centerSpanRange,
 		clampCenterSpan,
 		DEFAULT_CENTER_SPAN,
-		EDGE_TAB_CLEARANCE_PX,
-		EDGE_TAB_PX,
 		enabledAreas,
 		equalizeRow,
 		equalSpans,
@@ -73,7 +71,7 @@
 	// Die Stufe hängt nur von `available` ab, nie davon, ob die Sidebar offen ist.
 
 	let frame: HTMLElement;
-	/** Seitenrand der Page links; reicht er nicht für die Tabs, rückt die Mitte ein */
+	/** Seitenrand der Page links; reicht er nicht für die Tab-Leiste, rückt die Mitte ein */
 	let frameLeft = $state(56);
 	$effect(() => {
 		void available;
@@ -108,7 +106,7 @@
 		arrange(layout, available, remPx, {
 			tabs: layoutTabs,
 			open: shownSide,
-			edgePx: Math.max(0, EDGE_TAB_PX + EDGE_TAB_CLEARANCE_PX - frameLeft)
+			edgePx: Math.max(0, EDGE_RESERVE_PX - frameLeft)
 		})
 	);
 	const { sideBySide, width, offset, columns, template, order } = $derived(arrangement);

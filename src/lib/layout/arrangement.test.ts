@@ -74,9 +74,9 @@ describe('Stufen: breit, Sidebar, untereinander', () => {
 	});
 
 	it('nimmt die Sidebar, solange die Mitte neben der offenen Sidebar 20 rem hat', () => {
-		// 22 rem Sidebar + 44 px Abstand (Tabs) + 20 rem Mitte
-		expect(layoutStage(layout(), 716)).toBe('sidebar');
-		expect(layoutStage(layout(), 715)).toBe('stacked');
+		// 22 rem Sidebar + 60 px Abstand (Tab-Leiste mit Freiraum) + 20 rem Mitte
+		expect(layoutStage(layout(), 732)).toBe('sidebar');
+		expect(layoutStage(layout(), 731)).toBe('stacked');
 		// Ein großer Spaltenabstand gilt auch zwischen Sidebar und Mitte
 		expect(layoutStage(layout({ columnGap: 128 }), 1535)).toBe('sidebar');
 		expect(layoutStage(layout({ columnGap: 128 }), 1536)).toBe('wide');
@@ -94,8 +94,8 @@ describe('Stufen: breit, Sidebar, untereinander', () => {
 	});
 
 	it('hält den Abstand zur Mitte frei für die Tabs', () => {
-		expect(sidebarGap(0)).toBe(44);
-		expect(sidebarGap(24)).toBe(44);
+		expect(sidebarGap(0)).toBe(60);
+		expect(sidebarGap(24)).toBe(60);
 		expect(sidebarGap(64)).toBe(64);
 	});
 });
@@ -121,27 +121,27 @@ describe('Anordnung mit Sidebar', () => {
 			tabs: ['left', 'right'],
 			open: null,
 			width: 352,
-			gap: 44
+			gap: 60
 		});
 	});
 
 	it('rückt die Mitte bei offener Sidebar neben sie', () => {
 		const result = arrange(layout(), 1200, 16, sidebar('right', { edgePx: 10 }));
-		expect(result.width).toBe(1200 - 352 - 44);
-		expect(result.offset).toBe(396);
+		expect(result.width).toBe(1200 - 352 - 60);
+		expect(result.offset).toBe(412);
 		expect(result.sidebar?.open).toBe('right');
 	});
 
 	it('stellt die Mitte im freien Bereich mittig, begrenzt durch die Maximalbreite', () => {
 		const open = arrange(layout({ maxWidth: 80 }), 2000, 16, sidebar('left'));
 		expect(open.width).toBe(1280);
-		expect(open.offset).toBe(396 + (2000 - 396 - 1280) / 2);
+		expect(open.offset).toBe(412 + (2000 - 412 - 1280) / 2);
 		const closed = arrange(layout({ maxWidth: 80 }), 2000, 16, sidebar(null));
 		expect(closed.offset).toBe((2000 - 1280) / 2);
 	});
 
 	it('wechselt die Stufe nicht durch Öffnen oder Schließen', () => {
-		for (const width of [715, 716, 1327, 1328]) {
+		for (const width of [731, 732, 1327, 1328]) {
 			expect(arrange(layout(), width, 16, sidebar('left')).stage).toBe(
 				arrange(layout(), width, 16, sidebar(null)).stage
 			);
@@ -183,7 +183,7 @@ describe('Anordnung mit Sidebar', () => {
 
 	it('rechnet Seiten in der Sidebar mit ihrer Breite', () => {
 		const result = arrange(layout(), 1200, 16, sidebar('left'));
-		expect(areaPx(result, [12, 6, 6], 0, 24)).toBe(804);
+		expect(areaPx(result, [12, 6, 6], 0, 24)).toBe(788);
 		expect(areaPx(result, [12, 6, 6], 1, 24)).toBe(352);
 		expect(areaPx(result, [12, 6, 6], 2, 24)).toBe(352);
 	});

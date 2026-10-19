@@ -76,9 +76,15 @@ type LayoutInput = Pick<LayoutConfig, 'sides' | 'centerSpan' | 'columnGap' | 'ma
 
 const SIDE_AREA: Record<Side, number> = { left: LEFT, right: RIGHT };
 
-/** Abstand zwischen Sidebar und Mitte: mindestens so breit, dass die Tabs nichts überdecken */
+/**
+ * Abstand zwischen Sidebar und Mitte: mindestens so breit, dass die Tab-Leiste mit Freiraum auf
+ * beiden Seiten hineinpasst
+ */
 export const sidebarGap = (columnGap: number) =>
-	Math.max(columnGap, EDGE_TAB_PX + EDGE_TAB_CLEARANCE_PX);
+	Math.max(columnGap, EDGE_TAB_PX + 2 * EDGE_TAB_CLEARANCE_PX);
+
+/** Platz, den die Tab-Leiste bei geschlossener Sidebar vom Fensterrand aus braucht */
+export const EDGE_RESERVE_PX = EDGE_TAB_PX + 2 * EDGE_TAB_CLEARANCE_PX;
 
 const limitOf = (layout: LayoutInput, remPx: number) =>
 	layout.maxWidth ? layout.maxWidth * remPx : Infinity;

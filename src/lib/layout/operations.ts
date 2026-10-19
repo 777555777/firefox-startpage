@@ -47,9 +47,9 @@ export const MIN_CENTER_REM = 20;
 export const MIN_SIDE_WIDE_REM = 20;
 /** Breite der Spalte in der Sidebar (mittlere Stufe) in rem */
 export const SIDEBAR_REM = 22;
-/** Breite der Tabs am Rand der Sidebar in px */
-export const EDGE_TAB_PX = 36;
-/** Freiraum zwischen Tabs und Mitte in px */
+/** Breite der Tab-Leiste am Rand der Sidebar in px */
+export const EDGE_TAB_PX = 44;
+/** Freiraum links und rechts der Tab-Leiste in px */
 export const EDGE_TAB_CLEARANCE_PX = 8;
 /** Mindestbreite eines Widgets in einer Zeile, sonst stehen die Widgets untereinander */
 export const MIN_ITEM_REM = 13;

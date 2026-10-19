@@ -772,7 +772,7 @@ Zwischenstufe“ aus Schema v3: Statt zwei gibt es drei Stufen.
 | ------ | ----------------------------------------------------------------------- | ---------------------------------------------- |
 | Breit  | Seiten nebeneinander mindestens 20 rem (bisher 14), Mitte mindestens 20 | links · Mitte · rechts wie bisher              |
 | Mittel | sonst, solange die Mitte neben der **offenen** Sidebar 20 rem breit ist | Mitte + eine Sidebar am linken Rand, Tabs dran |
-| Schmal | darunter (bei Standardwerten unter ~780 px Fensterbreite)               | eine Spalte, Mitte · rechts · links wie bisher |
+| Schmal | darunter (bei Standardwerten unter ~800 px Fensterbreite)               | eine Spalte, Mitte · rechts · links wie bisher |
 
 - **Schwelle über die echte Spaltenbreite:** `layoutStage` rechnet wie `fitsSideBySide` aus
   verfügbarer Breite, Maximalbreite, `columnGap` und `centerSpan`, keine festen Breakpoints. Bei
@@ -788,11 +788,15 @@ Zwischenstufe“ aus Schema v3: Statt zwei gibt es drei Stufen.
 - **Tabs:** einer pro eingeschalteter Seite mit Widgets, im Edit-Modus auch für leere (Icon
   `plus`), links vor rechts. Beschriftet mit dem Icon des ersten Widgets, Name der Seite und
   Widgets im Tooltip und für Screenreader (`Intl.ListFormat`). Ein Klick öffnet, der aktive Tab
-  schließt. Die Tabs hängen an der Kante der Sidebar und fahren mit; der Abstand zur Mitte ist
-  mindestens Tab-Breite plus 8 px, reicht der Seitenrand nicht, rückt die geschlossene Mitte ein.
-  **Abweichung vom Plan:** Die Tabs sind CSS-Glas wie der Bearbeiten-Knopf, nicht WebGL-Glas
-  (Variante `button`). Für so kleine Flächen fällt der Unterschied nicht auf, und die Variante
-  bleibt ungenutzt.
+  schließt.
+- **Tab-Leiste statt einzelner Reiter:** Die Tabs sitzen in einer gemeinsamen, senkrechten
+  Glas-Kapsel (44 px breit) im selben WebGL-Glas wie die Panels (Variante `button`, flachere
+  Wölbung). Der aktive Tab ist wie bei den Reitern im Link-Board eine erhabene Fläche, beim
+  Ziehen darüber wird er akzentfarbig. Eine erste Fassung hatte einzelne, zum Rand hin eckige
+  Reiter aus CSS-Glas mit Akzentkante; sie wirkten neben den Panels angeklebt und fremd. Die
+  Leiste hängt 8 px neben der Sidebar und fährt mit, geschlossen schwebt sie 8 px vom
+  Fensterrand. Der Abstand zwischen Sidebar und Mitte ist deshalb mindestens 60 px (Leiste plus
+  8 px auf beiden Seiten); reicht der Seitenrand nicht, rückt die geschlossene Mitte ein.
 - **Lage:** `position: fixed` am linken Rand, so hoch wie das Fenster, damit sie beim Öffnen auch
   auf einer weit gescrollten Page sichtbar ist. Ist ihr Inhalt höher, scrollt sie selbst
   (bewusste Ausnahme von „die ganze Page scrollt“); das Glas wird an ihr abgeschnitten, ein
