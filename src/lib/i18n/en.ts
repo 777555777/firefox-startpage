@@ -54,6 +54,9 @@ export const en: Dictionary = {
 	'area.center': 'Center',
 	'area.left': 'Left column',
 	'area.right': 'Right column',
+	'sidebar.tabs': 'Sidebar',
+	'sidebar.contents': '{area}: {widgets}',
+	'sidebar.empty': '{area} (empty)',
 	'dnd.dropped': '{name} dropped: {position}',
 	'dnd.cancelled': 'Move cancelled',
 

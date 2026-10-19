@@ -9,7 +9,6 @@ import {
 	hasSides,
 	LEFT,
 	MIN_CENTER_REM,
-	MIN_SIDE_WIDE_REM,
 	RIGHT,
 	SIDEBAR_REM,
 	sideSpan,
@@ -96,9 +95,7 @@ const limitOf = (layout: LayoutInput, remPx: number) =>
 export function layoutStage(layout: LayoutInput, availablePx: number, remPx = 16): LayoutStage {
 	if (!hasSides(layout.sides)) return 'stacked';
 	const width = Math.min(availablePx, limitOf(layout, remPx));
-	if (fitsSideBySide(layout.centerSpan, width, layout.columnGap, remPx, MIN_SIDE_WIDE_REM)) {
-		return 'wide';
-	}
+	if (fitsSideBySide(layout.centerSpan, width, layout.columnGap, remPx)) return 'wide';
 	const center = availablePx - SIDEBAR_REM * remPx - sidebarGap(layout.columnGap);
 	return center >= MIN_CENTER_REM * remPx ? 'sidebar' : 'stacked';
 }
@@ -195,24 +192,14 @@ function withSidebar(
 	};
 }
 
-/**
- * Ordnet Mitte und Seiten für die verfügbare Breite an.
- *
- * Ohne `sidebar` gibt es nur zwei Stufen wie bisher: nebeneinander, solange die Seiten 14 rem
- * breit sind, sonst untereinander. Mit `sidebar` entscheidet `layoutStage` über drei Stufen.
- */
+/** Ordnet Mitte und Seiten für die verfügbare Breite in einer der drei Stufen an */
 export function arrange(
 	layout: LayoutInput,
 	availablePx: number,
-	remPx = 16,
-	sidebar?: SidebarInput
+	remPx: number,
+	sidebar: SidebarInput
 ): Arrangement {
 	const width = Math.min(availablePx, limitOf(layout, remPx));
-	if (!sidebar) {
-		const sideBySide =
-			hasSides(layout.sides) && fitsSideBySide(layout.centerSpan, width, layout.columnGap, remPx);
-		return sideBySide ? wide(layout, width) : stacked(layout, width, remPx);
-	}
 	const stage = layoutStage(layout, availablePx, remPx);
 	if (stage === 'wide') return wide(layout, width);
 	if (stage === 'stacked') return stacked(layout, width, remPx);

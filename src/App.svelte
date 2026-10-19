@@ -154,6 +154,9 @@
 		z-index: 1;
 		min-height: 100vh;
 		min-height: 100dvh;
-		padding: clamp(16px, 4vh, 48px) clamp(16px, 4vw, 56px) 0;
+		/* Seitenrand; die Sidebar richtet sich danach */
+		--page-pad-block: clamp(16px, 4vh, 48px);
+		--page-pad-inline: clamp(16px, 4vw, 56px);
+		padding: var(--page-pad-block) var(--page-pad-inline) 0;
 	}
 </style>

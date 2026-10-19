@@ -62,6 +62,8 @@ const toBox = (rect: DOMRect): Box => ({
 	bottom: rect.bottom
 });
 
+const hasArea = (box: Box) => box.right > box.left && box.bottom > box.top;
+
 class GlassLayer {
 	#surfaces = new Map<HTMLElement, Surface>();
 	#ordered: Surface[] = [];
@@ -152,7 +154,11 @@ class GlassLayer {
 			this.#rectsDirty = false;
 		}
 		return {
-			surfaces: this.#ordered.flatMap((s) => (s.snapshot ? [s.snapshot] : [])),
+			// Verborgene Flächen (z. B. die gerade nicht gezeigte Seite der Sidebar) haben kein
+			// Rechteck; ohne Prüfung entstünde ein Schatten oben links
+			surfaces: this.#ordered.flatMap((s) =>
+				s.snapshot && hasArea(s.snapshot.rect) ? [s.snapshot] : []
+			),
 			changed
 		};
 	}

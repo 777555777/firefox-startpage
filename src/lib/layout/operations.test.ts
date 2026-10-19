@@ -257,12 +257,14 @@ describe('Mitte und Seiten', () => {
 
 	it('stellt alles untereinander, sobald eine Spalte zu schmal würde', () => {
 		// Seiten mindestens 14 rem, Mitte mindestens 20 rem
-		expect(fitsSideBySide(12, 1100, 24)).toBe(true);
-		expect(fitsSideBySide(12, 960, 24)).toBe(true);
-		expect(fitsSideBySide(12, 900, 24)).toBe(false);
-		expect(fitsSideBySide(16, 1100, 24)).toBe(false);
-		expect(fitsSideBySide(8, 1100, 24)).toBe(true);
-		expect(fitsSideBySide(8, 900, 24)).toBe(false);
+		// Seiten mindestens 20 rem: bei 12/24 ab (1328 − 2 · 24) · 6/24 = 320 px
+		expect(fitsSideBySide(12, 1328, 24)).toBe(true);
+		expect(fitsSideBySide(12, 1327, 24)).toBe(false);
+		expect(fitsSideBySide(16, 1600, 24)).toBe(false);
+		expect(fitsSideBySide(16, 1968, 24)).toBe(true);
+		// Schmale Mitte: sie selbst braucht ebenfalls 20 rem
+		expect(fitsSideBySide(8, 1008, 24)).toBe(true);
+		expect(fitsSideBySide(8, 1007, 24)).toBe(false);
 	});
 
 	it('legt ausgeschaltete Seiten in der Mitte ab, erst rechts, dann links', () => {

@@ -41,10 +41,8 @@ export const ROW_HEIGHT_MIN = 12;
 export const ROW_HEIGHT_MAX = 80;
 export const ROW_HEIGHT_STEP = 2;
 
-/** Mindestbreite der Mitte in rem, sonst steht alles untereinander */
+/** Mindestbreite der Mitte in rem, nebeneinander wie neben der Sidebar */
 export const MIN_CENTER_REM = 20;
-/** Mindestbreite einer Seitenspalte in rem, sonst steht alles untereinander */
-export const MIN_SIDE_REM = 14;
 /** Mindestbreite einer Seitenspalte in rem für drei Spalten nebeneinander, sonst Sidebar */
 export const MIN_SIDE_WIDE_REM = 20;
 /** Breite der Spalte in der Sidebar (mittlere Stufe) in rem */
@@ -222,20 +220,19 @@ export function fitCenterSpan(centerSpan: number, columnRows: Rows, sides: Sides
 }
 
 /**
- * Ob Seiten und Mitte bei der verfügbaren Breite nebeneinander passen, die Seiten mindestens
- * `minSideRem` breit. Sonst wandern die Seiten in die Sidebar oder stehen unter der Mitte.
+ * Ob Seiten und Mitte bei der verfügbaren Breite nebeneinander passen. Sonst wandern die Seiten
+ * in die Sidebar oder stehen unter der Mitte (siehe `layoutStage`).
  */
 export function fitsSideBySide(
 	centerSpan: number,
 	availablePx: number,
 	gapPx: number,
-	remPx = 16,
-	minSideRem = MIN_SIDE_REM
+	remPx = 16
 ): boolean {
 	const content = availablePx - 2 * gapPx;
 	const center = (content * centerSpan) / GRID_UNITS;
 	const side = (content * sideSpan(centerSpan)) / GRID_UNITS;
-	return center >= MIN_CENTER_REM * remPx && side >= minSideRem * remPx;
+	return center >= MIN_CENTER_REM * remPx && side >= MIN_SIDE_WIDE_REM * remPx;
 }
 
 /** Ob die Widgets einer Zeile bei dieser Spaltenbreite nebeneinander passen */

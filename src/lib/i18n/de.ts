@@ -55,6 +55,9 @@ export const de = {
 	'area.center': 'Mitte',
 	'area.left': 'Linke Spalte',
 	'area.right': 'Rechte Spalte',
+	'sidebar.tabs': 'Seitenleiste',
+	'sidebar.contents': '{area}: {widgets}',
+	'sidebar.empty': '{area} (leer)',
 	'dnd.dropped': '{name} abgelegt: {position}',
 	'dnd.cancelled': 'Verschieben abgebrochen',
 

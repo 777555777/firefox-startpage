@@ -26,9 +26,9 @@ export function parseSidebarState(raw: unknown): SidebarState {
 	return { open: validOpen, last: isSide(last) ? last : (validOpen ?? DEFAULT_SIDEBAR_STATE.last) };
 }
 
-export function loadSidebarState(storage: Pick<Storage, 'getItem'> = localStorage): SidebarState {
+export function loadSidebarState(storage?: Pick<Storage, 'getItem'>): SidebarState {
 	try {
-		const value = storage.getItem(SIDEBAR_KEY);
+		const value = (storage ?? localStorage).getItem(SIDEBAR_KEY);
 		return parseSidebarState(value === null ? null : JSON.parse(value));
 	} catch {
 		// ohne localStorage oder bei kaputtem Wert ist die Sidebar eben zu
@@ -36,12 +36,9 @@ export function loadSidebarState(storage: Pick<Storage, 'getItem'> = localStorag
 	}
 }
 
-export function saveSidebarState(
-	state: SidebarState,
-	storage: Pick<Storage, 'setItem'> = localStorage
-) {
+export function saveSidebarState(state: SidebarState, storage?: Pick<Storage, 'setItem'>) {
 	try {
-		storage.setItem(SIDEBAR_KEY, JSON.stringify(state));
+		(storage ?? localStorage).setItem(SIDEBAR_KEY, JSON.stringify(state));
 	} catch {
 		// ohne localStorage merkt sich die Sidebar ihren Zustand nur bis zum Schließen des Tabs
 	}

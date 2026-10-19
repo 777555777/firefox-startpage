@@ -46,6 +46,12 @@ describe('Glas-Register', () => {
 		expect(glassLayer.sync().changed).toBe(true);
 	});
 
+	it('lässt verborgene Flächen ohne Rechteck weg', () => {
+		attach(surface({ left: 0, top: 0, width: 100, height: 50 }));
+		attach(surface({ left: 0, top: 0, width: 0, height: 0 }));
+		expect(glassLayer.sync().surfaces).toHaveLength(1);
+	});
+
 	it('markiert Elemente und meldet sie wieder ab', () => {
 		const element = surface({ left: 0, top: 0, width: 100, height: 50 });
 		const cleanup = attach(element, { variant: 'button' });

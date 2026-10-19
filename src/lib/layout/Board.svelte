@@ -3,7 +3,7 @@
 	import type { WidgetInstance, WidgetType } from '$lib/config/types';
 	import { Sortable, type Point } from '$lib/dnd/sortable.svelte';
 	import { layoutRect, prefersReducedMotion } from '$lib/dnd/spring';
-	import { t } from '$lib/i18n/index.svelte';
+	import { i18n, t } from '$lib/i18n/index.svelte';
 	import { getApp } from '$lib/state/context';
 	import { toasts } from '$lib/state/toasts.svelte';
 	import { ui } from '$lib/state/ui.svelte';
@@ -11,7 +11,7 @@
 	import Dialog from '$lib/ui/Dialog.svelte';
 	import { definitionOf } from '$lib/widgets/registry';
 	import AddWidget from './AddWidget.svelte';
-	import { arrange, areaPx } from './arrangement';
+	import { arrange, areaPx, layoutStage, sidebarTabs } from './arrangement';
 	import {
 		areaWidths,
 		canJoin,
@@ -19,6 +19,8 @@
 		centerSpanRange,
 		clampCenterSpan,
 		DEFAULT_CENTER_SPAN,
+		EDGE_TAB_CLEARANCE_PX,
+		EDGE_TAB_PX,
 		enabledAreas,
 		equalizeRow,
 		equalSpans,
@@ -27,10 +29,12 @@
 		fitsSideBySide,
 		GRID_UNITS,
 		LAYOUT_AREAS,
+		LEFT,
 		placeWidget,
 		removeWidget,
 		resizeRowPair,
 		restorePlacement,
+		RIGHT,
 		rowFits,
 		rowIndexWithout,
 		setRowHeight,
@@ -41,20 +45,92 @@
 		type Side
 	} from './operations';
 	import PanelRow from './PanelRow.svelte';
+	import Sidebar, { type TabInfo } from './Sidebar.svelte';
+	import { sidebar } from './sidebar-store.svelte';
+	import { effectiveSide } from './sidebar-state';
 	import WidgetPanel from './WidgetPanel.svelte';
 
 	const app = getApp();
 	const config = $derived(app.config.value);
 	const layout = $derived(config.layout);
 
-	/** Verfügbare Breite der Page; die Breite des Boards hängt von Maximalbreite und Seiten ab */
-	let available = $state(typeof innerWidth === 'number' ? innerWidth : 1280);
+	/**
+	 * Verfügbare Breite der Page ohne Sidebar; die Breite des Boards hängt von Maximalbreite und
+	 * Seiten ab. Vor der ersten Messung geschätzt (Fenster abzüglich Seitenrand der Page).
+	 */
+	let available = $state(
+		typeof innerWidth === 'number'
+			? innerWidth - 2 * Math.min(56, Math.max(16, innerWidth * 0.04))
+			: 1280
+	);
 	const remPx =
 		typeof document === 'undefined'
 			? 16
 			: parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-	const arrangement = $derived(arrange(layout, available, remPx));
-	const { sideBySide, width, columns, template, order } = $derived(arrangement);
+
+	// --- Sidebar in der mittleren Stufe -----------------------------------------------------
+	// Die Stufe hängt nur von `available` ab, nie davon, ob die Sidebar offen ist.
+
+	let frame: HTMLElement;
+	/** Seitenrand der Page links; reicht er nicht für die Tabs, rückt die Mitte ein */
+	let frameLeft = $state(56);
+	$effect(() => {
+		void available;
+		frameLeft = frame.getBoundingClientRect().left;
+	});
+
+	const stage = $derived(layoutStage(layout, available, remPx));
+	const tabs = $derived(stage === 'sidebar' ? sidebarTabs(layout, ui.editing) : []);
+	$effect.pre(() => {
+		sidebar.tabs = tabs;
+	});
+	/** Seite, die die Sidebar zeigen soll */
+	const wanted = $derived(effectiveSide(sidebar.state, tabs));
+	/**
+	 * Seite, für die die Mitte Platz macht. Beim Öffnen sofort, beim Schließen erst, wenn die
+	 * Sidebar hinausgefahren ist, sonst wüchse die Mitte unter die noch sichtbare Sidebar.
+	 */
+	let lastOpen = $state<Side | null>(null);
+	$effect.pre(() => {
+		if (wanted) lastOpen = wanted;
+		else if (stage !== 'sidebar') lastOpen = null;
+	});
+	const shownSide = $derived(wanted ?? lastOpen);
+	/** Die hinausfahrende Seite behält ihren Tab, auch wenn sie inzwischen keinen mehr hätte */
+	const layoutTabs = $derived(
+		shownSide && !tabs.includes(shownSide)
+			? (['left', 'right'] as const).filter((s) => s === shownSide || tabs.includes(s))
+			: tabs
+	);
+
+	const arrangement = $derived(
+		arrange(layout, available, remPx, {
+			tabs: layoutTabs,
+			open: shownSide,
+			edgePx: Math.max(0, EDGE_TAB_PX + EDGE_TAB_CLEARANCE_PX - frameLeft)
+		})
+	);
+	const { sideBySide, width, offset, columns, template, order } = $derived(arrangement);
+
+	const listFormat = $derived(new Intl.ListFormat(i18n.lang, { type: 'conjunction' }));
+
+	/** Icon des ersten Widgets und Name der Seite samt ihrer Widgets */
+	const tabInfo = $derived.by(() => {
+		const info = (area: number): TabInfo => {
+			const ids = layout.columnRows[area].flatMap((row) => row.items);
+			const first = ids.length ? config.widgets[ids[0]] : undefined;
+			return {
+				icon: first ? definitionOf(first.type).icon : 'plus',
+				label: ids.length
+					? t('sidebar.contents', {
+							area: areaName(area),
+							widgets: listFormat.format(ids.map(nameOf))
+						})
+					: t('sidebar.empty', { area: areaName(area) })
+			};
+		};
+		return { left: info(LEFT), right: info(RIGHT) };
+	});
 	const widths = $derived(areaWidths(layout.centerSpan, layout.sides));
 	const side = $derived(sideSpan(layout.centerSpan));
 	const used = $derived(new Set(Object.values(config.widgets).map((w) => w.type)));
@@ -118,10 +194,8 @@
 	const SIDE_ZONE = 0.28;
 	const SIDE_ZONE_MAX = 120;
 
-	let board: HTMLElement;
-
 	function placementAt(id: string, point: Point, hit: Element | null): Placement | null {
-		if (!hit || !board.contains(hit)) return null;
+		if (!hit || !frame.contains(hit)) return null;
 		const live = app.config.value.layout;
 		// Nur Panels zählen, nicht die Links in einem Link-Board (eigene DnD-Gruppe)
 		const panel = hit.closest<HTMLElement>('[data-widget][data-dnd-item]');
@@ -147,7 +221,7 @@
 		if (hit.closest('[data-row]')) return null;
 
 		const segment = hit.closest<HTMLElement>('[data-dnd-list]');
-		if (!segment || !board.contains(segment)) return null;
+		if (!segment || !frame.contains(segment)) return null;
 		const column = Number(segment.dataset.dndList);
 		const rows = [...segment.querySelectorAll<HTMLElement>(':scope > [data-row]')];
 		const index = rows.filter((row) => {
@@ -440,7 +514,55 @@
 	]);
 </script>
 
-<div class="frame" bind:clientWidth={available}>
+{#snippet segment(area: number)}
+	{@const rows = layout.columnRows[area]}
+	<div
+		class="segment"
+		class:empty={rows.length === 0}
+		class:editing={ui.editing}
+		data-area={LAYOUT_AREAS[area]}
+		{@attach sortable.list({ id: String(area), axis: 'vertical' })}
+	>
+		{#each rows as row, r (row.items[0])}
+			<PanelRow
+				{row}
+				stacked={!rowFits(row.spans, columnPx(area), layout.panelGap, remPx)}
+				editing={ui.editing}
+				onresize={(index, left, mirror) => resizeRow(area, r, index, left, mirror)}
+				onequalize={() => setRows(equalizeRow(layout.columnRows, area, r))}
+				onheight={(value) => setRows(setRowHeight(layout.columnRows, area, r, value))}
+			>
+				{#snippet panel(id)}
+					{@const instance = config.widgets[id]}
+					{#if instance}
+						<WidgetPanel
+							{instance}
+							column={area}
+							maxHeight={row.maxHeight}
+							{sortable}
+							editing={ui.editing}
+							grabbed={grabbed?.id === id}
+							ongripkeydown={(event) => onGripKeydown(event, id)}
+							ongripblur={() => onGripBlur(id)}
+							onsettings={() => openSettings(id)}
+							onremove={() => remove(id)}
+						/>
+					{/if}
+				{/snippet}
+			</PanelRow>
+		{/each}
+		{#if ui.editing}
+			{#if rows.length === 0}
+				<p class="empty-hint">
+					{area === CENTER ? t('edit.emptyColumn') : areaName(area)}
+				</p>
+			{/if}
+			<AddWidget label={areaName(area)} {used} onadd={(type) => addWidget(type, area)} />
+		{/if}
+	</div>
+{/snippet}
+
+<div class="frame" bind:clientWidth={available} bind:this={frame}>
 	<div
 		class="board"
 		class:editing={ui.editing}
@@ -448,55 +570,12 @@
 		style:grid-template-columns={template}
 		style:--gap="{layout.panelGap}px"
 		style:max-width={Number.isFinite(width) ? `${width}px` : undefined}
-		bind:this={board}
+		style:margin-left={offset !== null ? `${offset}px` : undefined}
 	>
 		{#each columns as column (column.track)}
 			<div class="column" style:grid-column={column.track}>
 				{#each column.areas as area (area)}
-					{@const rows = layout.columnRows[area]}
-					<div
-						class="segment"
-						class:empty={rows.length === 0}
-						data-area={LAYOUT_AREAS[area]}
-						{@attach sortable.list({ id: String(area), axis: 'vertical' })}
-					>
-						{#each rows as row, r (row.items[0])}
-							<PanelRow
-								{row}
-								stacked={!rowFits(row.spans, columnPx(area), layout.panelGap, remPx)}
-								editing={ui.editing}
-								onresize={(index, left, mirror) => resizeRow(area, r, index, left, mirror)}
-								onequalize={() => setRows(equalizeRow(layout.columnRows, area, r))}
-								onheight={(value) => setRows(setRowHeight(layout.columnRows, area, r, value))}
-							>
-								{#snippet panel(id)}
-									{@const instance = config.widgets[id]}
-									{#if instance}
-										<WidgetPanel
-											{instance}
-											column={area}
-											maxHeight={row.maxHeight}
-											{sortable}
-											editing={ui.editing}
-											grabbed={grabbed?.id === id}
-											ongripkeydown={(event) => onGripKeydown(event, id)}
-											ongripblur={() => onGripBlur(id)}
-											onsettings={() => openSettings(id)}
-											onremove={() => remove(id)}
-										/>
-									{/if}
-								{/snippet}
-							</PanelRow>
-						{/each}
-						{#if ui.editing}
-							{#if rows.length === 0}
-								<p class="empty-hint">
-									{area === CENTER ? t('edit.emptyColumn') : areaName(area)}
-								</p>
-							{/if}
-							<AddWidget label={areaName(area)} {used} onadd={(type) => addWidget(type, area)} />
-						{/if}
-					</div>
+					{@render segment(area)}
 				{/each}
 			</div>
 		{/each}
@@ -544,6 +623,19 @@
 			{/if}
 		{/if}
 	</div>
+
+	{#if arrangement.sidebar}
+		<Sidebar
+			arrangement={arrangement.sidebar}
+			open={wanted}
+			tabs={tabInfo}
+			{segment}
+			ontoggle={(side) => sidebar.toggle(side)}
+			onclosed={() => {
+				if (!wanted) lastOpen = null;
+			}}
+		/>
+	{/if}
 </div>
 
 <Dialog
@@ -573,7 +665,7 @@
 	}
 
 	/* Leere Spalten nehmen außerhalb des Edit-Modus keinen Platz ein (auch keinen Abstand) */
-	.board:not(.editing) .segment.empty {
+	.segment.empty:not(.editing) {
 		display: none;
 	}
 
@@ -676,7 +768,7 @@
 		}
 	}
 
-	.editing .segment.empty {
+	.segment.empty.editing {
 		min-height: 120px;
 		padding: var(--space-2);
 		border-radius: calc(var(--radius-panel) + 8px);
