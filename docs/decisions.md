@@ -921,3 +921,48 @@ kompakte Dichte verkleinert zuerst nur Abstände, nicht die Schrift.
   - Uhr und Kalender nebeneinander über Suche und Links in der Mitte (wie auf dem Laptop der
     nutzenden Person): 1440 × 800 passt, 1280 × 720 scrollt noch um gut 50 px.
   - 2000 × 1100 mit „Automatisch“: normal, Abstände und Kacheln unverändert.
+
+## Nach v1 – Höhe „Bis Fensterende“ für Listen
+
+Anlass: Ein RSS-Widget mit fester Zeilenhöhe war auf dem Laptop zu groß oder auf dem Desktop zu
+klein. Lange Listen sollen die Page nicht mehr scrollen lassen.
+
+- **Einstellung pro Widget „Höhe: Bis Fensterende / Nach Inhalt“** in den Widget-Einstellungen,
+  gespeichert in den Settings des Widgets (`height: 'window' | 'content'`). Kein Schema-Sprung:
+  Die Validierung ergänzt das Feld. RSS: Standard „Bis Fensterende“, auch für bestehende Widgets
+  ohne das Feld. Link-Board: Standard „Nach Inhalt“; „Bis Fensterende“ wirkt nur, solange der
+  aktive Tab die Listenansicht zeigt (Kacheln und Kapseln bleiben so hoch wie ihr Inhalt). Uhr,
+  Kalender und Suche haben keine wachsenden Listen und bekommen die Einstellung nicht.
+- **Verhalten:** Die Liste zeigt so viele **ganze** Einträge, wie bis zum unteren Fensterrand
+  passen: Fensterhöhe abzüglich der Oberkante der Liste auf der nicht gescrollten Page, dessen,
+  was im Panel darunter steht (Fuß, Innenabstände), und des unteren Seitenrands. Keine eigene
+  Scrollleiste, keine halben Einträge, mindestens 3. Darunter steht „n weitere anzeigen“; das
+  klappt die Liste aus (die Page scrollt dann bewusst) und wird zu „Weniger anzeigen“. Beim
+  nächsten Öffnen und beim Wechsel der Kategorie bzw. des Tabs ist die Liste wieder gekürzt. Die
+  Ansage meldet Aus- und Einklappen.
+- **Reine Funktionen** in `layout/window-fit.ts` (`fitCount`, `listSpace`) mit Tests. Gezählt
+  wird über die Unterkanten der Einträge, damit unterschiedlich hohe Einträge (zwei Zeilen,
+  Zusammenfassung, Bilder) stimmen. Passt alles, braucht es keinen Platz für den Knopf.
+- **Messen nur bei Anlässen** (`window-fit.svelte.ts`): `ResizeObserver` auf Liste, Panel und
+  Spalte (Layout, Dichte, Sidebar, neue Einträge), Fenstergröße und Schriftladen, gebündelt in
+  einen Frame. Kein Messen im Leerlauf (§7.1). Was unter der Liste steht, wird aus den folgenden
+  Geschwistern berechnet, nicht aus der Unterkante des Panels, weil ein höherer Nachbar in der
+  Zeile das Panel streckt.
+- **Gekürzt** wird mit `max-height` und `overflow: clip` nach dem letzten ganzen Eintrag. Die
+  abgeschnittenen Einträge bleiben gerendert (sie werden gemessen), sind aber `inert`; Pfeiltasten,
+  `Pos1`/`Ende` und der Roving Tabindex bleiben bei den sichtbaren. „Link hinzufügen“ steht in der
+  Listenansicht dann unter der Liste statt in ihr, damit es sichtbar bleibt.
+- **Schmale Stufe (eine Spalte):** immer „Nach Inhalt“, die Page scrollt dort ohnehin. In der
+  Sidebar und in den Seitenspalten gilt die Regel relativ zum Fenster.
+- **Höchsthöhe der Zeile:** Für Widgets mit „Bis Fensterende“ wird sie ignoriert, aber nicht
+  gelöscht (`LayoutRow.maxHeight` bleibt stehen) und wirkt wieder mit „Nach Inhalt“ oder in der
+  schmalen Stufe. Der Griff zum Ziehen erscheint nur, wenn mindestens ein Widget der Zeile nicht
+  bis zum Fensterende reicht.
+- **Grenze:** Stehen zwei Widgets mit „Bis Fensterende“ untereinander in einer Spalte, nimmt das
+  obere den Platz bis zum Fensterrand, das untere zeigt nur die Mindestzahl. Panels unterhalb
+  eines solchen Widgets werden nicht eingerechnet.
+- **Geprüft** im Vorschau-Browser (Links-Liste nach Inhalt, darunter RSS mit 30 Einträgen in der
+  rechten Seite): 1440 × 800 und 1280 × 720 mit offener Sidebar, 2000 × 1100 mit Sidebar (Mitte
+  14/24) und dreispaltig (Mitte 12/24). RSS endet jeweils über dem Fensterrand, 3–8 ganze
+  Einträge, Ausklappen per Klick und Tastatur, Ansage mit Anzahl. Bei 760 px Breite (eine
+  Spalte) zeigt RSS alle Einträge.

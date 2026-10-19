@@ -10,6 +10,7 @@ import {
 	str,
 	uniqueId
 } from '$lib/config/parse';
+import { HEIGHT_MODES, type HeightMode } from '$lib/layout/window-fit';
 
 export type LinkTarget = 'self' | 'blank';
 export type LinkView = 'capsules' | 'tiles' | 'list';
@@ -40,6 +41,8 @@ export type LinksSettings = {
 	showStats: boolean;
 	/** Kantenlänge der Icon-Fläche in der Kachel-Ansicht in px */
 	tileSize: number;
+	/** Gilt nur für Tabs in der Listenansicht: „Bis Fensterende“ oder so hoch wie der Inhalt */
+	height: HeightMode;
 };
 
 export const LINK_VIEWS: readonly LinkView[] = ['capsules', 'tiles', 'list'];
@@ -69,7 +72,13 @@ export function createTab(label = '', view: LinkView = 'tiles'): LinkTab {
 
 export const defaultLinksSettings = (): LinksSettings => {
 	const tab = createTab();
-	return { tabs: [tab], activeTabId: tab.id, showStats: false, tileSize: TILE_SIZE.default };
+	return {
+		tabs: [tab],
+		activeTabId: tab.id,
+		showStats: false,
+		tileSize: TILE_SIZE.default,
+		height: 'content'
+	};
 };
 
 /** Prüft eine URL; `javascript:` und `data:` sind als Link-Ziel nicht erlaubt */
@@ -125,8 +134,19 @@ export function parseLinksSettings(raw: unknown): LinksSettings {
 		tabs,
 		activeTabId: tabs.some((tab) => tab.id === activeTabId) ? activeTabId : tabs[0].id,
 		showStats: bool(r.showStats, false),
-		tileSize: snapTileSize(int(r.tileSize, TILE_SIZE.default))
+		tileSize: snapTileSize(int(r.tileSize, TILE_SIZE.default)),
+		height: oneOf(r.height, HEIGHT_MODES, 'content')
 	};
+}
+
+/** Aktiver Tab; fällt auf den ersten zurück */
+export function activeLinkTab(settings: Pick<LinksSettings, 'tabs' | 'activeTabId'>): LinkTab {
+	return settings.tabs.find((tab) => tab.id === settings.activeTabId) ?? settings.tabs[0];
+}
+
+/** „Bis Fensterende“ wirkt nur, wenn der aktive Tab die Listenansicht zeigt */
+export function linksFillWindow(settings: LinksSettings): boolean {
+	return settings.height === 'window' && activeLinkTab(settings).view === 'list';
 }
 
 /** Begrenzt auf den erlaubten Bereich und rastet auf die Schrittweite ein */

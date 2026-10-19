@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { t } from '$lib/i18n/index.svelte';
+	import Segmented from '$lib/ui/Segmented.svelte';
 	import Switch from '$lib/ui/Switch.svelte';
 	import type { WidgetSettingsProps } from '../types';
 	import { snapTileSize, TILE_SIZE, type LinksSettings } from './settings';
@@ -44,6 +45,20 @@
 			<span>{t('links.tileLarge')}</span>
 		</div>
 		<p class="field-hint" id="{id}-tile-hint">{t('links.tileSizeHint')}</p>
+	</div>
+
+	<div class="field">
+		<span class="field-label">{t('fit.height')}</span>
+		<Segmented
+			label={t('fit.height')}
+			value={settings.height}
+			options={[
+				{ value: 'window', label: t('fit.window') },
+				{ value: 'content', label: t('fit.content') }
+			]}
+			onchange={(value) => update((s) => (s.height = value))}
+		/>
+		<p class="field-hint">{t('fit.hintLinks')}</p>
 	</div>
 </div>
 

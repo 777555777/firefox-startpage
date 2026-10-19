@@ -4,7 +4,8 @@ import {
 	parseLinksSettings,
 	snapTileSize,
 	TILE_SIZE,
-	tileMetrics
+	tileMetrics,
+	linksFillWindow
 } from './settings';
 
 describe('Kachelgröße', () => {
@@ -34,5 +35,28 @@ describe('Kachelgröße', () => {
 		expect(small.column).toBeLessThan(large.column);
 		// Das Icon bleibt immer kleiner als seine Fläche
 		expect(large.icon).toBeLessThan(TILE_SIZE.max);
+	});
+});
+
+describe('Höhe „Bis Fensterende“', () => {
+	it('ist für Link-Boards standardmäßig „Nach Inhalt“', () => {
+		expect(defaultLinksSettings().height).toBe('content');
+		expect(parseLinksSettings({}).height).toBe('content');
+		expect(parseLinksSettings({ height: 'window' }).height).toBe('window');
+		expect(parseLinksSettings({ height: 'hoch' }).height).toBe('content');
+	});
+
+	it('wirkt nur, wenn der aktive Tab die Listenansicht zeigt', () => {
+		const settings = parseLinksSettings({
+			height: 'window',
+			activeTabId: 'b',
+			tabs: [
+				{ id: 'a', label: 'A', view: 'tiles', links: [] },
+				{ id: 'b', label: 'B', view: 'list', links: [] }
+			]
+		});
+		expect(linksFillWindow(settings)).toBe(true);
+		expect(linksFillWindow({ ...settings, activeTabId: 'a' })).toBe(false);
+		expect(linksFillWindow({ ...settings, height: 'content' })).toBe(false);
 	});
 });

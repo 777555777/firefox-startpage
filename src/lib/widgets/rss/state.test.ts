@@ -52,6 +52,13 @@ const widget = (urls: string[], intervalMinutes: RssSettings['intervalMinutes'] 
 	parseRssSettings({ feeds: urls.map((url) => ({ url })), intervalMinutes });
 
 describe('RSS-Einstellungen', () => {
+	it('reicht standardmäßig bis zum Fensterende, auch bei bestehenden Widgets', () => {
+		expect(parseRssSettings(undefined).height).toBe('window');
+		expect(parseRssSettings({ feeds: [{ url: A }] }).height).toBe('window');
+		expect(parseRssSettings({ height: 'content' }).height).toBe('content');
+		expect(parseRssSettings({ height: 'voll' }).height).toBe('window');
+	});
+
 	it('ergänzt Fehlendes', () => {
 		const settings = parseRssSettings(undefined);
 		const { tabs: _tabs, activeTabId: _active, ...rest } = defaultRssSettings();

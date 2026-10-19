@@ -1,4 +1,5 @@
-import { array, bool, createId, int, record, str, uniqueId } from '$lib/config/parse';
+import { array, bool, createId, int, oneOf, record, str, uniqueId } from '$lib/config/parse';
+import { HEIGHT_MODES, type HeightMode } from '$lib/layout/window-fit';
 import { feedUrlOrNull } from '$lib/net/feed-url';
 
 export type RssFeed = {
@@ -33,6 +34,8 @@ export type RssSettings = {
 	/** Titelbilder laden direkt von den Servern der Feeds, deshalb standardmäßig aus */
 	showImages: boolean;
 	hideRead: boolean;
+	/** „Bis Fensterende“ zeigt so viele ganze Einträge, wie bis zum unteren Rand passen */
+	height: HeightMode;
 };
 
 /** Feeds pro Tab */
@@ -56,7 +59,8 @@ export const defaultRssSettings = (): RssSettings => {
 		intervalMinutes: 30,
 		showSummary: false,
 		showImages: false,
-		hideRead: false
+		hideRead: false,
+		height: 'window'
 	};
 };
 
@@ -109,7 +113,9 @@ export function parseRssSettings(raw: unknown): RssSettings {
 		intervalMinutes: snapInterval(r.intervalMinutes, d.intervalMinutes),
 		showSummary: bool(r.showSummary, d.showSummary),
 		showImages: bool(r.showImages, d.showImages),
-		hideRead: bool(r.hideRead, d.hideRead)
+		hideRead: bool(r.hideRead, d.hideRead),
+		// Auch bestehende Widgets ohne das Feld reichen bis zum Fensterende
+		height: oneOf(r.height, HEIGHT_MODES, d.height)
 	};
 }
 

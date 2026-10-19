@@ -5,6 +5,7 @@ import Clock from './clock/Clock.svelte';
 import ClockSettings from './clock/ClockSettings.svelte';
 import LinkBoard from './links/LinkBoard.svelte';
 import LinkBoardSettings from './links/LinkBoardSettings.svelte';
+import { linksFillWindow } from './links/settings';
 import RssFeed from './rss/RssFeed.svelte';
 import RssSettings from './rss/RssSettings.svelte';
 import Search from './search/Search.svelte';
@@ -47,7 +48,8 @@ export const registry: { [K in WidgetType]: WidgetDefinition<WidgetSettingsMap[K
 		icon: 'link',
 		...widgetSettings.links,
 		component: LinkBoard,
-		settingsComponent: LinkBoardSettings
+		settingsComponent: LinkBoardSettings,
+		fillsWindow: linksFillWindow
 	},
 	rss: {
 		type: 'rss',
@@ -57,7 +59,8 @@ export const registry: { [K in WidgetType]: WidgetDefinition<WidgetSettingsMap[K
 		component: RssFeed,
 		settingsComponent: RssSettings,
 		// Kopf bleibt stehen, nur die Liste scrollt
-		scrollsSelf: true
+		scrollsSelf: true,
+		fillsWindow: (settings) => settings.height === 'window'
 	}
 };
 

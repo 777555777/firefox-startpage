@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { createId } from '$lib/config/parse';
 	import { Sortable } from '$lib/dnd/sortable.svelte';
+	import FitMore from '$lib/layout/FitMore.svelte';
+	import { WindowFit, windowFitContext } from '$lib/layout/window-fit.svelte';
 	import { i18n, t } from '$lib/i18n/index.svelte';
 	import { getApp } from '$lib/state/context';
 	import { toasts } from '$lib/state/toasts.svelte';
@@ -24,7 +26,14 @@
 	} from './operations';
 	import TabDialog from './TabDialog.svelte';
 	import { density } from '$lib/state/density.svelte';
-	import { TILE_SIZE, tileMetrics, type Link, type LinksSettings, type LinkTab } from './settings';
+	import {
+		linksFillWindow,
+		TILE_SIZE,
+		tileMetrics,
+		type Link,
+		type LinksSettings,
+		type LinkTab
+	} from './settings';
 
 	let { id, settings, update }: WidgetProps<LinksSettings> = $props();
 
@@ -49,13 +58,38 @@
 	let root: HTMLElement;
 	let list = $state<HTMLElement>();
 
+	// --- Höhe „Bis Fensterende“ (nur Listenansicht): ganze Links, darunter „Weitere anzeigen“ -
+
+	const fitContext = windowFitContext();
+	const fit = new WindowFit();
+	/** Ausgeklappt nur bis zum nächsten Öffnen der Page bzw. bis zum Wechsel des Tabs */
+	let expanded = $state(false);
+	const fitting = $derived(fitContext.allowed && linksFillWindow(settings));
+	/** So viele Links sind zu sehen und erreichbar; null = alle */
+	const limit = $derived(
+		fitting &&
+			!expanded &&
+			fit.height !== null &&
+			fit.count !== null &&
+			fit.count < activeTab.links.length
+			? fit.count
+			: null
+	);
+
+	$effect(() => {
+		void activeTab.id;
+		expanded = false;
+	});
+
 	// --- Roving Tabindex --------------------------------------------------------------------
 
 	let focusIndex = $state(0);
 	const tabIndexFor = (index: number) =>
-		index === Math.min(focusIndex, activeTab.links.length - 1) ? 0 : -1;
+		index === Math.min(focusIndex, (limit ?? activeTab.links.length) - 1) ? 0 : -1;
 
-	const linkElements = () => [...(list?.querySelectorAll<HTMLElement>('[data-link]') ?? [])];
+	/** Erreichbare Links; abgeschnittene zählen nicht */
+	const linkElements = () =>
+		[...(list?.querySelectorAll<HTMLElement>('[data-link]') ?? [])].slice(0, limit ?? undefined);
 
 	function focusLink(index: number) {
 		focusIndex = index;
@@ -348,13 +382,22 @@
 		</button>
 	</div>
 
-	<div class="panel" role="tabpanel" id="{uid}-panel" aria-labelledby="{uid}-tab-{activeTab.id}">
+	<div
+		class="panel"
+		class:fit-panel={fitting}
+		role="tabpanel"
+		id="{uid}-panel"
+		aria-labelledby="{uid}-tab-{activeTab.id}"
+	>
 		{#if activeTab.links.length === 0}
 			<p class="empty">{t('links.empty')}</p>
 		{/if}
 		<ul
 			bind:this={list}
+			id="{uid}-links"
 			class="links {activeTab.view}"
+			class:clipped={limit !== null}
+			style:max-height={limit !== null ? `${fit.height}px` : undefined}
 			style:--tile="{tileSize}px"
 			style:--tile-radius="{tile.radius}px"
 			style:--tile-column="{tile.column}px"
@@ -362,11 +405,13 @@
 				id: activeTab.id,
 				axis: activeTab.view === 'list' ? 'vertical' : 'grid'
 			})}
+			{@attach fit.attach(fitting && !expanded)}
 		>
 			{#each activeTab.links as link, index (link.id)}
 				{@const stat = stats[link.url]}
 				{@const title = linkTitle(link)}
-				<li class="item">
+				<!-- Gekürzt: Links unterhalb sind abgeschnitten und nicht erreichbar -->
+				<li class="item" inert={limit !== null && index >= limit}>
 					<a
 						class="link {activeTab.view}"
 						class:dragging={linkSort.isDragging(link.id)}
@@ -408,19 +453,38 @@
 					</a>
 				</li>
 			{/each}
-			<li class="item add-item">
-				<button type="button" class="add {activeTab.view}" onclick={addLink}>
-					{#if activeTab.view === 'tiles'}
-						<span class="tile-icon"><Icon name="plus" size={tile.plus} /></span>
-					{:else}
-						<Icon name="plus" size={16} />
-					{/if}
-					<span class="label">{t('links.addLink')}</span>
-				</button>
-			</li>
+			{#if !fitting}
+				<li class="item add-item">
+					{@render addButton()}
+				</li>
+			{/if}
 		</ul>
+		{#if fitting}
+			<!-- Außerhalb der Liste, damit „Link hinzufügen“ beim Kürzen sichtbar bleibt -->
+			{#if limit !== null || expanded}
+				<FitMore
+					hidden={activeTab.links.length - (limit ?? activeTab.links.length)}
+					bind:expanded
+					controls="{uid}-links"
+				/>
+			{/if}
+			<div class="item add-item">
+				{@render addButton()}
+			</div>
+		{/if}
 	</div>
 </div>
+
+{#snippet addButton()}
+	<button type="button" class="add {activeTab.view}" onclick={addLink}>
+		{#if activeTab.view === 'tiles'}
+			<span class="tile-icon"><Icon name="plus" size={tile.plus} /></span>
+		{:else}
+			<Icon name="plus" size={16} />
+		{/if}
+		<span class="label">{t('links.addLink')}</span>
+	</button>
+{/snippet}
 
 <Menu
 	bind:anchor={linkMenu.anchor}
@@ -559,6 +623,18 @@
 	}
 
 	.links.list {
+		/* Bezugsrahmen fürs Messen der Einträge bei „Bis Fensterende“ */
+		position: relative;
+		display: grid;
+		gap: 2px;
+
+		&.clipped {
+			overflow: clip;
+		}
+	}
+
+	/* Bis Fensterende: Liste, „Weitere anzeigen“ und „Link hinzufügen“ untereinander */
+	.fit-panel {
 		display: grid;
 		gap: 2px;
 	}

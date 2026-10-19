@@ -11,6 +11,8 @@
 
 <script lang="ts">
 	import { Sortable } from '$lib/dnd/sortable.svelte';
+	import FitMore from '$lib/layout/FitMore.svelte';
+	import { WindowFit, windowFitContext } from '$lib/layout/window-fit.svelte';
 	import { i18n, t } from '$lib/i18n/index.svelte';
 	import { patternsFor, requestAccess } from '$lib/net/permissions';
 	import { getApp } from '$lib/state/context';
@@ -198,13 +200,36 @@
 		];
 	});
 
+	// --- Höhe „Bis Fensterende“: nur ganze Einträge, darunter „Weitere anzeigen“ -----------
+
+	const fitContext = windowFitContext();
+	const fit = new WindowFit();
+	/** Ausgeklappt nur bis zum nächsten Öffnen der Page bzw. bis zum Wechsel der Kategorie */
+	let expanded = $state(false);
+	const fitting = $derived(fitContext.allowed && settings.height === 'window');
+	/** So viele Einträge sind zu sehen und erreichbar; null = alle */
+	const limit = $derived(
+		fitting && !expanded && fit.height !== null && fit.count !== null && fit.count < items.length
+			? fit.count
+			: null
+	);
+	const reachable = $derived(limit ?? items.length);
+
+	$effect(() => {
+		void activeTab.id;
+		expanded = false;
+	});
+
 	// --- Tastatur: ein Tab-Stopp für die ganze Liste (Roving Tabindex) -----------------------
 
 	let list = $state<HTMLElement>();
 	let activeKey = $state<string | null>(null);
-	/** Der fokussierbare Eintrag: der zuletzt gewählte, solange es ihn gibt, sonst der erste */
+	/**
+	 * Der fokussierbare Eintrag: der zuletzt gewählte, solange es ihn gibt und er zu sehen ist,
+	 * sonst der erste
+	 */
 	const focusKey = $derived(
-		items.some((entry) => keyOf(entry) === activeKey)
+		items.slice(0, reachable).some((entry) => keyOf(entry) === activeKey)
 			? activeKey
 			: items[0]
 				? keyOf(items[0])
@@ -224,7 +249,7 @@
 			0,
 			items.findIndex((entry) => keyOf(entry) === focusKey)
 		);
-		const last = items.length - 1;
+		const last = reachable - 1;
 		const targets: Record<string, number> = {
 			ArrowDown: Math.min(last, current + 1),
 			ArrowUp: Math.max(0, current - 1),
@@ -495,13 +520,17 @@
 			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 			<ul
 				bind:this={list}
+				id="{uid}-list"
 				class="list"
+				class:clipped={limit !== null}
+				style:max-height={limit !== null ? `${fit.height}px` : undefined}
 				class:fade-top={area.fadeTop}
 				class:fade-bottom={area.fadeBottom}
 				aria-label={t('rss.entries')}
 				aria-describedby={hintId}
 				onkeydown={onListKeydown}
 				{@attach area.attach}
+				{@attach fit.attach(fitting && !expanded)}
 			>
 				{#each items as entry, i (keyOf(entry))}
 					{@const state = cache[entry.feedUrl]}
@@ -510,7 +539,8 @@
 						settings.showImages && entry.item.image && !failedImages.has(entry.item.image)
 							? entry.item.image
 							: null}
-					<li class="entry" class:unread={!entry.read}>
+					<!-- Gekürzt: Einträge unterhalb sind abgeschnitten und nicht erreichbar -->
+					<li class="entry" class:unread={!entry.read} inert={limit !== null && i >= limit}>
 						<a
 							class="item"
 							href={entry.item.url ?? undefined}
@@ -568,6 +598,13 @@
 					</li>
 				{/each}
 			</ul>
+			{#if limit !== null || expanded}
+				<FitMore
+					hidden={items.length - (limit ?? items.length)}
+					bind:expanded
+					controls="{uid}-list"
+				/>
+			{/if}
 			<p id={hintId} class="visually-hidden">{t('rss.listHint')}</p>
 		{/if}
 
@@ -798,6 +835,12 @@
 				#000 calc(100% - var(--fade)),
 				transparent
 			);
+		}
+
+		/* Bis Fensterende gekürzt: abgeschnitten nach dem letzten ganzen Eintrag, ohne Scrollen */
+		&.clipped {
+			flex: none;
+			overflow: clip;
 		}
 	}
 

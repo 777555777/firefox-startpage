@@ -86,7 +86,13 @@ function tab(label: string, view: LinkView, links: Link[]): LinkTab {
 }
 
 function board(tabs: LinkTab[]): LinksSettings {
-	return { tabs, activeTabId: tabs[0].id, showStats: false, tileSize: TILE_SIZE.default };
+	return {
+		tabs,
+		activeTabId: tabs[0].id,
+		showStats: false,
+		tileSize: TILE_SIZE.default,
+		height: 'content'
+	};
 }
 
 /** Zeile mit einem Widget über die ganze Breite seines Bereichs */

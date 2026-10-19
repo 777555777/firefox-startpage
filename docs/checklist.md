@@ -67,6 +67,18 @@ Pro Meilenstein einmal durchgehen. Nicht zutreffende Punkte (noch nicht gebaut) 
 - [ ] Bearbeiten-Knopf liegt im rechten Rand und verdeckt keine Kachel, auch beim Scrollen
 - [ ] Kontrast bei Tag und Nacht in kompakter Dichte (WebGL und Static)
 
+## Höhe „Bis Fensterende“
+
+- [ ] RSS (auch ein bestehendes) endet über dem unteren Fensterrand, nur ganze Einträge, mindestens 3
+- [ ] Laptop und Desktop: kein Scrollen wegen RSS, auf dem Desktop mehr Einträge als auf dem Laptop
+- [ ] „n weitere anzeigen“ klappt aus (Page scrollt), „Weniger anzeigen“ kürzt wieder, Ansage mit Anzahl
+- [ ] Nach Neuladen und beim Wechsel der Kategorie ist die Liste wieder gekürzt
+- [ ] Tastatur: Pfeile/`Pos1`/`Ende` bleiben bei den sichtbaren Einträgen, Knopf per `Tab` erreichbar
+- [ ] Fenstergröße, Dichte, Sidebar öffnen/schließen: Anzahl passt sich an, kein Flackern im Leerlauf
+- [ ] Link-Board in Listenansicht mit „Bis Fensterende“: „Link hinzufügen“ bleibt unter der Liste sichtbar
+- [ ] Edit-Modus: kein Höhen-Griff unter einer Zeile mit RSS; mit „Nach Inhalt“ wirkt eine alte Höhe wieder
+- [ ] Eine Spalte (schmales Fenster): RSS zeigt alle Einträge
+
 ## Ab M3
 
 - [ ] Uhr tickt auf die Sekunde, Kalender blättert, Feiertage mit Tooltip

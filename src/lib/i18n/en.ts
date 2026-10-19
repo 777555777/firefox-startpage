@@ -144,6 +144,23 @@ export const en: Dictionary = {
 	'rss.showImages': 'Show images',
 	'rss.imagesHint': 'Images load directly from the feeds’ servers.',
 	'rss.hideRead': 'Hide read entries',
+	'fit.height': 'Height',
+	'fit.window': 'To window bottom',
+	'fit.content': 'Fit content',
+	'fit.hintRss':
+		'“To window bottom” shows as many whole entries as fit above the bottom of the window, followed by “Show more”. At least three.',
+	'fit.hintLinks':
+		'Applies to groups in the list view: “To window bottom” shows as many links as fit above the bottom of the window, followed by “Show more”.',
+	'fit.showMore': {
+		one: 'Show one more',
+		other: 'Show {count} more'
+	},
+	'fit.showLess': 'Show less',
+	'fit.expanded': {
+		one: 'One more entry shown',
+		other: '{count} more entries shown'
+	},
+	'fit.collapsed': 'List shortened again',
 	'rss.heightHint':
 		'The widget’s maximum height can be set in edit mode with the handle below its row. Beyond that, the list scrolls.',
 	'widget.crashed': 'This widget could not be displayed.',

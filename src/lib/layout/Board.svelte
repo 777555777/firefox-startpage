@@ -48,6 +48,7 @@
 	import Sidebar, { type TabInfo } from './Sidebar.svelte';
 	import { sidebar } from './sidebar-store.svelte';
 	import { effectiveSide } from './sidebar-state';
+	import { setWindowFitContext } from './window-fit.svelte';
 	import WidgetPanel from './WidgetPanel.svelte';
 
 	const app = getApp();
@@ -80,6 +81,20 @@
 	});
 
 	const stage = $derived(layoutStage(layout, available, remPx));
+
+	// „Bis Fensterende“ gilt nicht in der schmalen Stufe: Dort scrollt die Page ohnehin
+	setWindowFitContext({
+		get allowed() {
+			return stage !== 'stacked';
+		}
+	});
+
+	/** Reicht das Widget gerade bis zum Fensterende? Dann gilt die Höchsthöhe der Zeile nicht */
+	function fillsWindow(id: string): boolean {
+		const instance = config.widgets[id];
+		if (!instance || stage === 'stacked') return false;
+		return definitionOf(instance.type).fillsWindow?.(instance.settings) ?? false;
+	}
 	const tabs = $derived(stage === 'sidebar' ? sidebarTabs(layout, ui.editing) : []);
 	$effect.pre(() => {
 		sidebar.tabs = tabs;
@@ -556,6 +571,7 @@
 				{row}
 				stacked={!rowFits(row.spans, columnPx(area), layout.panelGap, remPx)}
 				editing={ui.editing}
+				heightLocked={row.items.every(fillsWindow)}
 				onresize={(index, left, mirror) => resizeRow(area, r, index, left, mirror)}
 				onequalize={() => setRows(equalizeRow(layout.columnRows, area, r))}
 				onheight={(value) => setRows(setRowHeight(layout.columnRows, area, r, value))}
@@ -566,7 +582,7 @@
 						<WidgetPanel
 							{instance}
 							column={area}
-							maxHeight={row.maxHeight}
+							maxHeight={fillsWindow(id) ? undefined : row.maxHeight}
 							{sortable}
 							editing={ui.editing}
 							grabbed={grabbed?.id === id}

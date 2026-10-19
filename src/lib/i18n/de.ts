@@ -147,6 +147,23 @@ export const de = {
 	'rss.showImages': 'Titelbilder zeigen',
 	'rss.imagesHint': 'Die Bilder laden direkt von den Servern der Feeds.',
 	'rss.hideRead': 'Gelesene ausblenden',
+	'fit.height': 'Höhe',
+	'fit.window': 'Bis Fensterende',
+	'fit.content': 'Nach Inhalt',
+	'fit.hintRss':
+		'„Bis Fensterende“ zeigt so viele ganze Einträge, wie bis zum unteren Fensterrand passen, darunter „Weitere anzeigen“. Mindestens drei.',
+	'fit.hintLinks':
+		'Gilt für Gruppen in der Listenansicht: „Bis Fensterende“ zeigt so viele Links, wie bis zum unteren Fensterrand passen, darunter „Weitere anzeigen“.',
+	'fit.showMore': {
+		one: 'Einen weiteren anzeigen',
+		other: '{count} weitere anzeigen'
+	},
+	'fit.showLess': 'Weniger anzeigen',
+	'fit.expanded': {
+		one: 'Ein weiterer Eintrag angezeigt',
+		other: '{count} weitere Einträge angezeigt'
+	},
+	'fit.collapsed': 'Liste wieder gekürzt',
 	'rss.heightHint':
 		'Wie hoch das Widget höchstens wird, lässt sich im Bearbeiten-Modus am Griff unter seiner Zeile einstellen. Darüber scrollt die Liste.',
 	'widget.crashed': 'Dieses Widget konnte nicht angezeigt werden.',

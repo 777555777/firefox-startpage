@@ -21,6 +21,7 @@
 		row,
 		stacked,
 		editing,
+		heightLocked = false,
 		panel,
 		onresize,
 		onequalize,
@@ -29,6 +30,8 @@
 		row: LayoutRow;
 		stacked: boolean;
 		editing: boolean;
+		/** Alle Widgets reichen bis zum Fensterende; dann gibt es keinen Griff für die Höhe */
+		heightLocked?: boolean;
 		panel: Snippet<[string]>;
 		onresize: (index: number, left: number, mirror: boolean) => void;
 		onequalize: () => void;
@@ -195,7 +198,7 @@
 		{/if}
 	{/each}
 
-	{#if editing}
+	{#if editing && !heightLocked}
 		<!-- Fokussierbarer Separator mit Wert ist das ARIA-Muster „Window Splitter“ -->
 		<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 		<div

@@ -413,6 +413,20 @@
 		/>
 	</div>
 
+	<div class="field">
+		<span class="field-label">{t('fit.height')}</span>
+		<Segmented
+			label={t('fit.height')}
+			value={settings.height}
+			options={[
+				{ value: 'window', label: t('fit.window') },
+				{ value: 'content', label: t('fit.content') }
+			]}
+			onchange={(value) => update((s) => (s.height = value))}
+		/>
+		<p class="field-hint">{t('fit.hintRss')}</p>
+	</div>
+
 	<div class="switches">
 		<Switch
 			label={t('rss.showSummary')}

@@ -40,4 +40,9 @@ export type WidgetDefinition<S> = {
 	 * und muss selbst `min-height: 0` setzen.
 	 */
 	scrollsSelf?: boolean;
+	/**
+	 * Das Widget reicht gerade bis zum unteren Fensterrand („Bis Fensterende“) und kürzt seine
+	 * Liste selbst. Das Board ignoriert dann die Höchsthöhe der Zeile und blendet ihren Griff aus.
+	 */
+	fillsWindow?: (settings: S) => boolean;
 };
