@@ -16,6 +16,7 @@
 		"ext:lint": "vite build && web-ext lint",
 		"ext:build": "vite build && web-ext build --overwrite-dest",
 		"ext:sign": "vite build && node scripts/sign.js",
+		"gitlab:probe": "node --env-file-if-exists=.env.local scripts/gitlab-probe.ts",
 		"preversion": "pnpm check && pnpm lint && pnpm test && pnpm ext:lint"
 	},
 	"devDependencies": {
